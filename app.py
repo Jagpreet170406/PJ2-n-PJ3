@@ -14,5 +14,13 @@ def inventory():
 def cart():
     return render_template("cart.html")
 
+@app.route("/zhenghong")
+def zheonghong():
+    return render_template("zhenghong.html")
+
+@app.route("/nabil")
+def zheonghong():
+    return render_template("nabil.html")
+
 if __name__ == '__main__':
     app.run(debug=True)
