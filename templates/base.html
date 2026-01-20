@@ -13,8 +13,11 @@
     {% endblock %}
 </head>
 <body>
+    
+    {% block navbar %}
+        {% include 'includes/_navbar.html' %}
+    {% endblock %}
 
-    {% include 'includes/_navbar.html' %}
 
     <div class="container-fluid mt-4">
         {% block content %}

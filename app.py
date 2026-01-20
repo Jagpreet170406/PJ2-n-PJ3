@@ -19,8 +19,8 @@ def zheonghong():
     return render_template("zhenghong.html")
 
 @app.route("/nabil2.html")
-def zheonghong():
-    return render_template("nabil.html")
+def nabil2():
+    return render_template("nabil2.html")
 
 if __name__ == '__main__':
     app.run(debug=True)
