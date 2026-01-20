@@ -12,7 +12,7 @@ def inventory():
 
 @app.route("/cart")
 def cart():
-    return render_template("cart.html")
+    return render_template('cart.html')
 
 @app.route("/zhenghong")
 def zheonghong():
