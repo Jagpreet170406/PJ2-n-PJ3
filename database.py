@@ -3,7 +3,34 @@ import sqlite3
 conn = sqlite3.connect("database.db")
 cursor = conn.cursor()
 
-print("Database created successfully")
+# SALES TABLE
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS sales (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    invoice_no TEXT,
+    sale_date TEXT,
+    product_code TEXT,
+    brand TEXT,
+    quantity INTEGER,
+    unit_price REAL,
+    total_amount REAL
+)
+""")
 
+# INVENTORY TABLE
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS inventory (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company TEXT,
+    product_code TEXT,
+    product_name TEXT,
+    stock_qty INTEGER,
+    snapshot_date TEXT
+)
+""")
+
+conn.commit()
 conn.close()
+
+print("Tables created successfully")
 
