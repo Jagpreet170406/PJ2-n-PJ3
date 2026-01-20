@@ -18,7 +18,7 @@ def cart():
 def zheonghong():
     return render_template("zhenghong.html")
 
-@app.route("/nabil")
+@app.route("/nabil2.html")
 def zheonghong():
     return render_template("nabil.html")
 
