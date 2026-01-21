@@ -1,13 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HELLO NIGGER</title>
-</head>
-<body>
-    <p>
-        ngiuz
-    </p>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-center mt-5">
+    <div class="card p-4 shadow" style="width: 350px;">
+        <img
+            src="{{ url_for('static', filename='images/logo.png') }}"
+            class="img-fluid mb-3"
+            alt="Logo"
+        >
+
+        <h1 class="text-center">Welcome</h1>
+        <p class="text-center text-muted">ngiuz</p>
+    </div>
+</div>
+{% endblock %}
