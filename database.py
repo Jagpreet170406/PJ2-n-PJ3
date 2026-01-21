@@ -29,8 +29,22 @@ CREATE TABLE IF NOT EXISTS inventory (
 )
 """)
 
+# PURCHASE TABLE
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS purchase (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    supplier TEXT,
+    purchase_date TEXT,
+    product_code TEXT,
+    brand TEXT,
+    quantity INTEGER,
+    unit_price REAL,
+    total_amount REAL
+)
+""")
+
 conn.commit()
 conn.close()
-
 print("Tables created successfully")
+
 
