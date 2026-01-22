@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Database Panel - Superowner</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #dc3545;
+            border-bottom: 3px solid #dc3545;
+            padding-bottom: 10px;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .nav {
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .nav a {
+            margin-right: 15px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .nav a:hover {
+            text-decoration: underline;
+        }
+        .message {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .query-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #555;
+            border-left: 4px solid #dc3545;
+            padding-left: 10px;
+        }
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+        button {
+            padding: 10px 20px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #c82333;
+        }
+        .table-section {
+            margin-bottom: 40px;
+        }
+        h3 {
+            background: #667eea;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            display: block;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+            white-space: nowrap;
+        }
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+        }
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        tr:hover {
+            background: #f0f0f0;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚠️ Database Panel (Superowner Only)</h1>
+        
+        <div class="warning">
+            ⚠️ DANGER ZONE: Direct database access. Use with extreme caution!
+        </div>
+
+        <div class="nav">
+            <a href="/home">← Back to Home</a>
+            <a href="/manage-users">User Management</a>
+            <a href="/logout">Logout</a>
+        </div>
+
+        {% if message %}
+        <div class="message">{{ message }}</div>
+        {% endif %}
+
+        <!-- SQL Query Executor -->
+        <div class="query-section">
+            <h2>Execute SQL Query</h2>
+            <form method="POST">
+                <textarea name="query" rows="6" placeholder="Enter SQL query here...
+Example: SELECT * FROM users WHERE role='admin';">{{ request.form.get('query', '') }}</textarea>
+                <button type="submit">Execute Query</button>
+            </form>
+            <p><strong>Examples:</strong></p>
+            <ul>
+                <li><code>SELECT * FROM users;</code></li>
+                <li><code>UPDATE users SET active=1 WHERE username='john';</code></li>
+                <li><code>DELETE FROM cart WHERE user_role='customer';</code></li>
+            </ul>
+        </div>
+
+        <!-- Database Tables -->
+        <h2>Database Tables (First 50 Rows)</h2>
+        {% for table_name, rows in tables.items() %}
+        <div class="table-section">
+            <h3>📊 Table: {{ table_name }}</h3>
+            {% if rows %}
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            {% for i in range(rows[0]|length) %}
+                            <th>Column {{ i }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr>
+                            {% for cell in row %}
+                            <td>{{ cell }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p><em>No data in this table.</em></p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>

@@ -1,9 +1,8 @@
 from flask import Flask, render_template, request, session, redirect, url_for
 import sqlite3
-import secrets
 
 app = Flask(__name__)
-app.secret_key = "super-secret-key"
+app.secret_key = "super-secret-key-change-this-in-production"
 DB = 'database.db'
 
 # --------------------
