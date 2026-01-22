@@ -2,17 +2,84 @@
 
 {% block title %}Home{% endblock %}
 
-{% block content %}
-<div class="d-flex justify-content-center mt-5">
-    <div class="card p-4 shadow" style="width: 350px;">
-        <img
-            src="{{ url_for('static', filename='images/logo.png') }}"
-            class="img-fluid mb-3"
-            alt="Logo"
-        >
+{% block head %}
+{{ super() }}
+<style>
+.hero-section {
+    background-color: #0f0f0f;
+    color: white;
+    padding: 6rem 0;
+    text-align: center;
+}
 
-        <h1 class="text-center">Welcome</h1>
-        <p class="text-center text-muted">ngiuz</p>
+.hero-title {
+    font-size: 3rem;
+    font-weight: 700;
+}
+
+.hero-subtitle {
+    color: #b3b3b3;
+    margin: 1.5rem 0 2.5rem;
+}
+
+.hero-btn {
+    background-color: white;
+    color: black;
+    padding: 0.9rem 2.5rem;
+    font-weight: 600;
+    border-radius: 8px;
+    text-decoration: none;
+}
+
+.features-section {
+    background-color: #0f0f0f;
+    padding: 4rem 0;
+}
+
+.feature-card {
+    background-color: #1c1c1c;
+    border: 1px solid #2a2a2a;
+    border-radius: 14px;
+    padding: 2rem;
+    color: white;
+    transition: 0.25s;
+}
+
+.feature-card:hover {
+    transform: translateY(-6px);
+}
+
+.feature-text {
+    color: #b3b3b3;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="hero-section">
+    <h1 class="hero-title">Welcome to Our Platform</h1>
+    <p class="hero-subtitle">
+        Manage inventory, sales, and analytics in one place
+    </p>
+    <a href="{{ url_for('inventory') }}" class="hero-btn">Get Started</a>
+</section>
+
+<section class="features-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-3 mb-4">
+                <div class="feature-card">📦 Inventory</div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="feature-card">🛒 Cart</div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="feature-card">📊 Dashboard</div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="feature-card">📈 Analytics</div>
+            </div>
+        </div>
     </div>
-</div>
+</section>
 {% endblock %}

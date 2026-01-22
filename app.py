@@ -22,5 +22,9 @@ def zheonghong():
 def nabil2():
     return render_template("nabil2.html")
 
+@app.route('/test-image')
+def test_image():
+    return '<img src="/static/images/logo.png" alt="test">'
+
 if __name__ == '__main__':
     app.run(debug=True)
