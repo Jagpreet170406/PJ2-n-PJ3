@@ -19,23 +19,20 @@ DB_PATH = os.path.join(BASE_DIR, "database.db")
 # -------------------------------
 # HELPER FUNCTION
 # -------------------------------
-def import_excel_to_db(sheet_path, table_name, conn, dtype_casts=None, engine=None):
-    if not os.path.exists(sheet_path):
-        print(f"❌ File not found: {sheet_path}")
-        return
+def import_excel_to_db(sheet_path, table_name, conn, dtype_casts=None, engine=None, subset_pk=None):
     df = pd.read_excel(sheet_path, engine=engine)
 
-    # Cast columns if dtype_casts provided
+    # Drop duplicates for primary key if specified
+    if subset_pk:
+        df = df.drop_duplicates(subset=subset_pk)
+
+    # Apply type casting if provided
     if dtype_casts:
         for col, dtype in dtype_casts.items():
             if col in df.columns:
-                if dtype == int:
-                    df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
-                elif dtype == float:
-                    df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0).astype(float)
-                elif dtype == str:
-                    df[col] = df[col].astype(str)
-    
+                df[col] = df[col].astype(dtype)
+
+    # Insert into DB
     df.to_sql(table_name.lower(), conn, if_exists='append', index=False)
     print(f"✅ {table_name.lower()} imported successfully from {os.path.basename(sheet_path)}")
 
@@ -47,58 +44,82 @@ conn = sqlite3.connect(DB_PATH)
 # -------------------------------
 # 1️⃣ LEGENDS
 # -------------------------------
-legend_files = [f for f in os.listdir(FOLDERS["legends"]) if f.lower().endswith((".xls", ".xlsx"))]
-for f in legend_files:
-    file_path = os.path.join(FOLDERS["legends"], f)
-    import_excel_to_db(file_path, "legends", conn, dtype_casts={"legend_id": str, "legend_name": str},
-                       engine='xlrd' if f.lower().endswith(".xls") else None)
+legend_file = os.path.join(FOLDERS["legends"], "spi_legend.xlsx")
+import_excel_to_db(
+    legend_file,
+    "legends",
+    conn,
+    dtype_casts={"legend_id": str, "legend_name": str},
+    subset_pk=["legend_id"]
+)
 
 # -------------------------------
-# 2️⃣ SALES
+# 2️⃣ SALES TABLES
 # -------------------------------
 sales_files = {
-    "products": {"file": "sales_product.xlsx", "dtype": {"sku_no": str, "hem_name": str}},
-    "customers": {"file": "sales_customer.xlsx", "dtype": {"id": int, "customer_code": str}},
-    "sales_invoice_header": {"file": "sales_invoice_header.xlsx",
-                             "dtype": {"invoice_no": str, "invoice_date": str, "customer_id": int, "legend_id": str}},
-    "sales_invoice_line": {"file": "sales_invoice_line.xlsx",
-                           "dtype": {"invoice_no": str, "line_no": int, "sku_no": str, "qty": int,
-                                     "total_amt": float, "gst_amt": float}}
+    "products": "sales_product.xlsx",
+    "customers": "sales_customer.xlsx",
+    "sales_invoice_header": "sales_invoice_header.xlsx",
+    "sales_invoice_line": "sales_invoice_line.xlsx"
 }
 
-for table, info in sales_files.items():
-    path = os.path.join(FOLDERS["sales"], info["file"])
-    import_excel_to_db(path, table, conn, dtype_casts=info["dtype"])
+sales_casts = {
+    "customers": {"id": int},
+    "sales_invoice_line": {"line_no": int, "qty": int, "total_amt": float, "gst_amt": float}
+}
+
+for table, filename in sales_files.items():
+    file_path = os.path.join(FOLDERS["sales"], filename)
+    import_excel_to_db(
+        file_path,
+        table,
+        conn,
+        dtype_casts=sales_casts.get(table, None)
+    )
 
 # -------------------------------
-# 3️⃣ PURCHASE
+# 3️⃣ PURCHASE TABLES
 # -------------------------------
 purchase_files = {
-    "suppliers": {"file": "supplier.xlsx", "dtype": {"supp_id": str, "supp_name": str}},
-    "purchase_header": {"file": "purchase_header.xlsx",
-                        "dtype": {"purchase_ref_no": str, "purchase_date": str, "total_purchase": float,
-                                  "gst_amt": float, "supplier_id": str, "legend_id": str}},
-    "purchase_line": {"file": "purchase_lines.xlsx", "dtype": {"purchase_ref_no": str, "qty": int, "product_id": str}}
+    "suppliers": "suppliers.xlsx",
+    "purchase_header": "purchase_header.xlsx",
+    "purchase_line": "purchase_lines.xlsx",
+    "products": "product.xlsx"
 }
 
-for table, info in purchase_files.items():
-    path = os.path.join(FOLDERS["purchase"], info["file"])
-    import_excel_to_db(path, table, conn, dtype_casts=info["dtype"])
+purchase_casts = {
+    "purchase_header": {"total_purchase": float, "gst_amt": float},
+    "purchase_line": {"qty": int}
+}
+
+for table, filename in purchase_files.items():
+    file_path = os.path.join(FOLDERS["purchase"], filename)
+    import_excel_to_db(
+        file_path,
+        table,
+        conn,
+        dtype_casts=purchase_casts.get(table, None)
+    )
 
 # -------------------------------
-# 4️⃣ INVENTORY folder (all XLS)
+# 4️⃣ INVENTORY TABLES (multiple .xls files)
 # -------------------------------
 inventory_folder = FOLDERS["inventory"]
+inventory_columns = ['SUP_PART_NO', 'HEM_NAME', 'ORG', 'LOC_ON_SHELF', 'QTY', 'SELL_PRICE']
+
 for filename in os.listdir(inventory_folder):
     if filename.lower().endswith(".xls"):
         file_path = os.path.join(inventory_folder, filename)
         df = pd.read_excel(file_path, engine='xlrd')
-        df = df[['SUP_PART_NO', 'HEM_NAME', 'ORG', 'LOC_ON_SHELF', 'QTY', 'SELL_PRICE']]
+
+        # Keep only relevant DB columns
+        df = df[inventory_columns]
 
         # Cast numeric columns
-        df['QTY'] = pd.to_numeric(df['QTY'], errors='coerce').fillna(0).astype(int)
-        df['SELL_PRICE'] = pd.to_numeric(df['SELL_PRICE'], errors='coerce').fillna(0.0).astype(float)
+        df['QTY'] = df['QTY'].astype(int)
+        df['SELL_PRICE'] = df['SELL_PRICE'].astype(float)
 
+        # Insert into DB
         df.to_sql("inventory", conn, if_exists='append', index=False)
         print(f"✅ Imported {filename} into inventory table")
 
@@ -107,6 +128,7 @@ for filename in os.listdir(inventory_folder):
 # -------------------------------
 conn.close()
 print("\n🎉 All Excel sheets imported successfully into the database!")
+
 
 
 
