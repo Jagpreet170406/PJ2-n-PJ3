@@ -8,7 +8,7 @@ import sqlite3
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 FOLDERS = {
-    "legends": os.path.join(BASE_DIR, "LEGEND""spi_legend"),
+    "legends": os.path.join(BASE_DIR, "LEGEND"),
     "sales": os.path.join(BASE_DIR, "SALES"),
     "purchase": os.path.join(BASE_DIR, "PURCHASE"),
     "inventory": os.path.join(BASE_DIR, "INVENTORY")
