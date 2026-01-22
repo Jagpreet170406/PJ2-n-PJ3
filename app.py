@@ -1,68 +1,70 @@
 from flask import Flask, render_template, session, redirect, url_for, request
 
 app = Flask(__name__)
-app.secret_key = "super-secret-key"  # required for sessions
+app.secret_key = "secret123"
 
-# -------------------------
-# Helper: role checker
-# -------------------------
-def role_required(allowed_roles):
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            role = session.get("role")
-            if role not in allowed_roles:
-                return redirect(url_for("employee_login"))
-            return func(*args, **kwargs)
-        wrapper.__name__ = func.__name__
-        return wrapper
-    return decorator
+# --------------------
+# PUBLIC
+# --------------------
+@app.route('/employee-login')
+def employee_login():
+    return render_template('employee_login.html')
 
-# -------------------------
-# Public routes
-# -------------------------
+@app.route('/login', methods=['POST'])
+def login():
+    role = request.form.get("role")  # employee / admin
+    session["role"] = role
+    return redirect(url_for('home'))
+
+# --------------------
+# CUSTOMER
+# --------------------
+@app.route('/cart')
+def cart():
+    session["role"] = "customer"
+    return render_template('cart.html')
+
+# --------------------
+# EMPLOYEE / ADMIN
+# --------------------
 @app.route('/')
 def home():
+    if session.get("role") not in ["employee", "admin"]:
+        return redirect(url_for('employee_login'))
     return render_template('home.html')
 
-@app.route("/cart")
-def cart():
-    session["role"] = "customer"   # simulate customer role
-    return render_template("cart.html")
-
-@app.route("/employee-login")
-def employee_login():
-    return render_template("employee_login.html")
-
-# -------------------------
-# Login simulation
-# -------------------------
-@app.route("/login", methods=["POST"])
-def login():
-    role = request.form.get("role")
-
-    if role in ["employee", "admin"]:
-        session["role"] = role
-        return redirect(url_for("dashboard"))
-
-    return redirect(url_for("employee_login"))
-
-# -------------------------
-# Protected routes
-# -------------------------
-@app.route("/dashboard")
-@role_required(["employee", "admin"])
+@app.route('/dashboard')
 def dashboard():
-    return render_template("dashboard.html")
+    if session.get("role") not in ["employee", "admin"]:
+        return redirect(url_for('employee_login'))
+    return render_template('dashboard.html')
 
-@app.route("/analysis")
-@role_required(["employee", "admin"])
+@app.route('/analysis')
 def analysis():
-    return render_template("analysis.html")
+    if session.get("role") not in ["employee", "admin"]:
+        return redirect(url_for('employee_login'))
+    return render_template('analysis.html')
 
-@app.route("/inventory")
-@role_required(["admin"])
+# --------------------
+# ADMIN ONLY
+# --------------------
+@app.route('/inventory')
 def inventory():
-    return render_template("inventory.html")
+    if session.get("role") != "admin":
+        return redirect(url_for('employee_login'))
+    return render_template('inventory.html')
+
+# --------------------
+# LOGOUT
+# --------------------
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('employee_login'))
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
 
 # -------------------------
 # Logout
