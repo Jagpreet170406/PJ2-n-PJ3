@@ -57,11 +57,11 @@ for f in legend_files:
 # 2️⃣ SALES
 # -------------------------------
 sales_files = {
-    "products": {"file": "SALES_PRODUCT.xlsx", "dtype": {"sku_no": str, "hem_name": str}},
-    "customers": {"file": "SALES_CUSTOMER.xlsx", "dtype": {"id": int, "customer_code": str}},
-    "sales_invoice_header": {"file": "SALES_INVOICE_HEADER.xlsx",
+    "products": {"file": "sales_product.xlsx", "dtype": {"sku_no": str, "hem_name": str}},
+    "customers": {"file": "sales_customer.xlsx", "dtype": {"id": int, "customer_code": str}},
+    "sales_invoice_header": {"file": "sales_invoice_header.xlsx",
                              "dtype": {"invoice_no": str, "invoice_date": str, "customer_id": int, "legend_id": str}},
-    "sales_invoice_line": {"file": "SALES_INVOICE_LINE.xlsx",
+    "sales_invoice_line": {"file": "sales_invoice_line.xlsx",
                            "dtype": {"invoice_no": str, "line_no": int, "sku_no": str, "qty": int,
                                      "total_amt": float, "gst_amt": float}}
 }
@@ -74,11 +74,11 @@ for table, info in sales_files.items():
 # 3️⃣ PURCHASE
 # -------------------------------
 purchase_files = {
-    "suppliers": {"file": "SUPPLIERS.xlsx", "dtype": {"supp_id": str, "supp_name": str}},
-    "purchase_header": {"file": "PURCHASE_HEADER.xlsx",
+    "suppliers": {"file": "supplier.xlsx", "dtype": {"supp_id": str, "supp_name": str}},
+    "purchase_header": {"file": "purchase_header.xlsx",
                         "dtype": {"purchase_ref_no": str, "purchase_date": str, "total_purchase": float,
                                   "gst_amt": float, "supplier_id": str, "legend_id": str}},
-    "purchase_line": {"file": "PURCHASE_LINES.xlsx", "dtype": {"purchase_ref_no": str, "qty": int, "product_id": str}}
+    "purchase_line": {"file": "purchase_lines.xlsx", "dtype": {"purchase_ref_no": str, "qty": int, "product_id": str}}
 }
 
 for table, info in purchase_files.items():
