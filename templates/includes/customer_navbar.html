@@ -1,0 +1,74 @@
+<!-- <nav class="navbar navbar-expand-sm bg-dark navbar-dark sticky-top">
+
+    <a class="navbar-brand" href="{{ url_for('home') }}">
+      <img src="{{ url_for('static', filename='chinhon.png') }}" alt="Logo" height="50">
+    </a>
+  
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarContent">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+  
+    <div class="collapse navbar-collapse" id="navbarContent">
+        <ul class="navbar-nav">
+  
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('home') }}">Home</a>
+            </li>
+  
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+            </li>
+  
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('cart') }}">Cart</a>
+            </li>
+  
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('inventory') }}">Inventory</a>
+            </li>
+  
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbardrop" data-toggle="dropdown">
+                    Analysis
+                </a>
+                <div class="dropdown-menu">
+                    <a class="dropdown-item" href="{{ url_for('real_time_analytics') }}">
+                        Real-Time Analytics
+                    </a>
+                    <a class="dropdown-item" href="{{ url_for('market_analysis') }}">
+                        Market Analysis
+                    </a>
+                </div>
+            </li>
+  
+        </ul>
+    </div>
+  </nav>
+   -->
+  <nav class="navbar navbar-expand-sm bg-dark navbar-dark sticky-top">
+    <a class="navbar-brand" href="{{ url_for('home') }}">
+      <img src="{{ url_for('static', filename='chinhon.png') }}" alt="Logo" height="40">
+    </a>
+  
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarContentCustomer">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+  
+    <div class="collapse navbar-collapse" id="navbarContentCustomer">
+      <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('home') }}">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('cart') }}">Cart</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('inventory') }}">Inventory</a></li>
+      </ul>
+  
+
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+          <a class="nav-link btn btn-outline-light ml-2" href="{{ url_for('employee_login') }}">
+            Employee Login
+          </a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+  
