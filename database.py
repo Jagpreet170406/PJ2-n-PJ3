@@ -1,10 +1,20 @@
+import os
 import sqlite3
 
-conn = sqlite3.connect("database.db")
+# -------------------------------
+# CONFIG: Database Path
+# -------------------------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "database.db")
+
+# -------------------------------
+# CONNECT TO DB
+# -------------------------------
+conn = sqlite3.connect(DB_PATH)
 cursor = conn.cursor()
 
 # -------------------------------
-# LEGENDS
+# 1️⃣ LEGENDS
 # -------------------------------
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS legends (
@@ -14,7 +24,7 @@ CREATE TABLE IF NOT EXISTS legends (
 """)
 
 # -------------------------------
-# SALES TABLES
+# 2️⃣ SALES TABLES
 # -------------------------------
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS products (
@@ -55,7 +65,7 @@ CREATE TABLE IF NOT EXISTS sales_invoice_line (
 """)
 
 # -------------------------------
-# PURCHASE TABLES
+# 3️⃣ PURCHASE TABLES
 # -------------------------------
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS suppliers (
@@ -87,7 +97,7 @@ CREATE TABLE IF NOT EXISTS purchase_line (
 """)
 
 # -------------------------------
-# INVENTORY TABLE
+# 4️⃣ INVENTORY TABLE
 # -------------------------------
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS inventory (
@@ -100,9 +110,13 @@ CREATE TABLE IF NOT EXISTS inventory (
 )
 """)
 
+# -------------------------------
+# COMMIT AND CLOSE
+# -------------------------------
 conn.commit()
 conn.close()
-print("✅ Database and tables created successfully")
+print("✅ Database and tables are ready!")
+
 
 
 
