@@ -309,39 +309,62 @@ try:
     
     total_inventory_records = 0
     total_skipped = 0
+    files_processed = 0
+    files_skipped = 0
     
     for filename in os.listdir(inventory_folder):
         if filename.lower().endswith(".xls"):
             file_path = os.path.join(inventory_folder, filename)
-            df = pd.read_excel(file_path, engine='xlrd')
-
-            # Select only required columns
-            df = df[inventory_columns]
             
-            # Remove rows with missing required fields
-            initial_count = len(df)
-            df = df.dropna(subset=['SUP_PART_NO', 'HEM_NAME', 'QTY', 'SELL_PRICE'])
-            skipped = initial_count - len(df)
-            total_skipped += skipped
-            
-            if skipped > 0:
-                print(f"⚠️  Removed {skipped} rows with missing data from {filename}")
+            try:
+                df = pd.read_excel(file_path, engine='xlrd')
+                
+                # Check if required columns exist
+                missing_columns = [col for col in inventory_columns if col not in df.columns]
+                if missing_columns:
+                    print(f"⚠️  Skipping {filename} - missing columns: {missing_columns}")
+                    print(f"    Available columns: {df.columns.tolist()}")
+                    files_skipped += 1
+                    continue
 
-            # Cast data types (after removing NaN values)
-            df['QTY'] = df['QTY'].astype(int)
-            df['SELL_PRICE'] = df['SELL_PRICE'].astype(float)
+                # Select only required columns
+                df = df[inventory_columns]
+                
+                # Remove rows with missing required fields
+                initial_count = len(df)
+                df = df.dropna(subset=['SUP_PART_NO', 'HEM_NAME', 'QTY', 'SELL_PRICE'])
+                skipped = initial_count - len(df)
+                total_skipped += skipped
+                
+                if skipped > 0:
+                    print(f"⚠️  Removed {skipped} rows with missing data from {filename}")
 
-            # Rename columns to lowercase for consistency
-            df.columns = df.columns.str.lower()
+                # Cast data types (after removing NaN values)
+                if len(df) > 0:
+                    df['QTY'] = df['QTY'].astype(int)
+                    df['SELL_PRICE'] = df['SELL_PRICE'].astype(float)
 
-            if len(df) > 0:
-                df.to_sql("inventory", conn, if_exists='append', index=False)
-                total_inventory_records += len(df)
-                print(f"✅ {len(df)} records imported from {filename}")
+                    # Rename columns to lowercase for consistency
+                    df.columns = df.columns.str.lower()
+
+                    df.to_sql("inventory", conn, if_exists='append', index=False)
+                    total_inventory_records += len(df)
+                    files_processed += 1
+                    print(f"✅ {len(df)} records imported from {filename}")
+                else:
+                    print(f"⚠️  No valid records in {filename}")
+                    
+            except Exception as e:
+                print(f"❌ Error processing {filename}: {e}")
+                files_skipped += 1
+                continue
     
-    print(f"📊 Total inventory records: {total_inventory_records}")
+    print(f"\n📊 Inventory Import Summary:")
+    print(f"   Files processed successfully: {files_processed}")
+    print(f"   Files skipped: {files_skipped}")
+    print(f"   Total records imported: {total_inventory_records}")
     if total_skipped > 0:
-        print(f"⚠️  Total rows skipped across all files: {total_skipped}")
+        print(f"   Total rows skipped (missing data): {total_skipped}")
 
     # -------------------------------
     # COMMIT & CLOSE CONNECTION
