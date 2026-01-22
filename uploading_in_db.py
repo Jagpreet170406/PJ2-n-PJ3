@@ -165,8 +165,16 @@ try:
     # Check for unmatched SKUs
     unmatched = df_lines[df_lines['product_id'].isna()]
     if len(unmatched) > 0:
-        print(f"⚠️  Warning: {len(unmatched)} rows have SKUs not found in products table")
-        print(f"    Sample unmatched SKUs: {unmatched['sku_no'].head().tolist()}")
+        # Filter out rows where sku_no itself is NULL
+        unmatched_with_sku = unmatched[unmatched['sku_no'].notna()]
+        unmatched_null_sku = unmatched[unmatched['sku_no'].isna()]
+        
+        if len(unmatched_null_sku) > 0:
+            print(f"⚠️  Warning: {len(unmatched_null_sku)} rows have NULL/empty SKU numbers (will be skipped)")
+        
+        if len(unmatched_with_sku) > 0:
+            print(f"⚠️  Warning: {len(unmatched_with_sku)} rows have SKUs not found in products table")
+            print(f"    Sample unmatched SKUs: {unmatched_with_sku['sku_no'].head().tolist()}")
     
     # Remove rows without valid product_id and drop sku_no column
     df_lines = df_lines.dropna(subset=['product_id'])
@@ -205,33 +213,38 @@ try:
     
     # Import purchase products (if different from sales products)
     # Note: This adds to the products table, doesn't replace it
-    print("\n📦 Importing purchase products...")
-    cursor = conn.cursor()
+    print("\n📦 Checking for purchase products...")
     
-    df_purchase_prod = pd.read_excel(os.path.join(FOLDERS["purchase"], "product.xlsx"))
-    df_purchase_prod = df_purchase_prod.rename(columns={
-        "product_id": "product_id",
-        "sku_no": "sku_no",
-        "hem_name": "hem_name"
-    })
-    
-    # Remove rows with missing required fields
-    df_purchase_prod = df_purchase_prod.dropna(subset=["sku_no", "hem_name"])
-    df_purchase_prod = df_purchase_prod.drop_duplicates(subset=["sku_no"])
-    
-    # Get existing SKUs to avoid duplicates
-    existing_skus = pd.read_sql("SELECT sku_no FROM products", conn)
-    df_purchase_prod = df_purchase_prod[~df_purchase_prod['sku_no'].isin(existing_skus['sku_no'])]
-    
-    if len(df_purchase_prod) > 0:
-        # Drop product_id column if it exists (let DB auto-increment)
-        if 'product_id' in df_purchase_prod.columns:
-            df_purchase_prod = df_purchase_prod.drop('product_id', axis=1)
+    purchase_product_path = os.path.join(FOLDERS["purchase"], "product.xlsx")
+    if os.path.exists(purchase_product_path):
+        cursor = conn.cursor()
         
-        df_purchase_prod.to_sql('products', conn, if_exists='append', index=False)
-        print(f"✅ {len(df_purchase_prod)} new products added from purchase data")
+        df_purchase_prod = pd.read_excel(purchase_product_path)
+        df_purchase_prod = df_purchase_prod.rename(columns={
+            "product_id": "product_id",
+            "sku_no": "sku_no",
+            "hem_name": "hem_name"
+        })
+        
+        # Remove rows with missing required fields
+        df_purchase_prod = df_purchase_prod.dropna(subset=["sku_no", "hem_name"])
+        df_purchase_prod = df_purchase_prod.drop_duplicates(subset=["sku_no"])
+        
+        # Get existing SKUs to avoid duplicates
+        existing_skus = pd.read_sql("SELECT sku_no FROM products", conn)
+        df_purchase_prod = df_purchase_prod[~df_purchase_prod['sku_no'].isin(existing_skus['sku_no'])]
+        
+        if len(df_purchase_prod) > 0:
+            # Drop product_id column if it exists (let DB auto-increment)
+            if 'product_id' in df_purchase_prod.columns:
+                df_purchase_prod = df_purchase_prod.drop('product_id', axis=1)
+            
+            df_purchase_prod.to_sql('products', conn, if_exists='append', index=False)
+            print(f"✅ {len(df_purchase_prod)} new products added from purchase data")
+        else:
+            print("ℹ️  No new products to add from purchase data")
     else:
-        print("ℹ️  No new products to add from purchase data")
+        print("ℹ️  No separate purchase product file found (using existing products table)")
     
     # Import purchase header
     import_excel_to_db(
