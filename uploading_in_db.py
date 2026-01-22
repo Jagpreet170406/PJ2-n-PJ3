@@ -100,81 +100,185 @@ try:
     # -------------------------------
     # 2️⃣ SALES TABLES
     # -------------------------------
-    sales_files = {
-        "products": ("sales_product.xlsx", {"sku_no": "sku_no", "hem_name": "hem_name"}, 
-                    ["sku_no"], ["sku_no", "hem_name"]),
-        "customers": ("sales_customer.xlsx", {"id": "customer_id", "customer_code": "customer_code"}, 
-                     ["customer_id"], ["customer_id", "customer_code"]),
-        "sales_invoice_header": ("sales_invoice_header.xlsx",
-                                 {"invoice_no": "invoice_no", "invoice_date": "invoice_date",
-                                  "customer_id": "customer_id", "legend_code": "legend_id"}, 
-                                 ["invoice_no"], ["invoice_no", "invoice_date", "customer_id"]),
-        "sales_invoice_line": ("sales_invoice_line.xlsx",
-                               {"invoice_no": "invoice_no", "line_no": "line_no", "sku_no": "sku_no",
-                                "qty": "qty", "total_amt": "total_amt", "gst_amt": "gst_amt"}, 
-                               ["invoice_no", "line_no"], 
-                               ["invoice_no", "line_no", "qty", "total_amt", "gst_amt"])
-    }
-
-    sales_casts = {
-        "customers": {"customer_id": int},
-        "sales_invoice_line": {"line_no": int, "qty": int, "total_amt": float, "gst_amt": float}
-    }
-
-    for table, (filename, col_map, pk_cols, required_cols) in sales_files.items():
-        file_path = os.path.join(FOLDERS["sales"], filename)
-        import_excel_to_db(
-            file_path,
-            table,
-            conn,
-            rename_columns=col_map,
-            dtype_casts=sales_casts.get(table, None),
-            subset_pk=pk_cols,
-            required_fields=required_cols,
-            clear_first=True  # ✅ Clear before import
-        )
+    # Import products first (needed for foreign key lookups)
+    import_excel_to_db(
+        os.path.join(FOLDERS["sales"], "sales_product.xlsx"),
+        "products",
+        conn,
+        rename_columns={"sku_no": "sku_no", "hem_name": "hem_name"},
+        subset_pk=["sku_no"],
+        required_fields=["sku_no", "hem_name"],
+        clear_first=True
+    )
+    
+    # Import customers
+    import_excel_to_db(
+        os.path.join(FOLDERS["sales"], "sales_customer.xlsx"),
+        "customers",
+        conn,
+        rename_columns={"id": "customer_id", "customer_code": "customer_code"},
+        dtype_casts={"customer_id": int},
+        subset_pk=["customer_id"],
+        required_fields=["customer_id", "customer_code"],
+        clear_first=True
+    )
+    
+    # Import sales invoice header
+    import_excel_to_db(
+        os.path.join(FOLDERS["sales"], "sales_invoice_header.xlsx"),
+        "sales_invoice_header",
+        conn,
+        rename_columns={
+            "invoice_no": "invoice_no", 
+            "invoice_date": "invoice_date",
+            "customer_id": "customer_id", 
+            "legend_code": "legend_id"
+        },
+        subset_pk=["invoice_no"],
+        required_fields=["invoice_no", "invoice_date", "customer_id"],
+        clear_first=True
+    )
+    
+    # Import sales invoice line (with SKU to product_id conversion)
+    print("\n📝 Processing sales_invoice_line with SKU lookup...")
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM sales_invoice_line")
+    conn.commit()
+    print("🗑️  Cleared existing data from sales_invoice_line")
+    
+    df_lines = pd.read_excel(os.path.join(FOLDERS["sales"], "sales_invoice_line.xlsx"))
+    df_lines = df_lines.rename(columns={
+        "invoice_no": "invoice_no",
+        "line_no": "line_no",
+        "sku_no": "sku_no",
+        "qty": "qty",
+        "total_amt": "total_amt",
+        "gst_amt": "gst_amt"
+    })
+    
+    # Get product_id mapping from products table
+    product_mapping = pd.read_sql("SELECT product_id, sku_no FROM products", conn)
+    
+    # Merge to get product_id
+    df_lines = df_lines.merge(product_mapping, on='sku_no', how='left')
+    
+    # Check for unmatched SKUs
+    unmatched = df_lines[df_lines['product_id'].isna()]
+    if len(unmatched) > 0:
+        print(f"⚠️  Warning: {len(unmatched)} rows have SKUs not found in products table")
+        print(f"    Sample unmatched SKUs: {unmatched['sku_no'].head().tolist()}")
+    
+    # Remove rows without valid product_id and drop sku_no column
+    df_lines = df_lines.dropna(subset=['product_id'])
+    df_lines = df_lines[['invoice_no', 'line_no', 'product_id', 'qty', 'total_amt', 'gst_amt']]
+    
+    # Remove duplicates and NULL required fields
+    df_lines = df_lines.dropna(subset=['invoice_no', 'line_no', 'qty', 'total_amt', 'gst_amt'])
+    df_lines = df_lines.drop_duplicates(subset=['invoice_no', 'line_no'])
+    
+    # Cast data types
+    df_lines['line_no'] = df_lines['line_no'].astype(int)
+    df_lines['product_id'] = df_lines['product_id'].astype(int)
+    df_lines['qty'] = df_lines['qty'].astype(int)
+    df_lines['total_amt'] = df_lines['total_amt'].astype(float)
+    df_lines['gst_amt'] = df_lines['gst_amt'].astype(float)
+    
+    # Insert into database
+    if len(df_lines) > 0:
+        df_lines.to_sql('sales_invoice_line', conn, if_exists='append', index=False)
+        print(f"✅ {len(df_lines)} records imported into sales_invoice_line")
 
     # -------------------------------
     # 3️⃣ PURCHASE TABLES
     # -------------------------------
-    purchase_files = {
-        "suppliers": ("suppliers.xlsx", {"supp_id": "supplier_id", "supp_name": "supp_name"}, 
-                     ["supplier_id"], ["supplier_id", "supp_name"]),
-        "products": ("product.xlsx", {"product_id": "product_id", "sku_no": "sku_no", 
-                                     "hem_name": "hem_name"}, 
-                    ["product_id"], ["sku_no", "hem_name"]),
-        "purchase_header": ("purchase_header.xlsx",
-                            {"purchase_ref_no": "purchase_ref_no", "purchase_date": "purchase_date",
-                             "total_purchase": "total_purchase", "gst_amt": "gst_amt", 
-                             "supplier_id": "supplier_id", "legend_id": "legend_id"}, 
-                            ["purchase_ref_no"], 
-                            ["purchase_ref_no", "purchase_date", "total_purchase", "gst_amt", "supplier_id"]),
-        "purchase_line": ("purchase_lines.xlsx", 
-                         {"purchase_ref_no": "purchase_ref_no", "line_no": "line_no",
-                          "qty": "qty", "product_id": "product_id"}, 
-                         ["purchase_ref_no", "line_no"],
-                         ["purchase_ref_no", "product_id", "qty"])
-    }
-
-    purchase_casts = {
-        "suppliers": {"supplier_id": int},
-        "products": {"product_id": int},
-        "purchase_header": {"total_purchase": float, "gst_amt": float},
-        "purchase_line": {"line_no": int, "qty": int}
-    }
-
-    for table, (filename, col_map, pk_cols, required_cols) in purchase_files.items():
-        file_path = os.path.join(FOLDERS["purchase"], filename)
-        import_excel_to_db(
-            file_path,
-            table,
-            conn,
-            rename_columns=col_map,
-            dtype_casts=purchase_casts.get(table, None),
-            subset_pk=pk_cols,
-            required_fields=required_cols,
-            clear_first=True  # ✅ Clear before import
-        )
+    # Import suppliers first
+    import_excel_to_db(
+        os.path.join(FOLDERS["purchase"], "suppliers.xlsx"),
+        "suppliers",
+        conn,
+        rename_columns={"supp_id": "supplier_id", "supp_name": "supp_name"},
+        dtype_casts={"supplier_id": int},
+        subset_pk=["supplier_id"],
+        required_fields=["supplier_id", "supp_name"],
+        clear_first=True
+    )
+    
+    # Import purchase products (if different from sales products)
+    # Note: This adds to the products table, doesn't replace it
+    print("\n📦 Importing purchase products...")
+    cursor = conn.cursor()
+    
+    df_purchase_prod = pd.read_excel(os.path.join(FOLDERS["purchase"], "product.xlsx"))
+    df_purchase_prod = df_purchase_prod.rename(columns={
+        "product_id": "product_id",
+        "sku_no": "sku_no",
+        "hem_name": "hem_name"
+    })
+    
+    # Remove rows with missing required fields
+    df_purchase_prod = df_purchase_prod.dropna(subset=["sku_no", "hem_name"])
+    df_purchase_prod = df_purchase_prod.drop_duplicates(subset=["sku_no"])
+    
+    # Get existing SKUs to avoid duplicates
+    existing_skus = pd.read_sql("SELECT sku_no FROM products", conn)
+    df_purchase_prod = df_purchase_prod[~df_purchase_prod['sku_no'].isin(existing_skus['sku_no'])]
+    
+    if len(df_purchase_prod) > 0:
+        # Drop product_id column if it exists (let DB auto-increment)
+        if 'product_id' in df_purchase_prod.columns:
+            df_purchase_prod = df_purchase_prod.drop('product_id', axis=1)
+        
+        df_purchase_prod.to_sql('products', conn, if_exists='append', index=False)
+        print(f"✅ {len(df_purchase_prod)} new products added from purchase data")
+    else:
+        print("ℹ️  No new products to add from purchase data")
+    
+    # Import purchase header
+    import_excel_to_db(
+        os.path.join(FOLDERS["purchase"], "purchase_header.xlsx"),
+        "purchase_header",
+        conn,
+        rename_columns={
+            "purchase_ref_no": "purchase_ref_no",
+            "purchase_date": "purchase_date",
+            "total_purchase": "total_purchase",
+            "gst_amt": "gst_amt",
+            "supplier_id": "supplier_id",
+            "legend_id": "legend_id"
+        },
+        dtype_casts={"total_purchase": float, "gst_amt": float},
+        subset_pk=["purchase_ref_no"],
+        required_fields=["purchase_ref_no", "purchase_date", "total_purchase", "gst_amt", "supplier_id"],
+        clear_first=True
+    )
+    
+    # Import purchase line (with product_id conversion if needed)
+    print("\n📝 Processing purchase_line...")
+    cursor.execute("DELETE FROM purchase_line")
+    conn.commit()
+    print("🗑️  Cleared existing data from purchase_line")
+    
+    df_purch_lines = pd.read_excel(os.path.join(FOLDERS["purchase"], "purchase_lines.xlsx"))
+    df_purch_lines = df_purch_lines.rename(columns={
+        "purchase_ref_no": "purchase_ref_no",
+        "line_no": "line_no",
+        "qty": "qty",
+        "product_id": "product_id"
+    })
+    
+    # Remove NULL values and duplicates
+    df_purch_lines = df_purch_lines.dropna(subset=["purchase_ref_no", "product_id", "qty"])
+    df_purch_lines = df_purch_lines.drop_duplicates(subset=["purchase_ref_no", "line_no"])
+    
+    # Cast data types
+    df_purch_lines['product_id'] = df_purch_lines['product_id'].astype(int)
+    df_purch_lines['qty'] = df_purch_lines['qty'].astype(int)
+    if 'line_no' in df_purch_lines.columns:
+        df_purch_lines['line_no'] = df_purch_lines['line_no'].astype(int)
+    
+    if len(df_purch_lines) > 0:
+        df_purch_lines.to_sql('purchase_line', conn, if_exists='append', index=False)
+        print(f"✅ {len(df_purch_lines)} records imported into purchase_line")
 
     # -------------------------------
     # 4️⃣ INVENTORY TABLES (.xls)
