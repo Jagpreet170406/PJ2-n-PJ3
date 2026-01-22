@@ -1,61 +1,93 @@
 <footer class="footer">
-    <div class="footer-content">
-        <p>&copy; 2026 Your Website Name. All rights reserved.</p>
-
-        <div class="footer-links">
-            <a href="/">Home</a>
-            <a href="/inventory">Inventory</a>
-            <a href="#">Contact</a>
-            <main class="content">
-                <h1>Hello</h1>
-                <p>Your content here</p>
-            </main>
-        
-            <footer class="footer">
-                <p>&copy; 2026 Your Website Name</p>
-            </footer>
-        </div>
+    <div class="footer-container">
+      
+      <p class="footer-copy">
+        &copy; 2026 Your Website Name. All rights reserved.
+      </p>
+  
+      <div class="footer-links">
+        <a href="{{ url_for('home') }}">Home</a>
+        <a href="{{ url_for('inventory') }}">Inventory</a>
+        <a href="#">Contact</a>
+  
+        <span class="footer-separator">|</span>
+  
+        <!-- Employee portal (subtle, correct placement) -->
+        <a href="{{ url_for('home') }}" class="home">
+          Employee Portal
+        </a>
+      </div>
+  
     </div>
-</footer>
+  </footer>
 <style>
+    /* Footer */
 .footer {
     background-color: #1f2933;
     color: #ffffff;
     padding: 20px 0;
-    margin-top: 40px;
+    margin-top: auto;
 }
 
-.footer-content {
-    max-width: 1000px;
+.footer-container {
+    max-width: 1100px;
     margin: auto;
+    padding: 0 20px;
+
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 20px;
+    flex-wrap: wrap;
+
     font-size: 14px;
+}
+
+.footer-copy {
+    margin: 0;
+    opacity: 0.9;
+}
+
+.footer-links {
+    display: flex;
+    align-items: center;
+    gap: 16px;
 }
 
 .footer-links a {
     color: #ffffff;
-    margin-left: 15px;
     text-decoration: none;
+    opacity: 0.9;
 }
 
 .footer-links a:hover {
     text-decoration: underline;
+    opacity: 1;
+}
+
+.footer-separator {
+    opacity: 0.4;
+}
+
+.employee-link {
+    font-size: 13px;
+    opacity: 0.75;
+}
+
+.employee-link:hover {
+    opacity: 1;
 }
 html, body {
     height: 100%;
     margin: 0;
 }
 
-.page {
+body {
     display: flex;
     flex-direction: column;
 }
 
-.content {
+main.content {
     flex: 1;
 }
 
-</style>
+</style>  
