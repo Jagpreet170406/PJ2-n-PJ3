@@ -308,6 +308,8 @@ try:
     inventory_columns = ['SUP_PART_NO', 'HEM_NAME', 'ORG', 'LOC_ON_SHELF', 'QTY', 'SELL_PRICE']
     
     total_inventory_records = 0
+    total_skipped = 0
+    
     for filename in os.listdir(inventory_folder):
         if filename.lower().endswith(".xls"):
             file_path = os.path.join(inventory_folder, filename)
@@ -315,19 +317,31 @@ try:
 
             # Select only required columns
             df = df[inventory_columns]
+            
+            # Remove rows with missing required fields
+            initial_count = len(df)
+            df = df.dropna(subset=['SUP_PART_NO', 'HEM_NAME', 'QTY', 'SELL_PRICE'])
+            skipped = initial_count - len(df)
+            total_skipped += skipped
+            
+            if skipped > 0:
+                print(f"⚠️  Removed {skipped} rows with missing data from {filename}")
 
-            # Cast data types
+            # Cast data types (after removing NaN values)
             df['QTY'] = df['QTY'].astype(int)
             df['SELL_PRICE'] = df['SELL_PRICE'].astype(float)
 
             # Rename columns to lowercase for consistency
             df.columns = df.columns.str.lower()
 
-            df.to_sql("inventory", conn, if_exists='append', index=False)
-            total_inventory_records += len(df)
-            print(f"✅ {len(df)} records imported from {filename}")
+            if len(df) > 0:
+                df.to_sql("inventory", conn, if_exists='append', index=False)
+                total_inventory_records += len(df)
+                print(f"✅ {len(df)} records imported from {filename}")
     
     print(f"📊 Total inventory records: {total_inventory_records}")
+    if total_skipped > 0:
+        print(f"⚠️  Total rows skipped across all files: {total_skipped}")
 
     # -------------------------------
     # COMMIT & CLOSE CONNECTION
