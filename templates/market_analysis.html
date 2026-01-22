@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Market Analysis{% endblock %}
+
+{% block content %}
+<div class="analysis-page">
+
+    <!-- Page Header -->
+    <div class="analysis-header">
+        <h1>Market Analysis</h1>
+        <div class="header-actions">
+            <button class="btn-outline">Export Report</button>
+            <button class="btn-solid">Update Prices</button>
+        </div>
+    </div>
+
+    <!-- Top Metrics -->
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <p class="metric-label">Avg Market Price</p>
+            <h2>$1330</h2>
+            <span class="metric-negative">-11.3%</span>
+        </div>
+
+        <div class="metric-card">
+            <p class="metric-label">Your Avg Price</p>
+            <h2>$1500</h2>
+            <span class="metric-positive">+2.7%</span>
+        </div>
+
+        <div class="metric-card">
+            <p class="metric-label">Price Gap</p>
+            <h2>$270</h2>
+            <span class="metric-neutral">5.1%</span>
+        </div>
+
+        <div class="metric-card">
+            <p class="metric-label">Competitors Tracked</p>
+            <h2>5</h2>
+            <span class="metric-positive">+3</span>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-grid">
+
+        <div class="chart-card">
+            <h3>Price Distribution by Segment</h3>
+            <div class="chart-placeholder">
+                Bar Chart Placeholder
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h3>Market Share by Price Range</h3>
+            <div class="chart-placeholder">
+                Bar Chart Placeholder
+            </div>
+        </div>
+
+        <div class="chart-card wide">
+            <h3>Pricing Trend (6 Months)</h3>
+            <div class="chart-placeholder">
+                Line Chart Placeholder
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

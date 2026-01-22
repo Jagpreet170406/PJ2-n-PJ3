@@ -47,6 +47,133 @@
             background-color: #333;
             color: white;
         }
+        .navbar-brand {
+            padding: 0;
+        }
+
+        .navbar-brand img {
+            display: block;
+            height: 40px;
+            width: auto;
+            background: transparent;
+        }
+
+        .navbar {
+            background-color: #343a40;
+        }
+        .analysis-page {
+    padding: 30px;
+    background: #ffffff;
+    color: #111;
+}
+
+/* Header */
+.analysis-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.analysis-header h1 {
+    margin: 0;
+    font-size: 26px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-outline {
+    background: white;
+    border: 1px solid #111;
+    padding: 8px 14px;
+    cursor: pointer;
+}
+
+.btn-solid {
+    background: #111;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    cursor: pointer;
+}
+
+/* Metrics */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 30px;
+}
+
+.metric-card {
+    border: 1px solid #ddd;
+    padding: 16px;
+    border-radius: 8px;
+    background: #f9f9f9;
+}
+
+.metric-label {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 6px;
+}
+
+.metric-card h2 {
+    margin: 0;
+    font-size: 22px;
+}
+
+.metric-positive {
+    color: #111;
+    font-size: 13px;
+}
+
+.metric-negative {
+    color: #444;
+    font-size: 13px;
+}
+
+.metric-neutral {
+    color: #777;
+    font-size: 13px;
+}
+
+/* Charts */
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.chart-card {
+    border: 1px solid #ddd;
+    padding: 16px;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.chart-card.wide {
+    grid-column: span 2;
+}
+
+.chart-card h3 {
+    margin-top: 0;
+    font-size: 16px;
+}
+
+.chart-placeholder {
+    height: 220px;
+    border: 1px dashed #aaa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #777;
+    font-size: 14px;
+    background: #fafafa;
+}      
     </style>
     {% endblock %}
 </head>
