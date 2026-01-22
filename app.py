@@ -1,13 +1,9 @@
 from flask import Flask, render_template, request, session, redirect, url_for
 import sqlite3
-from database import create_tables
-
-create_tables()
 
 app = Flask(__name__)
 app.secret_key = "super-secret-key"
-
-DB = 'database.db'
+DB = 'database.db'  # your already created DB
 
 # --------------------
 # Helper Functions
@@ -19,7 +15,6 @@ def modify_cart_in_db(product_id, quantity, action, role):
     quantity = int(quantity)
     
     if action == "add":
-        # Check if already in cart
         c.execute("SELECT quantity FROM cart WHERE user_role=? AND product_id=?", (role, product_id))
         row = c.fetchone()
         if row:
@@ -161,6 +156,7 @@ def favicon():
 # --------------------
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
