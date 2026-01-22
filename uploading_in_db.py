@@ -20,7 +20,7 @@ DB_PATH = os.path.join(BASE_DIR, "database.db")
 # HELPER FUNCTION
 # -------------------------------
 def import_excel_to_db(sheet_path, table_name, conn, rename_columns=None, dtype_casts=None, 
-                       engine=None, subset_pk=None, clear_first=False):
+                       engine=None, subset_pk=None, clear_first=False, required_fields=None):
     """
     Import Excel data into SQLite database
     
@@ -33,6 +33,7 @@ def import_excel_to_db(sheet_path, table_name, conn, rename_columns=None, dtype_
         engine: Excel engine ('openpyxl' for .xlsx, 'xlrd' for .xls)
         subset_pk: List of columns that form primary key (for duplicate removal)
         clear_first: If True, delete existing data before importing
+        required_fields: List of columns that cannot be NULL
     """
     df = pd.read_excel(sheet_path, engine=engine)
 
@@ -46,6 +47,14 @@ def import_excel_to_db(sheet_path, table_name, conn, rename_columns=None, dtype_
         cursor.execute(f"DELETE FROM {table_name.lower()}")
         conn.commit()
         print(f"🗑️  Cleared existing data from {table_name.lower()}")
+
+    # Remove rows with NULL values in required fields
+    if required_fields:
+        initial_count = len(df)
+        df = df.dropna(subset=required_fields)
+        null_rows = initial_count - len(df)
+        if null_rows > 0:
+            print(f"⚠️  Removed {null_rows} rows with missing required fields from {os.path.basename(sheet_path)}")
 
     # Drop duplicates for primary key if specified
     if subset_pk:
@@ -62,8 +71,11 @@ def import_excel_to_db(sheet_path, table_name, conn, rename_columns=None, dtype_
                 df[col] = df[col].astype(dtype)
 
     # Insert into DB
-    df.to_sql(table_name.lower(), conn, if_exists='append', index=False)
-    print(f"✅ {len(df)} records imported into {table_name.lower()} from {os.path.basename(sheet_path)}")
+    if len(df) > 0:
+        df.to_sql(table_name.lower(), conn, if_exists='append', index=False)
+        print(f"✅ {len(df)} records imported into {table_name.lower()} from {os.path.basename(sheet_path)}")
+    else:
+        print(f"⚠️  No valid records to import into {table_name.lower()}")
 
 
 # -------------------------------
@@ -89,15 +101,19 @@ try:
     # 2️⃣ SALES TABLES
     # -------------------------------
     sales_files = {
-        "products": ("sales_product.xlsx", {"sku_no": "sku_no", "hem_name": "hem_name"}, ["sku_no"]),
-        "customers": ("sales_customer.xlsx", {"id": "customer_id", "customer_code": "customer_code"}, ["customer_id"]),
+        "products": ("sales_product.xlsx", {"sku_no": "sku_no", "hem_name": "hem_name"}, 
+                    ["sku_no"], ["sku_no", "hem_name"]),
+        "customers": ("sales_customer.xlsx", {"id": "customer_id", "customer_code": "customer_code"}, 
+                     ["customer_id"], ["customer_id", "customer_code"]),
         "sales_invoice_header": ("sales_invoice_header.xlsx",
                                  {"invoice_no": "invoice_no", "invoice_date": "invoice_date",
-                                  "customer_id": "customer_id", "legend_code": "legend_id"}, ["invoice_no"]),
+                                  "customer_id": "customer_id", "legend_code": "legend_id"}, 
+                                 ["invoice_no"], ["invoice_no", "invoice_date", "customer_id"]),
         "sales_invoice_line": ("sales_invoice_line.xlsx",
                                {"invoice_no": "invoice_no", "line_no": "line_no", "sku_no": "sku_no",
                                 "qty": "qty", "total_amt": "total_amt", "gst_amt": "gst_amt"}, 
-                               ["invoice_no", "line_no"])
+                               ["invoice_no", "line_no"], 
+                               ["invoice_no", "line_no", "qty", "total_amt", "gst_amt"])
     }
 
     sales_casts = {
@@ -105,7 +121,7 @@ try:
         "sales_invoice_line": {"line_no": int, "qty": int, "total_amt": float, "gst_amt": float}
     }
 
-    for table, (filename, col_map, pk_cols) in sales_files.items():
+    for table, (filename, col_map, pk_cols, required_cols) in sales_files.items():
         file_path = os.path.join(FOLDERS["sales"], filename)
         import_excel_to_db(
             file_path,
@@ -114,6 +130,7 @@ try:
             rename_columns=col_map,
             dtype_casts=sales_casts.get(table, None),
             subset_pk=pk_cols,
+            required_fields=required_cols,
             clear_first=True  # ✅ Clear before import
         )
 
@@ -121,16 +138,22 @@ try:
     # 3️⃣ PURCHASE TABLES
     # -------------------------------
     purchase_files = {
-        "suppliers": ("suppliers.xlsx", {"supp_id": "supplier_id", "supp_name": "supp_name"}, ["supplier_id"]),
+        "suppliers": ("suppliers.xlsx", {"supp_id": "supplier_id", "supp_name": "supp_name"}, 
+                     ["supplier_id"], ["supplier_id", "supp_name"]),
         "products": ("product.xlsx", {"product_id": "product_id", "sku_no": "sku_no", 
-                                     "hem_name": "hem_name"}, ["product_id"]),
+                                     "hem_name": "hem_name"}, 
+                    ["product_id"], ["sku_no", "hem_name"]),
         "purchase_header": ("purchase_header.xlsx",
                             {"purchase_ref_no": "purchase_ref_no", "purchase_date": "purchase_date",
                              "total_purchase": "total_purchase", "gst_amt": "gst_amt", 
-                             "supplier_id": "supplier_id", "legend_id": "legend_id"}, ["purchase_ref_no"]),
+                             "supplier_id": "supplier_id", "legend_id": "legend_id"}, 
+                            ["purchase_ref_no"], 
+                            ["purchase_ref_no", "purchase_date", "total_purchase", "gst_amt", "supplier_id"]),
         "purchase_line": ("purchase_lines.xlsx", 
                          {"purchase_ref_no": "purchase_ref_no", "line_no": "line_no",
-                          "qty": "qty", "product_id": "product_id"}, ["purchase_ref_no", "line_no"])
+                          "qty": "qty", "product_id": "product_id"}, 
+                         ["purchase_ref_no", "line_no"],
+                         ["purchase_ref_no", "product_id", "qty"])
     }
 
     purchase_casts = {
@@ -140,7 +163,7 @@ try:
         "purchase_line": {"line_no": int, "qty": int}
     }
 
-    for table, (filename, col_map, pk_cols) in purchase_files.items():
+    for table, (filename, col_map, pk_cols, required_cols) in purchase_files.items():
         file_path = os.path.join(FOLDERS["purchase"], filename)
         import_excel_to_db(
             file_path,
@@ -149,6 +172,7 @@ try:
             rename_columns=col_map,
             dtype_casts=purchase_casts.get(table, None),
             subset_pk=pk_cols,
+            required_fields=required_cols,
             clear_first=True  # ✅ Clear before import
         )
 
