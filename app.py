@@ -14,17 +14,13 @@ def inventory():
 def cart():
     return render_template('cart.html')
 
-@app.route("/zhenghong")
-def zheonghong():
-    return render_template("zhenghong.html")
+@app.route("/dashboard")
+def dashboard():
+    return render_template("dashboard.html")
 
-@app.route("/nabil2.html")
-def nabil2():
-    return render_template("nabil2.html")
-
-@app.route('/test-image')
-def test_image():
-    return '<img src="/static/images/logo.png" alt="test">'
+@app.route("/analysis")
+def analysis():
+    return render_template("analysis.html")
 
 if __name__ == '__main__':
     app.run(debug=True)
