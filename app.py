@@ -22,5 +22,9 @@ def dashboard():
 def analysis():
     return render_template("analysis.html")
 
+@app.route("/employee-login")
+def employee_login():
+    return render_template("employee_login.html")
+
 if __name__ == '__main__':
     app.run(debug=True)
