@@ -39,7 +39,7 @@ def modify_customer_cart(product_id, quantity, action):
 
 def get_cart_items(role):
     items = []
-    if role in ["employee","admin"]:
+    if role in ["employee","admin","superowner"]:
         conn = sqlite3.connect(DB)
         c = conn.cursor()
         c.execute('''
@@ -63,7 +63,7 @@ def get_cart_items(role):
     return items
 
 # --------------------
-# CUSTOMER PORTAL
+# CUSTOMER CART PAGE
 # --------------------
 @app.route('/cart', methods=['GET','POST'])
 def cart():
@@ -75,13 +75,13 @@ def cart():
         action = request.form.get("action")
         quantity = int(request.form.get("quantity",1))
 
-        if role in ["employee","admin"]:
+        if role in ["employee","admin","superowner"]:
             modify_cart_in_db(product_id, quantity, action, role)
         else:
             modify_customer_cart(product_id, quantity, action)
 
     cart_items = get_cart_items(role)
-    can_edit = True if role in ["employee","admin"] else False
+    can_edit = True if role in ["employee","admin","superowner"] else False
     return render_template('cart.html', cart_items=cart_items, role=role, can_edit=can_edit)
 
 @app.route('/')
@@ -89,41 +89,41 @@ def root():
     return redirect(url_for("cart"))
 
 # --------------------
-# INTERNAL EMPLOYEE / ADMIN LOGIN
+# EMPLOYEE / ADMIN / SUPEROWNER LOGIN
 # --------------------
 @app.route('/employee-login')
 def employee_login():
     role = session.get("role")
     if role == "customer":
         return redirect(url_for("cart"))
-    if role in ["employee","admin"]:
+    if role in ["employee","admin","superowner"]:
         return redirect(url_for("home"))
     return render_template('employee_login.html')
 
 @app.route('/login', methods=['POST'])
 def login():
-    role = request.form.get("role")  # employee or admin
+    role = request.form.get("role")  # employee, admin, superowner
     session["role"] = role
     return redirect(url_for('home'))
 
 # --------------------
-# EMPLOYEE / ADMIN PAGES
+# INTERNAL PAGES
 # --------------------
 @app.route('/home')
 def home():
-    if session.get("role") not in ["employee","admin"]:
+    if session.get("role") not in ["employee","admin","superowner"]:
         return redirect(url_for('employee_login'))
     return render_template('home.html')
 
 @app.route('/dashboard')
 def dashboard():
-    if session.get("role") not in ["employee","admin"]:
+    if session.get("role") not in ["employee","admin","superowner"]:
         return redirect(url_for('employee_login'))
     return render_template('dashboard.html')
 
 @app.route('/analysis')
 def analysis():
-    if session.get("role") not in ["employee","admin"]:
+    if session.get("role") not in ["employee","admin","superowner"]:
         return redirect(url_for('employee_login'))
     return render_template('analysis.html')
 
@@ -132,9 +132,42 @@ def analysis():
 # --------------------
 @app.route('/inventory')
 def inventory():
-    if session.get("role") != "admin":
+    if session.get("role") not in ["admin","superowner"]:
         return redirect(url_for('employee_login'))
     return render_template('inventory.html')
+
+# --------------------
+# SUPEROWNER DB PANEL
+# --------------------
+@app.route('/superowner', methods=['GET','POST'])
+def superowner_panel():
+    if session.get("role") != "superowner":
+        return redirect(url_for('employee_login'))
+
+    conn = sqlite3.connect(DB)
+    c = conn.cursor()
+    message = ""
+
+    if request.method == "POST":
+        query = request.form.get("query")  # raw SQL input
+        try:
+            c.execute(query)
+            conn.commit()
+            message = "Query executed successfully."
+        except Exception as e:
+            message = f"Error: {e}"
+
+    # Fetch table names and preview data
+    c.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    tables = c.fetchall()
+    data = {}
+    for t in tables:
+        table_name = t[0]
+        c.execute(f"SELECT * FROM {table_name} LIMIT 50")
+        data[table_name] = c.fetchall()
+    conn.close()
+
+    return render_template('superowner.html', tables=data, message=message)
 
 # --------------------
 # LOGOUT
@@ -156,6 +189,7 @@ def favicon():
 # --------------------
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
