@@ -1,4 +1,6 @@
 from werkzeug.security import generate_password_hash
+from flask import render_template, request, session
+import sqlite3
 
 @app.route("/manage-users", methods=["GET", "POST"])
 @require_roles("superowner")
@@ -8,7 +10,7 @@ def manage_users():
     message = ""
 
     if request.method == "POST":
-        action = request.form.get("action")
+        action = request.form.get("action", "").strip()
 
         if action == "add":
             username = request.form.get("username", "").strip()
@@ -16,7 +18,6 @@ def manage_users():
             role = request.form.get("role", "").strip()
 
             try:
-                # Use hashed password
                 hashed_password = generate_password_hash(password)
                 c.execute(
                     "INSERT INTO users(username, password_hash, role, active) VALUES (?, ?, ?, 1)",
@@ -57,7 +58,7 @@ def manage_users():
             conn.commit()
             message = f"User '{username}' role changed to {new_role}."
 
-    # Fetch all users for display
+    # Fetch all users to display
     c.execute("SELECT username, role, active FROM users ORDER BY role, username")
     users = c.fetchall()
     conn.close()
