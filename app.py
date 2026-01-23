@@ -1,127 +1,102 @@
 from flask import Flask, render_template, request, redirect, url_for, session, abort
 import sqlite3
+import os
+from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 
+# --------------------
+# APP CONFIG
+# --------------------
 app = Flask(__name__)
 app.secret_key = "change-this-in-production"
-DB = "database.db"
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB = os.path.join(BASE_DIR, "database.db")
 
 STAFF_ROLES = {"employee", "admin", "superowner"}
 ADMIN_ROLES = {"admin", "superowner"}
 
-
 # --------------------
-# Database Initialization
+# DB INIT (AUTH ONLY)
 # --------------------
 def init_db():
-    """Initialize database with users table for RBAC."""
     conn = sqlite3.connect(DB)
     c = conn.cursor()
 
-    c.execute(
-        """
-        CREATE TABLE IF NOT EXISTS users (
-            username TEXT PRIMARY KEY,
-            password TEXT NOT NULL,
-            role TEXT NOT NULL,
-            active INTEGER DEFAULT 1
-        )
-        """
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        username TEXT PRIMARY KEY,
+        password_hash TEXT NOT NULL,
+        role TEXT NOT NULL,
+        active INTEGER DEFAULT 1
     )
+    """)
 
-    # Create superowner account if not exists
-    c.execute("SELECT 1 FROM users WHERE role='superowner' LIMIT 1")
+    # Bootstrap superowner
+    c.execute("SELECT 1 FROM users WHERE role='superowner'")
     if not c.fetchone():
         c.execute(
-            "INSERT INTO users(username, password, role, active) VALUES (?, ?, ?, 1)",
-            ("superowner", "changeme123", "superowner"),
+            "INSERT INTO users VALUES (?, ?, ?, 1)",
+            ("superowner", generate_password_hash("changeme123"), "superowner")
         )
 
     conn.commit()
     conn.close()
 
+# --------------------
+# HELPERS
+# --------------------
+def get_db():
+    return sqlite3.connect(DB)
 
-# --------------------
-# Helpers
-# --------------------
 def check_user_credentials(username, password):
-    """Verify user credentials and return role if valid."""
-    conn = sqlite3.connect(DB)
+    conn = get_db()
     c = conn.cursor()
+
     c.execute(
-        "SELECT role, active FROM users WHERE username=? AND password=?",
-        (username, password),
+        "SELECT password_hash, role, active FROM users WHERE username=?",
+        (username,)
     )
-    result = c.fetchone()
+    row = c.fetchone()
     conn.close()
 
-    if result and result[1] == 1:
-        return result[0]
+    if row and row[2] == 1 and check_password_hash(row[0], password):
+        return row[1]
     return None
 
-
-def require_roles(*allowed_roles):
-    """Route decorator: restrict access by role."""
-    allowed = set(allowed_roles)
+def require_roles(*roles):
+    allowed = set(roles)
 
     def decorator(fn):
         @wraps(fn)
         def wrapper(*args, **kwargs):
-            role = session.get("role", "customer")
+            role = session.get("role")
             if role not in allowed:
                 return redirect(url_for("staff_login"))
             return fn(*args, **kwargs)
-
         return wrapper
-
     return decorator
 
-
 # --------------------
-# CUSTOMER PAGES
+# PUBLIC / CUSTOMER
 # --------------------
 @app.route("/")
-def home():
-    """Landing page. Restrict customers to cart."""
+def root():
     session.setdefault("role", "customer")
-    role = session.get("role")
-    
-    if role == "customer":
-        return redirect(url_for("cart"))
-        
-    return render_template("home.html", role=role)
-
+    return redirect(url_for("cart"))
 
 @app.route("/cart", methods=["GET", "POST"])
 def cart():
-    """Customer cart page (public access)."""
-    session.setdefault("role", "customer")
     role = session.get("role", "customer")
+    session["role"] = role
 
-    # If staff tries to access customer cart, send them to dashboard
-    # EXCEPTION: Superowner is allowed to view everything
-    if role in STAFF_ROLES and role != "superowner":
-        return redirect(url_for("dashboard"))
+    can_edit = role in STAFF_ROLES  # employees/admin/superowner
 
-    # NOTE: Your existing cart/session DB functions were removed here
-    # because your snippet references tables like 'cart' and 'products'
-    # that may or may not exist in DB init. Add them back when ready.
-
-    return render_template("cart.html", role="customer")
-
-
-@app.route("/contact")
-def contact():
-    session.setdefault("role", "customer")
-    return render_template("contact.html", role=session.get("role"))
-
-#KPI
-@app.context_processor
-def inject_defaults():
-    return {
-        "kpis": []
-    }
+    return render_template(
+        "cart.html",
+        role=role,
+        can_edit=can_edit
+    )
 
 # --------------------
 # STAFF AUTH
@@ -134,70 +109,71 @@ def staff_login():
 
         role = check_user_credentials(username, password)
         if role:
-            session["role"] = role
             session["username"] = username
-            return redirect(url_for("dashboard"))
+            session["role"] = role
 
-        return render_template("staff_login.html", error="Invalid credentials or account disabled")
+            if role == "superowner":
+                return redirect("/manage-users")
+            elif role == "admin":
+                return redirect("/inventory")
+            else:
+                return redirect("/dashboard")
 
-    # If already staff, go dashboard
+        return render_template("staff_login.html", error="Invalid credentials")
+
     if session.get("role") in STAFF_ROLES:
-        return redirect(url_for("dashboard"))
+        return redirect("/dashboard")
 
-    return render_template("staff_login.html", error=None)
-
+    return render_template("staff_login.html")
 
 @app.route("/logout")
 def logout():
-    """Logout and go back to customer home."""
     session.clear()
     session["role"] = "customer"
-    return redirect(url_for("home"))
-
+    return redirect("/cart")
 
 # --------------------
 # STAFF PAGES
 # --------------------
 @app.route("/dashboard")
-@require_roles("employee", "staff", "admin", "superowner")
+@require_roles("employee", "admin", "superowner")
 def dashboard():
-    return render_template("dashboard.html", role=session.get("role"), username=session.get("username"))
-
+    return render_template(
+        "dashboard.html",
+        role=session.get("role"),
+        username=session.get("username")
+    )
 
 @app.route("/analysis")
-@require_roles("employee","staff", "admin", "superowner")
+@require_roles("employee", "admin", "superowner")
 def analysis():
     return render_template("analysis.html", role=session.get("role"))
 
-
 @app.route("/market-analysis")
-@require_roles("employee","staff", "admin", "superowner")
+@require_roles("employee", "admin", "superowner")
 def market_analysis():
     return render_template("market_analysis.html", role=session.get("role"))
 
-
 @app.route("/real-time-analytics")
-@require_roles("employee","staff", "admin", "superowner")
+@require_roles("employee", "admin", "superowner")
 def real_time_analytics():
     return render_template("real_time_analytics.html", role=session.get("role"))
 
-
 # --------------------
-# ADMIN / SUPEROWNER /employee 
+# INVENTORY
 # --------------------
 @app.route("/inventory")
-@require_roles("employee","admin", "superowner")
+@require_roles("employee", "admin", "superowner")
 def inventory():
     return render_template("inventory.html", role=session.get("role"))
 
-
 # --------------------
-# SUPEROWNER ONLY - USER MANAGEMENT
+# SUPEROWNER: USER MGMT
 # --------------------
 @app.route("/manage-users", methods=["GET", "POST"])
 @require_roles("superowner")
 def manage_users():
-    conn = sqlite3.connect(DB)
+    conn = get_db()
     c = conn.cursor()
     message = ""
 
@@ -205,49 +181,41 @@ def manage_users():
         action = request.form.get("action")
 
         if action == "add":
-            username = request.form.get("username", "").strip()
-            password = request.form.get("password", "").strip()
-            role = request.form.get("role", "").strip()
+            username = request.form.get("username")
+            password = request.form.get("password")
+            role = request.form.get("role")
 
             try:
                 c.execute(
-                    "INSERT INTO users(username, password, role, active) VALUES (?, ?, ?, 1)",
-                    (username, password, role),
+                    "INSERT INTO users VALUES (?, ?, ?, 1)",
+                    (username, generate_password_hash(password), role)
                 )
                 conn.commit()
-                message = f"User '{username}' added as {role}."
+                message = "User created."
             except sqlite3.IntegrityError:
-                message = f"Error: Username '{username}' already exists."
-            except Exception as e:
-                message = f"Error: {e}"
+                message = "Username already exists."
 
         elif action == "toggle":
-            username = request.form.get("username", "").strip()
-            c.execute("SELECT active FROM users WHERE username=?", (username,))
-            result = c.fetchone()
-            if result:
-                new_status = 0 if result[0] == 1 else 1
-                c.execute("UPDATE users SET active=? WHERE username=?", (new_status, username))
-                conn.commit()
-                message = f"User '{username}' {'enabled' if new_status == 1 else 'disabled'}."
-            else:
-                message = f"User '{username}' not found."
+            username = request.form.get("username")
+            c.execute("UPDATE users SET active = 1 - active WHERE username=?", (username,))
+            conn.commit()
+            message = "User status updated."
 
         elif action == "delete":
-            username = request.form.get("username", "").strip()
+            username = request.form.get("username")
             if username == session.get("username"):
-                message = "Error: Cannot delete your own account."
+                message = "Cannot delete yourself."
             else:
                 c.execute("DELETE FROM users WHERE username=?", (username,))
                 conn.commit()
-                message = f"User '{username}' deleted."
+                message = "User deleted."
 
         elif action == "change_role":
-            username = request.form.get("username", "").strip()
-            new_role = request.form.get("new_role", "").strip()
+            username = request.form.get("username")
+            new_role = request.form.get("new_role")
             c.execute("UPDATE users SET role=? WHERE username=?", (new_role, username))
             conn.commit()
-            message = f"User '{username}' role changed to {new_role}."
+            message = "Role updated."
 
     c.execute("SELECT username, role, active FROM users ORDER BY role, username")
     users = c.fetchall()
@@ -255,96 +223,80 @@ def manage_users():
 
     return render_template("manage_users.html", users=users, message=message)
 
-
 # --------------------
-# SUPEROWNER CODE VIEWER
+# SUPEROWNER: CODE VIEWER
 # --------------------
 @app.route("/code")
 @require_roles("superowner")
 def code_viewer():
-    """List files and view content."""
-    import os
-    
+    base_dir = BASE_DIR
     file_path = request.args.get("file")
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    # If a file is requested, read it
     content = None
+
     if file_path:
-        # Security: Prevent directory traversal (basic check)
-        full_path = os.path.join(base_dir, file_path)
-        if os.path.commonprefix([os.path.abspath(full_path), base_dir]) == base_dir:
-            try:
-                if os.path.isfile(full_path):
-                    with open(full_path, "r", encoding="utf-8") as f:
-                        content = f.read()
-                else:
-                    content = "Error: File not found or is a directory."
-            except Exception as e:
-                content = f"Error reading file: {e}"
+        full_path = os.path.abspath(os.path.join(base_dir, file_path))
+        if full_path.startswith(base_dir) and os.path.isfile(full_path):
+            with open(full_path, "r", encoding="utf-8") as f:
+                content = f.read()
         else:
-            content = "Error: Access denied."
-            
-    # List files in current directory (recursive or simple? start simple)
+            content = "Access denied."
+
     files = []
     for root, _, filenames in os.walk(base_dir):
-        # Exclude venv and __pycache__ for clarity
-        if "venv" in root or "__pycache__" in root or ".git" in root:
+        if any(x in root for x in ["venv", "__pycache__", ".git"]):
             continue
-            
         for name in filenames:
-            rel_path = os.path.relpath(os.path.join(root, name), base_dir)
-            files.append(rel_path)
-            
-    files.sort()
-    
-    return render_template("code_viewer.html", files=files, content=content, current_file=file_path)
+            files.append(os.path.relpath(os.path.join(root, name), base_dir))
 
+    return render_template(
+        "code_viewer.html",
+        files=sorted(files),
+        content=content,
+        current_file=file_path
+    )
 
 # --------------------
-# SUPEROWNER DB PANEL (Optional)
+# SUPEROWNER: DB PANEL
 # --------------------
 @app.route("/db-panel", methods=["GET", "POST"])
 @require_roles("superowner")
 def db_panel():
-    conn = sqlite3.connect(DB)
+    conn = get_db()
     c = conn.cursor()
     message = ""
 
     if request.method == "POST":
-        query = request.form.get("query", "")
+        query = request.form.get("query")
         try:
             c.execute(query)
             conn.commit()
-            message = "Query executed successfully."
+            message = "Query executed."
         except Exception as e:
-            message = f"Error: {e}"
+            message = str(e)
 
-    c.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    c.execute("SELECT name FROM sqlite_master WHERE type='table'")
     tables = [t[0] for t in c.fetchall()]
 
     data = {}
-    for table_name in tables:
+    for table in tables:
         try:
-            c.execute(f"SELECT * FROM {table_name} LIMIT 50")
-            data[table_name] = c.fetchall()
+            c.execute(f"SELECT * FROM {table} LIMIT 50")
+            data[table] = c.fetchall()
         except Exception:
-            data[table_name] = []
+            data[table] = []
 
     conn.close()
     return render_template("db_panel.html", tables=data, message=message)
 
-
 # --------------------
-# IGNORE FAVICON
+# FAVICON
 # --------------------
 @app.route("/favicon.ico")
 def favicon():
     return "", 204
 
-
 # --------------------
-# RUN SERVER
+# RUN
 # --------------------
 if __name__ == "__main__":
     init_db()
