@@ -30,6 +30,7 @@ def get_db():
 def require_staff(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Kick unauthorized users back to the customer shop
         if session.get("role") not in ["employee", "admin", "superowner"]:
             return redirect(url_for('cart'))
         return f(*args, **kwargs)
@@ -70,7 +71,7 @@ def process_payment():
     return redirect(url_for('cart'))
 
 # --------------------
-# HIDDEN STAFF LOGIN
+# HIDDEN STAFF LOGIN (URL: /staff-login only)
 # --------------------
 @app.route("/staff-login", methods=["GET", "POST"])
 def staff_login():
@@ -87,10 +88,11 @@ def staff_login():
             return redirect(url_for("home"))
         flash("Invalid credentials", "danger")
 
+    # Pass role="customer" so the hidden side stays hidden (Customer Navbar shows)
     return render_template("staff_login.html", role="customer")
 
 # --------------------
-# PROTECTED STAFF ROUTES (FIXED ENDPOINTS)
+# PROTECTED STAFF ROUTES
 # --------------------
 @app.route("/home")
 @require_staff
@@ -107,17 +109,17 @@ def inventory():
 def dashboard():
     return render_template("dashboard.html", role=session.get("role"))
 
-# FIXED: Endpoint matches url_for('market_analysis')
+# FIXED: Points to your actual file "market_analysis.html"
 @app.route("/market-analysis")
 @require_staff
 def market_analysis():
-    return render_template("analysis.html", role=session.get("role"))
+    return render_template("market_analysis.html", role=session.get("role"))
 
-# FIXED: Endpoint matches url_for('real_time_analytics')
+# FIXED: Points to your actual file "real_time_analytics.html"
 @app.route("/real-time-analytics")
 @require_staff
 def real_time_analytics():
-    return render_template("real_time.html", role=session.get("role"))
+    return render_template("real_time_analytics.html", role=session.get("role"))
 
 @app.route("/logout")
 def logout():
