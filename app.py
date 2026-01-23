@@ -66,7 +66,6 @@ def check_user_credentials(username, password):
 
 def require_roles(*roles):
     allowed = set(roles)
-
     def decorator(fn):
         @wraps(fn)
         def wrapper(*args, **kwargs):
@@ -89,14 +88,8 @@ def root():
 def cart():
     role = session.get("role", "customer")
     session["role"] = role
-
-    can_edit = role in STAFF_ROLES  # employees/admin/superowner
-
-    return render_template(
-        "cart.html",
-        role=role,
-        can_edit=can_edit
-    )
+    can_edit = role in STAFF_ROLES
+    return render_template("cart.html", role=role, can_edit=can_edit)
 
 # --------------------
 # STAFF AUTH
@@ -106,24 +99,18 @@ def staff_login():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
-
         role = check_user_credentials(username, password)
         if role:
             session["username"] = username
             session["role"] = role
-
             if role == "superowner":
                 return redirect("/manage-users")
-            elif role == "admin":
-                return redirect("/inventory")
             else:
-                return redirect("/dashboard")
-
+                return redirect("/home")  # main staff landing page
         return render_template("staff_login.html", error="Invalid credentials")
 
     if session.get("role") in STAFF_ROLES:
-        return redirect("/dashboard")
-
+        return redirect("/home")
     return render_template("staff_login.html")
 
 @app.route("/logout")
@@ -133,16 +120,24 @@ def logout():
     return redirect("/cart")
 
 # --------------------
+# STAFF MAIN PAGE (HOME)
+# --------------------
+@app.route("/home")
+@require_roles("employee", "admin", "superowner")
+def home():
+    return render_template("home.html",
+                           role=session.get("role"),
+                           username=session.get("username"))
+
+# --------------------
 # STAFF PAGES
 # --------------------
 @app.route("/dashboard")
 @require_roles("employee", "admin", "superowner")
 def dashboard():
-    return render_template(
-        "dashboard.html",
-        role=session.get("role"),
-        username=session.get("username")
-    )
+    return render_template("dashboard.html",
+                           role=session.get("role"),
+                           username=session.get("username"))
 
 @app.route("/analysis")
 @require_roles("employee", "admin", "superowner")
@@ -179,39 +174,30 @@ def manage_users():
 
     if request.method == "POST":
         action = request.form.get("action")
+        username = request.form.get("username")
 
         if action == "add":
-            username = request.form.get("username")
             password = request.form.get("password")
             role = request.form.get("role")
-
             try:
-                c.execute(
-                    "INSERT INTO users VALUES (?, ?, ?, 1)",
-                    (username, generate_password_hash(password), role)
-                )
+                c.execute("INSERT INTO users VALUES (?, ?, ?, 1)",
+                          (username, generate_password_hash(password), role))
                 conn.commit()
                 message = "User created."
             except sqlite3.IntegrityError:
                 message = "Username already exists."
-
         elif action == "toggle":
-            username = request.form.get("username")
             c.execute("UPDATE users SET active = 1 - active WHERE username=?", (username,))
             conn.commit()
             message = "User status updated."
-
         elif action == "delete":
-            username = request.form.get("username")
             if username == session.get("username"):
                 message = "Cannot delete yourself."
             else:
                 c.execute("DELETE FROM users WHERE username=?", (username,))
                 conn.commit()
                 message = "User deleted."
-
         elif action == "change_role":
-            username = request.form.get("username")
             new_role = request.form.get("new_role")
             c.execute("UPDATE users SET role=? WHERE username=?", (new_role, username))
             conn.commit()
@@ -220,7 +206,6 @@ def manage_users():
     c.execute("SELECT username, role, active FROM users ORDER BY role, username")
     users = c.fetchall()
     conn.close()
-
     return render_template("manage_users.html", users=users, message=message)
 
 # --------------------
@@ -232,7 +217,6 @@ def code_viewer():
     base_dir = BASE_DIR
     file_path = request.args.get("file")
     content = None
-
     if file_path:
         full_path = os.path.abspath(os.path.join(base_dir, file_path))
         if full_path.startswith(base_dir) and os.path.isfile(full_path):
@@ -248,12 +232,10 @@ def code_viewer():
         for name in filenames:
             files.append(os.path.relpath(os.path.join(root, name), base_dir))
 
-    return render_template(
-        "code_viewer.html",
-        files=sorted(files),
-        content=content,
-        current_file=file_path
-    )
+    return render_template("code_viewer.html",
+                           files=sorted(files),
+                           content=content,
+                           current_file=file_path)
 
 # --------------------
 # SUPEROWNER: DB PANEL
@@ -264,7 +246,6 @@ def db_panel():
     conn = get_db()
     c = conn.cursor()
     message = ""
-
     if request.method == "POST":
         query = request.form.get("query")
         try:
@@ -301,3 +282,4 @@ def favicon():
 if __name__ == "__main__":
     init_db()
     app.run(debug=True)
+
