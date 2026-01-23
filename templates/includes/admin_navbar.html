@@ -1,4 +1,5 @@
-<nav class="navbar navbar-expand-lg navbar-dark fixed-top custom-navbar">
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top custom-navbar"
+     style="background-color: #000;">
   <div class="container-fluid px-4">
 
     <a class="navbar-brand d-flex align-items-center" href="{{ url_for('home') }}">
@@ -38,7 +39,10 @@
         </li>
 
         <li class="nav-item ml-lg-3">
-          <a class="nav-link btn btn-outline-danger btn-sm px-3 text-white" href="{{ url_for('logout') }}">Logout</a>
+          <a class="nav-link btn btn-outline-danger btn-sm px-3 text-white"
+             href="{{ url_for('logout') }}">
+            Logout
+          </a>
         </li>
 
       </ul>
