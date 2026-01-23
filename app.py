@@ -22,7 +22,6 @@ ADMIN_ROLES = {"admin", "superowner"}
 def init_db():
     conn = sqlite3.connect(DB)
     c = conn.cursor()
-    # Updated Schema to match your database.py (added user_id)
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
         user_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,7 +31,6 @@ def init_db():
         active INTEGER DEFAULT 1
     )
     """)
-    # Bootstrap superowner if none exists
     c.execute("SELECT 1 FROM users WHERE role='superowner'")
     if not c.fetchone():
         hashed_pw = generate_password_hash("changeme123")
@@ -78,6 +76,11 @@ def require_roles(*roles):
 # --------------------
 @app.route("/")
 def root():
+    # FIXED: If a staff member is already logged in, take them to their home page
+    if session.get("role") in STAFF_ROLES:
+        return redirect(url_for("home"))
+    
+    # Otherwise, they are treated as a customer
     session.setdefault("role", "customer")
     return redirect(url_for("cart"))
 
@@ -92,6 +95,10 @@ def cart():
 # --------------------
 @app.route("/staff-login", methods=["GET", "POST"])
 def staff_login():
+    # FIXED: If already logged in, don't show the login page, just go home
+    if session.get("role") in STAFF_ROLES:
+        return redirect(url_for("home"))
+
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
@@ -100,14 +107,14 @@ def staff_login():
         if role:
             session["username"] = username
             session["role"] = role
-            # Superowner goes to User Management, others to Home
-            return redirect(url_for("manage_users" if role == "superowner" else "home"))
+            # Direct to specific dashboard or home
+            if role == "superowner":
+                return redirect(url_for("manage_users"))
+            return redirect(url_for("home"))
         
         flash("Invalid credentials or account disabled.", "danger")
         return render_template("staff_login.html", error="Invalid credentials")
 
-    if session.get("role") in STAFF_ROLES:
-        return redirect(url_for("home"))
     return render_template("staff_login.html")
 
 @app.route("/logout")
@@ -151,7 +158,6 @@ def manage_users():
                 password = request.form.get("password", "").strip()
                 role = request.form.get("role", "employee")
                 try:
-                    # FIX: Explicitly naming columns so user_id auto-increments correctly
                     c.execute("""
                         INSERT INTO users (username, password_hash, role, active) 
                         VALUES (?, ?, ?, 1)
@@ -183,7 +189,7 @@ def manage_users():
     return render_template("manage_users.html", users=users, message=message)
 
 # --------------------
-# SUPEROWNER: CODE VIEWER
+# SUPEROWNER TOOLS
 # --------------------
 @app.route("/code")
 @require_roles("superowner")
@@ -209,9 +215,6 @@ def code_viewer():
 
     return render_template("code_viewer.html", files=sorted(files), content=content, current_file=file_path)
 
-# --------------------
-# SUPEROWNER: DB PANEL
-# --------------------
 @app.route("/db-panel", methods=["GET", "POST"])
 @require_roles("superowner")
 def db_panel():
@@ -240,9 +243,6 @@ def db_panel():
 
     return render_template("db_panel.html", tables=data, message=message, query_results=query_results)
 
-# --------------------
-# RUN
-# --------------------
 if __name__ == "__main__":
     init_db()
     app.run(debug=True, port=5000)
