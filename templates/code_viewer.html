@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Superowner Code Viewer</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .sidebar {
+            width: 300px;
+            border-right: 1px solid #ccc;
+            overflow-y: auto;
+            height: 90vh;
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            height: 90vh;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            margin: 5px 0;
+        }
+
+        a {
+            text-decoration: none;
+            color: blue;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 10px 15px;
+            background: #333;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <a href="{{ url_for('dashboard') }}" class="back-btn">← Back to Dashboard</a>
+        <h3>Project Files</h3>
+        <ul>
+            {% for file in files %}
+            <li>
+                <a href="{{ url_for('code_viewer', file=file) }}"
+                    style="{{ 'font-weight: bold;' if file == current_file else '' }}">
+                    {{ file }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="content">
+        {% if current_file %}
+        <h2>Viewing: {{ current_file }}</h2>
+        <pre>{{ content }}</pre>
+        {% else %}
+        <h2>Select a file to view its content.</h2>
+        {% endif %}
+    </div>
+
+</body>
+
+</html>

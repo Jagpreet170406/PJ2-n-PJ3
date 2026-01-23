@@ -82,9 +82,14 @@ def require_roles(*allowed_roles):
 # --------------------
 @app.route("/")
 def home():
-    """Customer landing page."""
+    """Landing page. Restrict customers to cart."""
     session.setdefault("role", "customer")
-    return render_template("home.html", role=session.get("role"))
+    role = session.get("role")
+    
+    if role == "customer":
+        return redirect(url_for("cart"))
+        
+    return render_template("home.html", role=role)
 
 
 @app.route("/cart", methods=["GET", "POST"])
@@ -94,7 +99,8 @@ def cart():
     role = session.get("role", "customer")
 
     # If staff tries to access customer cart, send them to dashboard
-    if role in STAFF_ROLES:
+    # EXCEPTION: Superowner is allowed to view everything
+    if role in STAFF_ROLES and role != "superowner":
         return redirect(url_for("dashboard"))
 
     # NOTE: Your existing cart/session DB functions were removed here
@@ -247,6 +253,51 @@ def manage_users():
     conn.close()
 
     return render_template("manage_users.html", users=users, message=message)
+
+
+# --------------------
+# SUPEROWNER CODE VIEWER
+# --------------------
+@app.route("/code")
+@require_roles("superowner")
+def code_viewer():
+    """List files and view content."""
+    import os
+    
+    file_path = request.args.get("file")
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # If a file is requested, read it
+    content = None
+    if file_path:
+        # Security: Prevent directory traversal (basic check)
+        full_path = os.path.join(base_dir, file_path)
+        if os.path.commonprefix([os.path.abspath(full_path), base_dir]) == base_dir:
+            try:
+                if os.path.isfile(full_path):
+                    with open(full_path, "r", encoding="utf-8") as f:
+                        content = f.read()
+                else:
+                    content = "Error: File not found or is a directory."
+            except Exception as e:
+                content = f"Error reading file: {e}"
+        else:
+            content = "Error: Access denied."
+            
+    # List files in current directory (recursive or simple? start simple)
+    files = []
+    for root, _, filenames in os.walk(base_dir):
+        # Exclude venv and __pycache__ for clarity
+        if "venv" in root or "__pycache__" in root or ".git" in root:
+            continue
+            
+        for name in filenames:
+            rel_path = os.path.relpath(os.path.join(root, name), base_dir)
+            files.append(rel_path)
+            
+    files.sort()
+    
+    return render_template("code_viewer.html", files=files, content=content, current_file=file_path)
 
 
 # --------------------
