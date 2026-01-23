@@ -25,7 +25,19 @@ def get_db():
     return conn
 
 # --------------------
-# ROUTES
+# SECURITY DECORATOR
+# --------------------
+def require_staff(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get("role") not in ["employee", "admin", "superowner"]:
+            # If not staff, kick them back to the cart
+            return redirect(url_for('cart'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# --------------------
+# PUBLIC ROUTES (CUSTOMER SIDE)
 # --------------------
 @app.route("/")
 def root():
@@ -36,8 +48,13 @@ def root():
 
 @app.route("/cart")
 def cart():
-    # Crucial: passing role='customer' if not logged in so navbar shows up
+    # Shows Customer Navbar
     return render_template("cart.html", role=session.get("role", "customer"))
+
+@app.route("/contact")
+def contact():
+    # Placeholder for Contact Us - Shows Customer Navbar
+    return "Contact Us Page Content", 200 # Or render_template('contact.html', role='customer')
 
 @app.route("/process-payment", methods=["POST"])
 def process_payment():
@@ -45,8 +62,8 @@ def process_payment():
     card_num = request.form.get("card_number", "")
     total_val = request.form.get("total_amount")
     
-    # Security Masking for Teacher
-    masked = f"**** **** **** {card_num[-4:]}" if len(card_num) >= 4 else "WALLET_PAY"
+    # Masking for security
+    masked = f"**** **** **** {card_num[-4:]}" if len(card_num) >= 4 else "DIGITAL_PAY"
     
     with get_db() as conn:
         conn.execute("INSERT INTO transactions (username, payment_type, masked_card, amount) VALUES (?,?,?,?)",
@@ -56,44 +73,55 @@ def process_payment():
     flash(f"Payment successful via {pay_method}!", "success")
     return redirect(url_for('cart'))
 
-@app.route("/home")
-def home():
-    if "role" not in session: return redirect(url_for("staff_login"))
-    return render_template("home.html", role=session.get("role"))
-
-# Placeholder routes to prevent navbar BuildErrors
-@app.route("/inventory")
-def inventory(): return render_template("inventory.html", role=session.get("role", "customer"))
-
-@app.route("/dashboard")
-def dashboard(): return "Dashboard"
-
-@app.route("/market-analysis")
-def market_analysis(): return "Analysis"
-
-@app.route("/real-time-analytics")
-def real_time_analytics(): return "Real-time"
-
-@app.route("/contact")
-def contact(): return "Contact Us"
-
-@app.route("/employee-login")
-def employee_login(): return redirect(url_for('staff_login'))
-
+# --------------------
+# HIDDEN STAFF LOGIN
+# --------------------
 @app.route("/staff-login", methods=["GET", "POST"])
 def staff_login():
+    # If they are already logged in, take them to the admin home
+    if session.get("role") in ["employee", "admin", "superowner"]:
+        return redirect(url_for("home"))
+
     if request.method == "POST":
         u, p = request.form.get("username"), request.form.get("password")
         with get_db() as conn:
             user = conn.execute("SELECT * FROM users WHERE username=?", (u,)).fetchone()
+        
         if user and check_password_hash(user['password_hash'], p):
             session.update({"username": u, "role": user['role']})
             return redirect(url_for("home"))
-    return render_template("staff_login.html")
+        flash("Invalid credentials", "danger")
+
+    # Pass role='customer' so the login page STILL shows the customer navbar (hidden vibe)
+    return render_template("staff_login.html", role="customer")
+
+# --------------------
+# PROTECTED STAFF ROUTES
+# --------------------
+@app.route("/home")
+@require_staff
+def home():
+    return render_template("home.html", role=session.get("role"))
+
+@app.route("/inventory")
+@require_staff
+def inventory():
+    return render_template("inventory.html", role=session.get("role"))
+
+@app.route("/dashboard")
+@require_staff
+def dashboard():
+    return render_template("dashboard.html", role=session.get("role"))
+
+@app.route("/market-analysis")
+@require_staff
+def market_analysis():
+    return render_template("analysis.html", role=session.get("role"))
 
 @app.route("/logout")
 def logout():
     session.clear()
+    flash("Logged out successfully", "info")
     return redirect(url_for("cart"))
 
 if __name__ == "__main__":
