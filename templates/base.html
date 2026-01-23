@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Chin Hon Motors{% endblock %}</title>
 
-    {% block head %}
     <link
         rel="stylesheet"
         href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
@@ -13,21 +13,161 @@
     >
 
     <style>
-        /* YOUR CSS REMAINS EXACTLY THE SAME */
-        .custom-navbar { background-color: #1a1a1a; padding: 1rem 0; border-bottom: 1px solid #2a2a2a; }
-        .navbar-brand { font-weight: 700; color: white !important; }
-        .navbar-nav .nav-link { color: #e0e0e0 !important; margin: 0 0.3rem; }
-        .navbar-nav .nav-link:hover { background-color: #333; border-radius: 5px; }
-        .dropdown-menu { background-color: #222; }
-        .dropdown-item { color: #ddd; }
-        .dropdown-item:hover { background-color: #333; color: white; }
-        .navbar-brand { padding: 0; }
-        .navbar-brand img { display: block; height: 40px; width: auto; background: transparent; }
-        .navbar { background-color: #343a40; }
-        .analysis-page { padding: 30px; background: #ffffff; color: #111; }
-        /* ... (rest of your analysis CSS) ... */
+        /* --- YOUR ORIGINAL CSS: EXACTLY THE SAME --- */
+        .custom-navbar {
+            background-color: #1a1a1a;
+            padding: 1rem 0;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            color: white !important;
+            padding: 0;
+        }
+
+        .navbar-brand img {
+            display: block;
+            height: 40px;
+            width: auto;
+            background: transparent;
+        }
+
+        .navbar-nav .nav-link {
+            color: #e0e0e0 !important;
+            margin: 0 0.3rem;
+        }
+
+        .navbar-nav .nav-link:hover {
+            background-color: #333;
+            border-radius: 5px;
+        }
+
+        .dropdown-menu {
+            background-color: #222;
+        }
+
+        .dropdown-item {
+            color: #ddd;
+        }
+
+        .dropdown-item:hover {
+            background-color: #333;
+            color: white;
+        }
+
+        .navbar {
+            background-color: #343a40;
+        }
+
+        .analysis-page {
+            padding: 30px;
+            background: #ffffff;
+            color: #111;
+        }
+
+        .analysis-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .analysis-header h1 {
+            margin: 0;
+            font-size: 26px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-outline {
+            background: white;
+            border: 1px solid #111;
+            padding: 8px 14px;
+            cursor: pointer;
+        }
+
+        .btn-solid {
+            background: #111;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            cursor: pointer;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            border: 1px solid #ddd;
+            padding: 16px;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+
+        .metric-label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        .metric-card h2 {
+            margin: 0;
+            font-size: 22px;
+        }
+
+        .metric-positive { color: #111; font-size: 13px; }
+        .metric-negative { color: #444; font-size: 13px; }
+        .metric-neutral { color: #777; font-size: 13px; }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .chart-card {
+            border: 1px solid #ddd;
+            padding: 16px;
+            border-radius: 10px;
+            background: #fff;
+        }
+
+        .chart-card.wide {
+            grid-column: span 2;
+        }
+
+        .chart-card h3 {
+            margin-top: 0;
+            font-size: 16px;
+        }
+
+        .chart-placeholder {
+            height: 220px;
+            border: 1px dashed #aaa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #777;
+            font-size: 14px;
+            background: #fafafa;
+        }
+
+        /* --- ADDED FLASH MESSAGE STYLING --- */
+        .alert {
+            margin-top: 10px;
+            border-radius: 8px;
+        }
     </style>
-    {% endblock %}
+
+    {% block head %}{% endblock %}
 </head>
 <body>
 
@@ -38,15 +178,40 @@
     {% endif %}
 
     <div class="container-fluid mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
         {% block content %}{% endblock %}
     </div>
 
     {% include 'includes/footer.html' %}
 
-    {% block scripts %}
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    {% endblock %}
+    <script
+        src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+        integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+        crossorigin="anonymous">
+    </script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+        integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+        crossorigin="anonymous">
+    </script>
+    <script
+        src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"
+        integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV"
+        crossorigin="anonymous">
+    </script>
+
+    {% block scripts %}{% endblock %}
 </body>
 </html>
