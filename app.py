@@ -86,7 +86,7 @@ def logout():
     return redirect(url_for("staff_login"))
 
 # --------------------
-# STAFF PAGES (FIXED ROUTES)
+# STAFF PAGES
 # --------------------
 @app.route("/home")
 @require_roles("employee", "admin", "superowner")
@@ -98,16 +98,23 @@ def home():
 def inventory():
     return render_template("inventory.html")
 
-# ADDED THESE TO FIX YOUR BUILD ERROR:
 @app.route("/dashboard")
 @require_roles("employee", "admin", "superowner")
 def dashboard():
     return "<h1>Dashboard Page</h1><a href='/home'>Back</a>"
 
+# --------------------
+# ANALYTICS & MARKET ROUTES (FIXES YOUR ERRORS)
+# --------------------
 @app.route("/market-analysis")
 @require_roles("admin", "superowner")
 def market_analysis():
-    return "<h1>Market Analysis Page</h1><a href='/home'>Back</a>"
+    return "<h1>Market Analysis</h1><a href='/home'>Back</a>"
+
+@app.route("/real-time-analytics")
+@require_roles("admin", "superowner")
+def real_time_analytics():
+    return "<h1>Real Time Analytics</h1><a href='/home'>Back</a>"
 
 # --------------------
 # SUPEROWNER: USER MGMT
