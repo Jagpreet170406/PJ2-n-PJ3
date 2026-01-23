@@ -58,6 +58,15 @@ def root():
 def cart():
     return render_template("cart.html", role=session.get("role", "customer"))
 
+# ADDED TO PREVENT FOOTER/NAVBAR CRASHES
+@app.route("/contact")
+def contact():
+    return "<h1>Contact Page</h1><a href='/'>Back Home</a>"
+
+@app.route("/about")
+def about():
+    return "<h1>About Page</h1><a href='/'>Back Home</a>"
+
 # --------------------
 # STAFF AUTH
 # --------------------
@@ -103,9 +112,6 @@ def inventory():
 def dashboard():
     return "<h1>Dashboard Page</h1><a href='/home'>Back</a>"
 
-# --------------------
-# ANALYTICS & MARKET ROUTES (FIXES YOUR ERRORS)
-# --------------------
 @app.route("/market-analysis")
 @require_roles("admin", "superowner")
 def market_analysis():
