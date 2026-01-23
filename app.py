@@ -8,38 +8,12 @@ from werkzeug.security import generate_password_hash, check_password_hash
 # APP CONFIG
 # --------------------
 app = Flask(__name__)
-app.secret_key = "change-this-in-production-use-a-long-random-string"
+app.secret_key = "very-secret-key-lah" # Change this for production
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB = os.path.join(BASE_DIR, "database.db")
 
 STAFF_ROLES = {"employee", "admin", "superowner"}
-ADMIN_ROLES = {"admin", "superowner"}
-
-# --------------------
-# DB INIT
-# --------------------
-def init_db():
-    conn = sqlite3.connect(DB)
-    c = conn.cursor()
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        user_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        role TEXT NOT NULL,
-        active INTEGER DEFAULT 1
-    )
-    """)
-    c.execute("SELECT 1 FROM users WHERE role='superowner'")
-    if not c.fetchone():
-        hashed_pw = generate_password_hash("changeme123")
-        c.execute(
-            "INSERT INTO users (username, password_hash, role, active) VALUES (?, ?, ?, 1)",
-            ("superowner", hashed_pw, "superowner")
-        )
-    conn.commit()
-    conn.close()
 
 # --------------------
 # HELPERS
@@ -66,6 +40,7 @@ def require_roles(*roles):
         @wraps(fn)
         def wrapper(*args, **kwargs):
             if session.get("role") not in allowed:
+                print(f"DEBUG: Access Denied to {fn.__name__}. Role: {session.get('role')}")
                 return redirect(url_for("staff_login"))
             return fn(*args, **kwargs)
         return wrapper
@@ -76,11 +51,10 @@ def require_roles(*roles):
 # --------------------
 @app.route("/")
 def root():
-    # FIXED: If a staff member is already logged in, take them to their home page
+    # If a staff is already logged in, go straight to home
     if session.get("role") in STAFF_ROLES:
         return redirect(url_for("home"))
     
-    # Otherwise, they are treated as a customer
     session.setdefault("role", "customer")
     return redirect(url_for("cart"))
 
@@ -95,26 +69,29 @@ def cart():
 # --------------------
 @app.route("/staff-login", methods=["GET", "POST"])
 def staff_login():
-    # FIXED: If already logged in, don't show the login page, just go home
+    # If already logged in, skip the login page
     if session.get("role") in STAFF_ROLES:
         return redirect(url_for("home"))
 
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
-        role = check_user_credentials(username, password)
         
+        role = check_user_credentials(username, password)
+        print(f"DEBUG: Login Attempt - User: {username}, Role Found: {role}")
+
         if role:
+            session.clear() # Reset session to ensure clean login
             session["username"] = username
             session["role"] = role
-            # Direct to specific dashboard or home
+            
+            # Redirect logic
             if role == "superowner":
                 return redirect(url_for("manage_users"))
             return redirect(url_for("home"))
         
         flash("Invalid credentials or account disabled.", "danger")
-        return render_template("staff_login.html", error="Invalid credentials")
-
+        
     return render_template("staff_login.html")
 
 @app.route("/logout")
@@ -142,7 +119,7 @@ def inventory():
     return render_template("inventory.html", role=session.get("role"))
 
 # --------------------
-# SUPEROWNER: USER MGMT
+# SUPEROWNER ONLY
 # --------------------
 @app.route("/manage-users", methods=["GET", "POST"])
 @require_roles("superowner")
@@ -153,97 +130,30 @@ def manage_users():
         username = request.form.get("username", "").strip()
 
         with get_db() as conn:
-            c = conn.cursor()
             if action == "add":
-                password = request.form.get("password", "").strip()
-                role = request.form.get("role", "employee")
+                pw, role = request.form.get("password"), request.form.get("role")
                 try:
-                    c.execute("""
-                        INSERT INTO users (username, password_hash, role, active) 
-                        VALUES (?, ?, ?, 1)
-                    """, (username, generate_password_hash(password), role))
+                    conn.execute("INSERT INTO users (username, password_hash, role, active) VALUES (?, ?, ?, 1)",
+                                 (username, generate_password_hash(pw), role))
+                    conn.commit()
                     message = f"User '{username}' added."
-                except sqlite3.IntegrityError:
-                    message = "Error: Username already exists."
+                except Exception as e:
+                    message = f"Error: {e}"
+            
+            elif action == "delete":
+                if username != session.get("username"):
+                    conn.execute("DELETE FROM users WHERE username=?", (username,))
+                    conn.commit()
+                    message = "User deleted."
             
             elif action == "toggle":
-                c.execute("UPDATE users SET active = 1 - active WHERE username=?", (username,))
-                message = "User status updated."
-                
-            elif action == "delete":
-                if username == session.get("username"):
-                    message = "Error: Cannot delete yourself."
-                else:
-                    c.execute("DELETE FROM users WHERE username=?", (username,))
-                    message = "User deleted."
-                    
-            elif action == "change_role":
-                new_role = request.form.get("new_role")
-                c.execute("UPDATE users SET role=? WHERE username=?", (new_role, username))
-                message = "Role updated."
-            conn.commit()
+                conn.execute("UPDATE users SET active = 1 - active WHERE username=?", (username,))
+                conn.commit()
+                message = "Status updated."
 
     with get_db() as conn:
-        users = conn.execute("SELECT username, role, active FROM users ORDER BY role, username").fetchall()
-    
+        users = conn.execute("SELECT username, role, active FROM users").fetchall()
     return render_template("manage_users.html", users=users, message=message)
 
-# --------------------
-# SUPEROWNER TOOLS
-# --------------------
-@app.route("/code")
-@require_roles("superowner")
-def code_viewer():
-    file_path = request.args.get("file")
-    content = None
-    if file_path:
-        full_path = os.path.abspath(os.path.join(BASE_DIR, file_path))
-        if full_path.startswith(BASE_DIR) and os.path.isfile(full_path):
-            try:
-                with open(full_path, "r", encoding="utf-8") as f:
-                    content = f.read()
-            except Exception as e:
-                content = f"Error reading file: {e}"
-        else:
-            content = "Access denied or file not found."
-
-    files = []
-    for root, dirs, filenames in os.walk(BASE_DIR):
-        dirs[:] = [d for d in dirs if d not in ["venv", "__pycache__", ".git", "static"]]
-        for name in filenames:
-            files.append(os.path.relpath(os.path.join(root, name), BASE_DIR))
-
-    return render_template("code_viewer.html", files=sorted(files), content=content, current_file=file_path)
-
-@app.route("/db-panel", methods=["GET", "POST"])
-@require_roles("superowner")
-def db_panel():
-    message = ""
-    query_results = None
-    
-    if request.method == "POST":
-        query = request.form.get("query")
-        try:
-            with get_db() as conn:
-                c = conn.cursor()
-                c.execute(query)
-                if query.strip().lower().startswith("select"):
-                    query_results = c.fetchall()
-                conn.commit()
-                message = "Query executed successfully."
-        except Exception as e:
-            message = f"SQL Error: {e}"
-
-    with get_db() as conn:
-        tables_list = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
-        data = {}
-        for row in tables_list:
-            table_name = row['name']
-            data[table_name] = conn.execute(f"SELECT * FROM {table_name} LIMIT 10").fetchall()
-
-    return render_template("db_panel.html", tables=data, message=message, query_results=query_results)
-
 if __name__ == "__main__":
-    init_db()
     app.run(debug=True, port=5000)
-
