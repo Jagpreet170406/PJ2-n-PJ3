@@ -2,84 +2,170 @@
 
 {% block title %}Home{% endblock %}
 
-{% block head %}
-{{ super() }}
-<style>
-.hero-section {
-    background-color: #0f0f0f;
-    color: white;
-    padding: 6rem 0;
-    text-align: center;
-}
-
-.hero-title {
-    font-size: 3rem;
-    font-weight: 700;
-}
-
-.hero-subtitle {
-    color: #b3b3b3;
-    margin: 1.5rem 0 2.5rem;
-}
-
-.hero-btn {
-    background-color: white;
-    color: black;
-    padding: 0.9rem 2.5rem;
-    font-weight: 600;
-    border-radius: 8px;
-    text-decoration: none;
-}
-
-.features-section {
-    background-color: #0f0f0f;
-    padding: 4rem 0;
-}
-
-.feature-card {
-    background-color: #1c1c1c;
-    border: 1px solid #2a2a2a;
-    border-radius: 14px;
-    padding: 2rem;
-    color: white;
-    transition: 0.25s;
-}
-
-.feature-card:hover {
-    transform: translateY(-6px);
-}
-
-.feature-text {
-    color: #b3b3b3;
-}
-</style>
-{% endblock %}
-
 {% block content %}
-<section class="hero-section">
-    <h1 class="hero-title">Welcome to Our Platform</h1>
-    <p class="hero-subtitle">
-        Manage inventory, sales, and analytics in one place
-    </p>
-    <a href="{{ url_for('inventory') }}" class="hero-btn">Get Started</a>
+<style>
+
+body {
+background: #0b0b0b;
+}
+
+.hero {
+  min-height: 50vh;
+  padding-top: 140px; 
+  padding-top: 90px;
+  background:  #0b0b0b;
+  border-bottom-left-radius: 48px;
+  border-bottom-right-radius: 48px;
+}
+
+
+
+.preview-img {
+  background-image: url("{{ url_for('static', filename='static/preview_home.png') }}");
+  background-size: cover;
+  background-position: center;
+  min-height: 280px;
+}
+
+.navbar .nav-link {
+  color: rgba(255,255,255,0.85);
+  font-weight: 500;
+}
+
+
+.navbar .nav-link:hover {
+  color: white;
+  
+}
+
+.navbar .nav-link.active {
+  color: white;
+}
+.navbar.scrolled {
+  background-color: rgba(15,15,15,0.9);
+  backdrop-filter: blur(10px);
+  
+}
+
+.navbar-brand {
+  float: left;
+}
+
+.nav-item {
+  float: left;
+  margin-left: 20px;
+}
+
+.preview-content {
+  background: #f7f7f7; /* soft light grey */
+}
+
+.hero-badge {
+  background: Black(255,255,255,0.12); 
+  color: white;
+  font-weight: 500;
+  border-radius: 999px;
+  padding: 8px 14px;
+  transition: background 0.15s ease;
+}
+.hero-badge:hover {
+  background: rgba(255,255,255,0.2);
+  cursor: pointer;
+}
+
+
+
+</style>
+<section class="hero py-5">
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-9 text-center">
+
+        <p class="text-uppercase text-secondary small mb-2" style="letter-spacing: .2em;">
+          Chin Hon
+        </p>
+
+        <h1 class="display-4 fw-bold text-white mb-3">
+          Welcome Back
+        </h1>
+
+        <p class="lead text-white-50 mx-auto mb-4" style="max-width: 640px;">
+          What shall we get started with today?
+        </p>
+
+        <div class="d-flex gap-2 justify-content-center flex-wrap">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-light btn-lg px-4 mr-2 mb-2">
+                Get Started With Dashboard
+            </a>
+              
+        </div>
+
+      </div>
+    </div>
+  </div>
 </section>
 
-<section class="features-section">
-    <div class="container">
-        <div class="row">
-            <div class="col-md-3 mb-4">
-                <div class="feature-card">Inventory</div>
-            </div>
-            <div class="col-md-3 mb-4">
-                <div class="feature-card">Cart</div>
-            </div>
-            <div class="col-md-3 mb-4">
-                <div class="feature-card">Dashboard</div>
-            </div>
-            <div class="col-md-3 mb-4">
-                <div class="feature-card">Analytics</div>
-            </div>
+<!-- Simple section to make page longer -->
+<section class="py-5 bg-body">
+  <div class="container">
+    <div class="row g-4">
+
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100 rounded-4">
+          <div class="card-body p-4">
+            <h5 class="fw-bold">6776</h5>
+            <p class="text-muted mb-0">
+              6776767
+            </p>
+          </div>
         </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100 rounded-4">
+          <div class="card-body p-4">
+            <h5 class="fw-bold">67</h5>
+            <p class="text-muted mb-0">
+              67
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100 rounded-4">
+          <div class="card-body p-4">
+            <h5 class="fw-bold">67</h5>
+            <p class="text-muted mb-0">
+              67
+            </p>
+          </div>
+        </div>
+      </div>
+
     </div>
+  </div>
+</section>
+
+<!-- Optional “preview” block like the screenshot -->
+<section class="py-5 bg-black">
+  <div class="container">
+    <div class="card border-0 shadow rounded-4 overflow-hidden">
+      <div class="row g-0">
+        <div class="col-lg-6 p-4 p-lg-5 preview-content">
+          <h3 class="fw-bold mb-2">67</h3>
+          <p class="text-muted mb-4">
+            67
+          </p>
+          <a href="{{ url_for('inventory') }}" class="btn btn-dark">
+            View Inventory
+          </a>
+        </div>
+        <div class="col-lg-6">
+          <div class="preview-img h-100"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 {% endblock %}
