@@ -1,10 +1,11 @@
-from flask import Flask, render_template, request, session, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session, abort
 import sqlite3
-from functools import wraps
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = "super-secret-key-change-this-in-production"
+app.secret_key = "change-this-in-production"
 DB = "database.db"
+
 
 STAFF_ROLES = {"employee", "admin", "superowner"}
 ADMIN_ROLES = {"admin", "superowner"}
