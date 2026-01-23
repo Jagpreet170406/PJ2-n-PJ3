@@ -1,13 +1,131 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
-    <p>
-        
-    </p>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block title %}Inventory{% endblock %}
+
+{% block content %}
+
+<style>
+    body {
+        font-family: Inter, Arial, sans-serif;
+        background: #f6f6f6;
+        padding: 30px;
+    }
+
+    .container {
+        background: #f2f2f2;
+        border-radius: 25px;
+        padding: 25px;
+        max-width: 1200px;
+        margin: auto;
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+    }
+
+    .header h1 {
+        margin: 0;
+        font-size: 32px;
+    }
+
+    .select-btn {
+        background: white;
+        border-radius: 25px;
+        padding: 10px 20px;
+        border: none;
+        font-size: 14px;
+        cursor: pointer;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
+
+    .card {
+        background: white;
+        border-radius: 12px;
+        padding: 12px;
+        border: 1px solid #e5e5e5;
+    }
+
+    .img-placeholder {
+        width: 100%;
+        height: 180px;
+        background: #f2f2f2;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #999;
+        font-size: 13px;
+    }
+
+    .product-name {
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 1.3;
+        margin-bottom: 8px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .stock {
+        font-size: 13px;
+        color: #666;
+    }
+</style>
+
+<div class="container">
+    <div class="header">
+        <h1>Stocking Opportunity</h1>
+        <button class="select-btn">Select item</button>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <div class="img-placeholder">Image</div>
+            <div class="product-name">Shell Engine Oil</div>
+            <div class="stock">Stock: 120 L</div>
+        </div>
+
+        <div class="card">
+            <div class="img-placeholder">Image</div>
+            <div class="product-name">Caltex Engine Oil</div>
+            <div class="stock">Stock: 95 L</div>
+        </div>
+
+        <div class="card">
+            <div class="img-placeholder">Image</div>
+            <div class="product-name">Esso Engine Oil</div>
+            <div class="stock">Stock: 80 L</div>
+        </div>
+
+        <div class="card">
+            <div class="img-placeholder">Image</div>
+            <div class="product-name">SPC Engine Oil</div>
+            <div class="stock">Stock: 60 L</div>
+        </div>
+
+        <div class="card">
+            <div class="img-placeholder">Image</div>
+            <div class="product-name">Sinopec Engine Oil</div>
+            <div class="stock">Stock: 110 L</div>
+        </div>
+
+        <div class="card">
+            <div class="img-placeholder">Image</div>
+            <div class="product-name">Smart Energy Engine Oil</div>
+            <div class="stock">Stock: 75 L</div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
