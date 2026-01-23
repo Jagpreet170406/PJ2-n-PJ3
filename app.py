@@ -22,10 +22,11 @@ ADMIN_ROLES = {"admin", "superowner"}
 def init_db():
     conn = sqlite3.connect(DB)
     c = conn.cursor()
-    # Create Users Table
+    # Updated Schema to match your database.py (added user_id)
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
-        username TEXT PRIMARY KEY,
+        user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         role TEXT NOT NULL,
         active INTEGER DEFAULT 1
@@ -47,7 +48,7 @@ def init_db():
 # --------------------
 def get_db():
     conn = sqlite3.connect(DB)
-    conn.row_factory = sqlite3.Row  # Allows accessing columns by name
+    conn.row_factory = sqlite3.Row  
     return conn
 
 def check_user_credentials(username, password):
@@ -99,6 +100,7 @@ def staff_login():
         if role:
             session["username"] = username
             session["role"] = role
+            # Superowner goes to User Management, others to Home
             return redirect(url_for("manage_users" if role == "superowner" else "home"))
         
         flash("Invalid credentials or account disabled.", "danger")
@@ -149,8 +151,11 @@ def manage_users():
                 password = request.form.get("password", "").strip()
                 role = request.form.get("role", "employee")
                 try:
-                    c.execute("INSERT INTO users VALUES (?, ?, ?, 1)",
-                              (username, generate_password_hash(password), role))
+                    # FIX: Explicitly naming columns so user_id auto-increments correctly
+                    c.execute("""
+                        INSERT INTO users (username, password_hash, role, active) 
+                        VALUES (?, ?, ?, 1)
+                    """, (username, generate_password_hash(password), role))
                     message = f"User '{username}' added."
                 except sqlite3.IntegrityError:
                     message = "Error: Username already exists."
@@ -198,7 +203,6 @@ def code_viewer():
 
     files = []
     for root, dirs, filenames in os.walk(BASE_DIR):
-        # Filter out heavy or hidden directories
         dirs[:] = [d for d in dirs if d not in ["venv", "__pycache__", ".git", "static"]]
         for name in filenames:
             files.append(os.path.relpath(os.path.join(root, name), BASE_DIR))
@@ -227,7 +231,6 @@ def db_panel():
         except Exception as e:
             message = f"SQL Error: {e}"
 
-    # Get schema overview
     with get_db() as conn:
         tables_list = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
         data = {}
