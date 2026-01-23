@@ -1,29 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Superowner Code Viewer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: monospace;
-            padding: 20px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
             display: flex;
-            gap: 20px;
+            height: 100vh;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
         }
 
         .sidebar {
-            width: 300px;
-            border-right: 1px solid #ccc;
+            width: 280px;
+            min-width: 200px;
+            border-right: 1px solid #3e3e3e;
             overflow-y: auto;
-            height: 90vh;
+            background-color: #252526;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 15px;
+            border-bottom: 1px solid #3e3e3e;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 0;
         }
 
         .content {
             flex: 1;
             overflow-y: auto;
-            height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #3e3e3e;
+            background-color: #2d2d30;
+        }
+
+        .code-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: #1e1e1e;
+        }
+
+        pre {
+            margin: 0;
+            background: transparent !important;
+            padding: 0 !important;
+        }
+
+        code {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
         }
 
         ul {
@@ -32,63 +79,166 @@
         }
 
         li {
-            margin: 5px 0;
+            margin: 0;
         }
 
         a {
             text-decoration: none;
-            color: blue;
+            color: #cccccc;
+            display: block;
+            padding: 8px 15px;
+            font-size: 13px;
+            transition: background-color 0.2s;
         }
 
         a:hover {
-            text-decoration: underline;
+            background-color: #2a2d2e;
+            color: #ffffff;
         }
 
-        pre {
-            background: #f4f4f4;
-            padding: 15px;
-            border-radius: 5px;
-            overflow-x: auto;
+        a.active {
+            background-color: #37373d;
+            color: #ffffff;
+            font-weight: 500;
         }
 
         .back-btn {
             display: inline-block;
-            margin-bottom: 20px;
-            padding: 10px 15px;
-            background: #333;
-            color: #fff;
+            margin-bottom: 15px;
+            padding: 8px 15px;
+            background: #0e639c;
+            color: #ffffff;
             text-decoration: none;
-            border-radius: 5px;
+            border-radius: 4px;
+            font-size: 13px;
+            transition: background-color 0.2s;
+        }
+
+        .back-btn:hover {
+            background: #1177bb;
+            color: #ffffff;
+        }
+
+        h3 {
+            color: #cccccc;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            padding: 0 15px;
+        }
+
+        h2 {
+            color: #cccccc;
+            font-size: 14px;
+            font-weight: 400;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6a6a6a;
+        }
+
+        .empty-state h2 {
+            color: #6a6a6a;
+            margin-bottom: 10px;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: 200px;
+                border-right: none;
+                border-bottom: 1px solid #3e3e3e;
+            }
+            
+            .content {
+                height: calc(100vh - 200px);
+            }
+        }
+
+        /* File type icons */
+        .file-icon {
+            display: inline-block;
+            width: 16px;
+            margin-right: 8px;
+            text-align: center;
         }
     </style>
 </head>
-
 <body>
-
     <div class="sidebar">
-        <a href="{{ url_for('dashboard') }}" class="back-btn">← Back to Dashboard</a>
-        <h3>Project Files</h3>
-        <ul>
-            {% for file in files %}
-            <li>
-                <a href="{{ url_for('code_viewer', file=file) }}"
-                    style="{{ 'font-weight: bold;' if file == current_file else '' }}">
-                    {{ file }}
-                </a>
-            </li>
-            {% endfor %}
-        </ul>
+        <div class="sidebar-header">
+            <a href="{{ url_for('dashboard') }}" class="back-btn">← Back to Dashboard</a>
+        </div>
+        <div class="sidebar-content">
+            <h3>Project Files</h3>
+            <ul>
+                {% if files %}
+                    {% for file in files %}
+                    <li>
+                        <a href="{{ url_for('code_viewer', file=file) }}" 
+                           class="{{ 'active' if file == current_file else '' }}">
+                            <span class="file-icon">
+                                {% if file.endswith('.py') %}🐍
+                                {% elif file.endswith('.html') %}🌐
+                                {% elif file.endswith('.css') %}🎨
+                                {% elif file.endswith('.js') %}⚡
+                                {% elif file.endswith('.json') %}📄
+                                {% else %}📄{% endif %}
+                            </span>
+                            {{ file }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                {% else %}
+                    <li style="padding: 10px 15px; color: #6a6a6a; font-size: 13px;">
+                        No files found
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
     </div>
 
     <div class="content">
-        {% if current_file %}
-        <h2>Viewing: {{ current_file }}</h2>
-        <pre>{{ content }}</pre>
-        {% else %}
-        <h2>Select a file to view its content.</h2>
-        {% endif %}
+        <div class="content-header">
+            {% if current_file %}
+                <h2>📄 {{ current_file }}</h2>
+            {% else %}
+                <h2>Select a file to view its content</h2>
+            {% endif %}
+        </div>
+        <div class="code-container">
+            {% if current_file %}
+                <pre><code class="language-{{ current_file.split('.')[-1] if '.' in current_file else 'plaintext' }}">{{ content | e if content else 'File is empty' }}</code></pre>
+            {% else %}
+                <div class="empty-state">
+                    <h2>👋 Welcome to Code Viewer</h2>
+                    <p>Select a file from the sidebar to view its content</p>
+                </div>
+            {% endif %}
+        </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+    <script>
+        // Auto-detect and highlight code
+        Prism.highlightAll();
+        
+        // Auto-resize for long lines
+        document.querySelectorAll('pre code').forEach(block => {
+            block.style.whiteSpace = 'pre';
+            block.style.overflowX = 'auto';
+        });
+    </script>
 </body>
-
 </html>
