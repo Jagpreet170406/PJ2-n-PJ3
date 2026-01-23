@@ -1,157 +1,73 @@
-import sqlite3
-import os
-from werkzeug.security import generate_password_hash
+# --------------------
+# DB INIT (Updated to match database.py)
+# --------------------
+def init_db():
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL,
+            active INTEGER DEFAULT 1
+        )
+        """)
+        # Bootstrap superowner
+        c.execute("SELECT 1 FROM users WHERE role='superowner'")
+        if not c.fetchone():
+            hashed_pw = generate_password_hash("changeme123")
+            c.execute(
+                "INSERT INTO users (username, password_hash, role, active) VALUES (?, ?, ?, 1)",
+                ("superowner", hashed_pw, "superowner")
+            )
+        conn.commit()
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "database.db")
+# --------------------
+# SUPEROWNER: USER MGMT (Fixed INSERT)
+# --------------------
+@app.route("/manage-users", methods=["GET", "POST"])
+@require_roles("superowner")
+def manage_users():
+    message = ""
+    if request.method == "POST":
+        action = request.form.get("action")
+        username = request.form.get("username", "").strip()
 
-conn = sqlite3.connect(DB_PATH)
-cursor = conn.cursor()
+        with get_db() as conn:
+            c = conn.cursor()
+            if action == "add":
+                password = request.form.get("password", "").strip()
+                role = request.form.get("role", "employee")
+                try:
+                    # ✅ FIXED: Explicitly naming columns allows SQLite to handle 'user_id' automatically
+                    c.execute("""
+                        INSERT INTO users (username, password_hash, role, active) 
+                        VALUES (?, ?, ?, 1)
+                    """, (username, generate_password_hash(password), role))
+                    message = f"User '{username}' added."
+                except sqlite3.IntegrityError:
+                    message = "Error: Username already exists."
+            
+            elif action == "toggle":
+                c.execute("UPDATE users SET active = 1 - active WHERE username=?", (username,))
+                message = "User status updated."
+                
+            elif action == "delete":
+                if username == session.get("username"):
+                    message = "Error: Cannot delete yourself."
+                else:
+                    c.execute("DELETE FROM users WHERE username=?", (username,))
+                    message = "User deleted."
+                    
+            elif action == "change_role":
+                new_role = request.form.get("new_role")
+                c.execute("UPDATE users SET role=? WHERE username=?", (new_role, username))
+                message = "Role updated."
+            conn.commit()
 
-# =========================
-# USERS (RBAC / AUTH)
-# =========================
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS users (
-    user_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    role TEXT NOT NULL CHECK (role IN ('employee','admin','superowner')),
-    active INTEGER DEFAULT 1
-);
-""")
-
-# Default SUPEROWNER (created once)
-cursor.execute("SELECT 1 FROM users WHERE role='superowner' LIMIT 1")
-if not cursor.fetchone():
-    cursor.execute("""
-        INSERT INTO users (username, password_hash, role, active)
-        VALUES (?, ?, 'superowner', 1)
-    """, ("superowner", generate_password_hash("changeme123")))
-
-# =========================
-# LEGENDS
-# =========================
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS legends (
-    legend_id TEXT PRIMARY KEY,
-    legend_name TEXT NOT NULL
-);
-""")
-
-# =========================
-# PRODUCTS (Shared)
-# =========================
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS products (
-    product_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    sku_no TEXT UNIQUE NOT NULL,
-    hem_name TEXT NOT NULL
-);
-""")
-
-# =========================
-# CUSTOMERS
-# =========================
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS customers (
-    customer_id INTEGER PRIMARY KEY,
-    customer_code TEXT NOT NULL
-);
-""")
-
-# =========================
-# SUPPLIERS
-# =========================
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS suppliers (
-    supplier_id INTEGER PRIMARY KEY,
-    supp_name TEXT NOT NULL
-);
-""")
-
-# =========================
-# SALES
-# =========================
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS sales_invoice_header (
-    invoice_no TEXT PRIMARY KEY,
-    invoice_date TEXT NOT NULL,
-    customer_id INTEGER NOT NULL,
-    legend_id TEXT,
-    FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
-    FOREIGN KEY (legend_id) REFERENCES legends(legend_id)
-);
-""")
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS sales_invoice_line (
-    invoice_no TEXT NOT NULL,
-    line_no INTEGER NOT NULL,
-    product_id INTEGER NOT NULL,
-    qty INTEGER NOT NULL,
-    total_amt REAL NOT NULL,
-    gst_amt REAL NOT NULL,
-    PRIMARY KEY (invoice_no, line_no),
-    FOREIGN KEY (invoice_no) REFERENCES sales_invoice_header(invoice_no),
-    FOREIGN KEY (product_id) REFERENCES products(product_id)
-);
-""")
-
-# =========================
-# PURCHASE
-# =========================
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS purchase_header (
-    purchase_ref_no TEXT PRIMARY KEY,
-    purchase_date TEXT NOT NULL,
-    total_purchase REAL NOT NULL,
-    gst_amt REAL NOT NULL,
-    supplier_id INTEGER NOT NULL,
-    legend_id TEXT,
-    FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id),
-    FOREIGN KEY (legend_id) REFERENCES legends(legend_id)
-);
-""")
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS purchase_line (
-    purchase_ref_no TEXT NOT NULL,
-    line_no INTEGER NOT NULL,
-    product_id INTEGER NOT NULL,
-    qty INTEGER NOT NULL,
-    PRIMARY KEY (purchase_ref_no, line_no),
-    FOREIGN KEY (purchase_ref_no) REFERENCES purchase_header(purchase_ref_no),
-    FOREIGN KEY (product_id) REFERENCES products(product_id)
-);
-""")
-
-# =========================
-# INVENTORY
-# =========================
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS inventory (
-    inventory_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    sup_part_no TEXT NOT NULL,
-    hem_name TEXT NOT NULL,
-    org TEXT,
-    loc_on_shelf TEXT,
-    qty INTEGER NOT NULL,
-    sell_price REAL NOT NULL
-);
-""")
-
-conn.commit()
-conn.close()
-
-print("✅ database.db created successfully with USERS + BUSINESS schema")
-
-
-
-
-
-
-
-
-
-
+    with get_db() as conn:
+        # Note: selecting specific columns to match the template expectations
+        users = conn.execute("SELECT username, role, active FROM users ORDER BY role, username").fetchall()
+    
+    return render_template("manage_users.html", users=users, message=message)
