@@ -1,100 +1,79 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shopping Cart - Chin Hon Motors</title>
-    <style>
-        /* [KEEP YOUR EXISTING CSS HERE] */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, sans-serif; background: #f8f9fa; padding: 2rem 1rem; line-height: 1.6; }
-        .container { max-width: 1400px; margin: 0 auto; }
-        .cart-layout { display: grid; grid-template-columns: 1fr; gap: 2rem; }
-        @media (min-width: 1024px) { .cart-layout { grid-template-columns: 2fr 1fr; } }
-        .cart-section, .order-summary { background: white; border-radius: 0.75rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 2rem; }
-        .section-title { font-size: 1.5rem; margin-bottom: 1.5rem; font-weight: 600; }
-        .cart-items { display: flex; flex-direction: column; gap: 1.5rem; }
-        .cart-item { border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1.5rem; display: grid; grid-template-columns: 200px 1fr auto; gap: 1.5rem; align-items: center; }
-        .summary-total { padding-top: 1.5rem; border-top: 2px solid #e5e7eb; display: flex; justify-content: space-between; font-size: 1.5rem; font-weight: 700; margin-bottom: 2rem; }
-        .checkout-btn { width: 100%; background: #2563eb; color: white; border: none; padding: 1rem; border-radius: 0.5rem; font-size: 1.125rem; font-weight: 600; cursor: pointer; margin-top: 1rem; }
-        .continue-btn { width: 100%; background: white; color: #374151; border: 2px solid #d1d5db; padding: 1rem; border-radius: 0.5rem; cursor: pointer; margin-top: 1rem; }
-        .input-field { width: 100%; padding: 0.8rem; border: 1px solid #d1d5db; border-radius: 0.5rem; margin-bottom: 1rem; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🛠️ Your Cart</h1>
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* Your Car Dood Styling */
+    .cart-container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; font-family: sans-serif; }
+    .cart-layout { display: grid; grid-template-columns: 1fr; gap: 2rem; }
+    @media (min-width: 1024px) { .cart-layout { grid-template-columns: 2fr 1fr; } }
+    .cart-section, .order-summary { background: white; border-radius: 0.75rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 2rem; }
+    .cart-item { border-bottom: 1px solid #eee; padding: 1rem 0; display: flex; gap: 1rem; align-items: center; }
+    .item-image { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; }
+    .summary-total { font-size: 1.5rem; font-weight: bold; margin: 1.5rem 0; display: flex; justify-content: space-between; }
+    .checkout-btn { width: 100%; background: #2563eb; color: white; border: none; padding: 1rem; border-radius: 0.5rem; font-weight: bold; cursor: pointer; }
+    .payment-box { margin-top: 1.5rem; border-top: 1px solid #eee; pt: 1rem; }
+    .form-control { width: 100%; padding: 0.7rem; margin-bottom: 1rem; border: 1px solid #ddd; border-radius: 4px; }
+</style>
+
+<div class="cart-container">
+    <h1>🛠️ Your Cart</h1>
+    <div class="cart-layout">
+        <div class="cart-section">
+            <div id="cartItems"></div>
         </div>
 
-        <div class="cart-layout">
-            <div class="cart-section">
-                <h2 class="section-title">Cart Items</h2>
-                <div id="cartItems" class="cart-items"></div>
+        <div class="order-summary">
+            <h3>Order Summary</h3>
+            <div class="summary-total">
+                <span>Total</span>
+                <span id="totalDisplay">$0.00</span>
             </div>
 
-            <div class="order-summary">
-                <h2 class="section-title">Order Summary</h2>
-                <div class="summary-row"><span>Subtotal</span><span id="subtotal">$0.00</span></div>
-                <div class="summary-row"><span>Tax (8%)</span><span id="tax">$0.00</span></div>
-                <div class="summary-total"><span>Total</span><span id="total">$0.00</span></div>
-
+            <div class="payment-box">
                 <form action="{{ url_for('process_payment') }}" method="POST">
                     <label>Payment Method</label>
-                    <select name="payment_method" class="input-field" required>
+                    <select name="payment_method" class="form-control" required>
                         <option value="NETS">NETS</option>
                         <option value="VISA">VISA</option>
-                        <option value="Mastercard">Mastercard</option>
-                        <option value="JCB">JCB</option>
-                        <option value="AMEX">AMEX</option>
                         <option value="Grab Pay">Grab Pay</option>
                         <option value="Google Pay">Google Pay</option>
+                        <option value="JCB">JCB</option>
+                        <option value="AMEX">AMEX</option>
                     </select>
 
-                    <label>Card / Account Number</label>
-                    <input type="password" name="card_number" class="input-field" placeholder="Numbers Only" required pattern="\d+">
+                    <label>Card Number</label>
+                    <input type="password" name="card_number" class="form-control" placeholder="1234 5678 ..." required>
                     
-                    <input type="hidden" name="total_amount" id="formTotal">
-                    <button type="submit" class="checkout-btn">Confirm & Pay</button>
+                    <input type="hidden" name="total_amount" id="hiddenTotal">
+                    <button type="submit" class="checkout-btn">Confirm Purchase</button>
                 </form>
-                
-                <button class="continue-btn" onclick="window.location.href='/'">Continue Shopping</button>
             </div>
         </div>
     </div>
+</div>
 
-    <script>
-        let cart = [
-            { id: 1, name: 'Performance Exhaust', price: 1250, quantity: 1, image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400' },
-            { id: 2, name: 'Brake Pads Set', price: 350, quantity: 1, image: 'https://images.unsplash.com/photo-1610293806573-9e7b7f9fc8c2?w=400' }
-        ];
+<script>
+    let cart = [
+        { id: 1, name: 'Performance Exhaust', price: 1250, image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=200' },
+        { id: 2, name: 'Brake Pads Set', price: 350, image: 'https://images.unsplash.com/photo-1610293806573-9e7b7f9fc8c2?w=200' }
+    ];
 
-        function updateCart() {
-            const cartItemsDiv = document.getElementById('cartItems');
-            cartItemsDiv.innerHTML = cart.map(item => `
-                <div class="cart-item">
-                    <img src="${item.image}" class="item-image" style="width:100px;">
-                    <div>
-                        <div class="item-name">${item.name}</div>
-                        <div class="item-price">$${item.price.toLocaleString()}</div>
-                    </div>
+    function renderCart() {
+        const div = document.getElementById('cartItems');
+        div.innerHTML = cart.map(item => `
+            <div class="cart-item">
+                <img src="${item.image}" class="item-image">
+                <div>
+                    <h4>${item.name}</h4>
+                    <p>$${item.price.toLocaleString()}</p>
                 </div>
-            `).join('');
-            updateSummary();
-        }
+            </div>
+        `).join('');
 
-        function updateSummary() {
-            const subtotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
-            const tax = subtotal * 0.08;
-            const total = subtotal + tax;
-
-            document.getElementById('subtotal').textContent = `$${subtotal.toLocaleString()}`;
-            document.getElementById('tax').textContent = `$${tax.toLocaleString()}`;
-            document.getElementById('total').textContent = `$${total.toLocaleString()}`;
-            document.getElementById('formTotal').value = total;
-        }
-
-        updateCart();
-    </script>
-</body>
-</html>
+        const total = cart.reduce((sum, i) => sum + i.price, 0);
+        document.getElementById('totalDisplay').textContent = `$${total.toLocaleString()}`;
+        document.getElementById('hiddenTotal').value = total;
+    }
+    renderCart();
+</script>
+{% endblock %}
