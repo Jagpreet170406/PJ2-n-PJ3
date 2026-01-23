@@ -11,30 +11,11 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB = os.path.join(BASE_DIR, "database.db")
 
 # --------------------
-# DB INIT
+# DATABASE HELPER
 # --------------------
-def init_db():
-    with sqlite3.connect(DB) as conn:
-        # User & Transactions tables
-        conn.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password_hash TEXT, role TEXT, active INTEGER DEFAULT 1)")
-        conn.execute("CREATE TABLE IF NOT EXISTS transactions (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, payment_type TEXT, masked_card TEXT, amount REAL, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)")
-        
-        # NEW: Products table to handle your "shit ton" of records
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS products (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, 
-                name TEXT, 
-                category TEXT, 
-                price REAL, 
-                image_url TEXT,
-                stock INTEGER DEFAULT 0
-            )
-        """)
-        conn.commit()
-
 def get_db():
     conn = sqlite3.connect(DB)
-    conn.row_factory = sqlite3.Row
+    conn.row_factory = sqlite3.Row  # Crucial for 25k records to access by column name
     return conn
 
 # --------------------
@@ -58,15 +39,48 @@ def root():
         return redirect(url_for("home"))
     return redirect(url_for("cart"))
 
-# UPDATED: Now fetches all records from the DB for the shop
 @app.route("/cart")
 def cart():
+    # 1. Get Parameters for Big Data Handling
+    page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('search', '')
+    category_filter = request.args.get('category', '')
+    
+    per_page = 24  # Don't load 25k at once!
+    offset = (page - 1) * per_page
+
     with get_db() as conn:
-        # Get all products. If you have THOUSANDS, we can later add "LIMIT 20" for pagination
-        products = conn.execute("SELECT * FROM products ORDER BY category ASC").fetchall()
+        # 2. Get categories for the sidebar (Distinct list)
+        categories = conn.execute("SELECT DISTINCT category FROM inventory WHERE category IS NOT NULL").fetchall()
+        
+        # 3. Build Dynamic Query
+        base_query = " FROM inventory WHERE qty > 0"
+        params = []
+
+        if search_query:
+            base_query += " AND (hem_name LIKE ? OR sup_part_no LIKE ?)"
+            params.extend([f'%{search_query}%', f'%{search_query}%'])
+        
+        if category_filter:
+            base_query += " AND category = ?"
+            params.append(category_filter)
+
+        # 4. Count total for Pagination Logic
+        total_count = conn.execute("SELECT COUNT(*)" + base_query, params).fetchone()[0]
+        total_pages = (total_count // per_page) + (1 if total_count % per_page > 0 else 0)
+
+        # 5. Fetch only the 24 records for this specific page
+        final_query = "SELECT *" + base_query + " ORDER BY hem_name ASC LIMIT ? OFFSET ?"
+        params.extend([per_page, offset])
+        products = conn.execute(final_query, params).fetchall()
     
     return render_template("cart.html", 
                            products=products, 
+                           categories=categories,
+                           current_page=page,
+                           total_pages=total_pages,
+                           search_query=search_query,
+                           category_filter=category_filter,
                            role=session.get("role", "customer"))
 
 @app.route("/contact")
@@ -76,17 +90,15 @@ def contact():
 @app.route("/process-payment", methods=["POST"])
 def process_payment():
     pay_method = request.form.get("payment_method", "Credit Card")
-    card_num = request.form.get("card_number", "")
     total_val = request.form.get("total_amount")
     
-    masked = f"**** **** **** {card_num[-4:]}" if len(card_num) >= 4 else "DIGITAL_PAY"
-    
     with get_db() as conn:
-        conn.execute("INSERT INTO transactions (username, payment_type, masked_card, amount) VALUES (?,?,?,?)",
-                     (session.get("username", "Guest"), pay_method, masked, total_val))
+        # Logs into your 'transactions' table
+        conn.execute("INSERT INTO transactions (username, payment_type, amount) VALUES (?,?,?)",
+                     (session.get("username", "Guest"), pay_method, total_val))
         conn.commit()
     
-    flash(f"Payment successful! Amount: SGD {total_val}", "success")
+    flash(f"Payment successful! SGD {total_val} received.", "success")
     return redirect(url_for('cart'))
 
 # --------------------
@@ -120,9 +132,10 @@ def home():
 @app.route("/inventory")
 @require_staff
 def inventory():
-    # Showing all products in the admin inventory view too
+    # Admin view can also use pagination later if needed, 
+    # but for now, we'll keep it simple or use same logic as cart
     with get_db() as conn:
-        products = conn.execute("SELECT * FROM products").fetchall()
+        products = conn.execute("SELECT * FROM inventory LIMIT 100").fetchall() # Limit for safety
     return render_template("inventory.html", products=products, role=session.get("role"))
 
 @app.route("/dashboard")
@@ -146,5 +159,4 @@ def logout():
     return redirect(url_for("cart"))
 
 if __name__ == "__main__":
-    init_db()
     app.run(debug=True)

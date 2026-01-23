@@ -9,7 +9,7 @@ conn = sqlite3.connect(DB_PATH)
 cursor = conn.cursor()
 
 # =========================
-# USERS (RBAC / AUTH)
+# 1. USERS (RBAC / AUTH)
 # =========================
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS users (
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 """)
 
-# Default SUPEROWNER (created once)
+# Default SUPEROWNER
 cursor.execute("SELECT 1 FROM users WHERE role='superowner' LIMIT 1")
 if not cursor.fetchone():
     cursor.execute("""
@@ -30,17 +30,14 @@ if not cursor.fetchone():
     """, ("superowner", generate_password_hash("changeme123")))
 
 # =========================
-# LEGENDS
+# 2. LEGENDS, CUSTOMERS, SUPPLIERS
 # =========================
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS legends (
-    legend_id TEXT PRIMARY KEY,
-    legend_name TEXT NOT NULL
-);
-""")
+cursor.execute("CREATE TABLE IF NOT EXISTS legends (legend_id TEXT PRIMARY KEY, legend_name TEXT NOT NULL);")
+cursor.execute("CREATE TABLE IF NOT EXISTS customers (customer_id INTEGER PRIMARY KEY, customer_code TEXT NOT NULL);")
+cursor.execute("CREATE TABLE IF NOT EXISTS suppliers (supplier_id INTEGER PRIMARY KEY, supp_name TEXT NOT NULL);")
 
 # =========================
-# PRODUCTS (Shared)
+# 3. PRODUCTS (Master List)
 # =========================
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS products (
@@ -51,28 +48,40 @@ CREATE TABLE IF NOT EXISTS products (
 """)
 
 # =========================
-# CUSTOMERS
+# 4. INVENTORY (This is what pulls into your Cart)
 # =========================
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS customers (
-    customer_id INTEGER PRIMARY KEY,
-    customer_code TEXT NOT NULL
+CREATE TABLE IF NOT EXISTS inventory (
+    inventory_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sup_part_no TEXT NOT NULL,
+    hem_name TEXT NOT NULL,
+    category TEXT DEFAULT 'Lubricants', 
+    org TEXT,
+    loc_on_shelf TEXT,
+    qty INTEGER NOT NULL DEFAULT 0,
+    sell_price REAL NOT NULL,
+    image_url TEXT DEFAULT ''
 );
 """)
 
 # =========================
-# SUPPLIERS
+# 5. TRANSACTIONS (FIXED: Added this back for app.py)
 # =========================
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS suppliers (
-    supplier_id INTEGER PRIMARY KEY,
-    supp_name TEXT NOT NULL
+CREATE TABLE IF NOT EXISTS transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT,
+    payment_type TEXT,
+    amount REAL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 """)
 
 # =========================
-# SALES
+# 6. SALES & PURCHASE (The Enterprise Tables)
 # =========================
+
+
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS sales_invoice_header (
     invoice_no TEXT PRIMARY KEY,
@@ -93,14 +102,10 @@ CREATE TABLE IF NOT EXISTS sales_invoice_line (
     total_amt REAL NOT NULL,
     gst_amt REAL NOT NULL,
     PRIMARY KEY (invoice_no, line_no),
-    FOREIGN KEY (invoice_no) REFERENCES sales_invoice_header(invoice_no),
-    FOREIGN KEY (product_id) REFERENCES products(product_id)
+    FOREIGN KEY (invoice_no) REFERENCES sales_invoice_header(invoice_no)
 );
 """)
 
-# =========================
-# PURCHASE
-# =========================
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS purchase_header (
     purchase_ref_no TEXT PRIMARY KEY,
@@ -109,8 +114,7 @@ CREATE TABLE IF NOT EXISTS purchase_header (
     gst_amt REAL NOT NULL,
     supplier_id INTEGER NOT NULL,
     legend_id TEXT,
-    FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id),
-    FOREIGN KEY (legend_id) REFERENCES legends(legend_id)
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id)
 );
 """)
 
@@ -121,27 +125,11 @@ CREATE TABLE IF NOT EXISTS purchase_line (
     product_id INTEGER NOT NULL,
     qty INTEGER NOT NULL,
     PRIMARY KEY (purchase_ref_no, line_no),
-    FOREIGN KEY (purchase_ref_no) REFERENCES purchase_header(purchase_ref_no),
-    FOREIGN KEY (product_id) REFERENCES products(product_id)
-);
-""")
-
-# =========================
-# INVENTORY
-# =========================
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS inventory (
-    inventory_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    sup_part_no TEXT NOT NULL,
-    hem_name TEXT NOT NULL,
-    org TEXT,
-    loc_on_shelf TEXT,
-    qty INTEGER NOT NULL,
-    sell_price REAL NOT NULL
+    FOREIGN KEY (purchase_ref_no) REFERENCES purchase_header(purchase_ref_no)
 );
 """)
 
 conn.commit()
 conn.close()
 
-print("✅ database.db created successfully with USERS + BUSINESS schema")
+print("✅ database.db recreated with TRANSACTIONS + Enterprise Schema!")
