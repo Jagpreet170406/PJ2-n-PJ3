@@ -1,243 +1,102 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Manage Users - Superowner Panel</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: #f5f5f5;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-            border-bottom: 3px solid #667eea;
-            padding-bottom: 10px;
-        }
-        .nav {
-            margin-bottom: 20px;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 5px;
-        }
-        .nav a {
-            margin-right: 15px;
-            color: #667eea;
-            text-decoration: none;
-            font-weight: bold;
-        }
-        .nav a:hover {
-            text-decoration: underline;
-        }
-        .message {
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 5px;
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .section {
-            margin-bottom: 40px;
-        }
-        h2 {
-            color: #555;
-            border-left: 4px solid #667eea;
-            padding-left: 10px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        th {
-            background: #667eea;
-            color: white;
-            font-weight: bold;
-        }
-        tr:hover {
-            background: #f5f5f5;
-        }
-        .status-active {
-            color: #28a745;
-            font-weight: bold;
-        }
-        .status-disabled {
-            color: #dc3545;
-            font-weight: bold;
-        }
-        .form-inline {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        input[type="text"],
-        input[type="password"],
-        select {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        button {
-            padding: 8px 15px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        button:hover {
-            background: #5568d3;
-        }
-        button.danger {
-            background: #dc3545;
-        }
-        button.danger:hover {
-            background: #c82333;
-        }
-        button.warning {
-            background: #ffc107;
-            color: #333;
-        }
-        button.warning:hover {
-            background: #e0a800;
-        }
-        .add-user-form {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 5px;
-            margin-top: 15px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
-        }
-    </style>
+    <meta charset="UTF-8">
+    <title>User Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
-    <div class="container">
-        <h1>Manage Users (Superowner Panel)</h1>
-        
-        <div class="nav">
-            <a href="/home">← Back to Home</a>
-            <a href="/db-panel">Database Panel</a>
-            <a href="/logout">Logout</a>
-        </div>
-
-        {% if message %}
-        <div class="message">{{ message }}</div>
-        {% endif %}
-
-        <!-- Add New User -->
-        <div class="section">
-            <h2>Add New User</h2>
-            <div class="add-user-form">
-                <form method="POST">
-                    <input type="hidden" name="action" value="add">
-                    <div class="form-group">
-                        <label>Username</label>
-                        <input type="text" name="username" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" name="password" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Role</label>
-                        <select name="role" required>
-                            <option value="employee">Employee</option>
-                            <option value="admin">Admin</option>
-                            <option value="superowner">Superowner</option>
-                        </select>
-                    </div>
-                    <button type="submit">Add User</button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Current Users -->
-        <div class="section">
-            <h2>Current Users</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Username</th>
-                        <th>Role</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for user in users %}
-                    <tr>
-                        <td>{{ user[0] }}</td>
-                        <td>{{ user[1] }}</td>
-                        <td>
-                            {% if user[2] == 1 %}
-                            <span class="status-active">Active</span>
-                            {% else %}
-                            <span class="status-disabled">Disabled</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="form-inline">
-                                <!-- Toggle Active/Disabled -->
-                                <form method="POST" style="display: inline;">
-                                    <input type="hidden" name="action" value="toggle">
-                                    <input type="hidden" name="username" value="{{ user[0] }}">
-                                    <button type="submit" class="warning">
-                                        {% if user[2] == 1 %}Disable{% else %}Enable{% endif %}
-                                    </button>
-                                </form>
-                                
-                                <!-- Change Role -->
-                                <form method="POST" style="display: inline;">
-                                    <input type="hidden" name="action" value="change_role">
-                                    <input type="hidden" name="username" value="{{ user[0] }}">
-                                    <select name="new_role" required>
-                                        <option value="employee" {% if user[1]=='employee' %}selected{% endif %}>Employee</option>
-                                        <option value="admin" {% if user[1]=='admin' %}selected{% endif %}>Admin</option>
-                                        <option value="superowner" {% if user[1]=='superowner' %}selected{% endif %}>Superowner</option>
-                                    </select>
-                                    <button type="submit">Change Role</button>
-                                </form>
-                                
-                                <!-- Delete User -->
-                                <form method="POST" style="display: inline;">
-                                    <input type="hidden" name="action" value="delete">
-                                    <input type="hidden" name="username" value="{{ user[0] }}">
-                                    <button type="submit" class="danger" 
-                                            onclick="return confirm('Are you sure you want to delete {{ user[0] }}?')">
-                                        Delete
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<body class="bg-light">
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>User Management Panel</h2>
+        <div>
+            <a href="{{ url_for('home') }}" class="btn btn-outline-secondary btn-sm">Home</a>
+            <a href="{{ url_for('logout') }}" class="btn btn-danger btn-sm">Logout</a>
         </div>
     </div>
+
+    {% if message %}
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endif %}
+
+    <div class="card mb-4 shadow-sm border-0">
+        <div class="card-header bg-primary text-white py-3">
+            <h5 class="card-title mb-0">Add New User</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" class="row g-3">
+                <input type="hidden" name="action" value="add">
+                <div class="col-md-4">
+                    <label class="form-label small text-muted">Username</label>
+                    <input type="text" name="username" class="form-control" placeholder="e.g. jsmith" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Password</label>
+                    <input type="password" name="password" class="form-control" placeholder="Password" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Assign Role</label>
+                    <select name="role" class="form-select">
+                        <option value="employee">Employee</option>
+                        <option value="admin">Admin</option>
+                        <option value="superowner">Superowner</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-success w-100">Add User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover bg-white shadow-sm align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th class="ps-3">Username</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th class="text-end pe-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td class="ps-3 fw-bold">{{ user.username }}</td>
+                    <td>
+                        <form method="POST" class="d-inline">
+                            <input type="hidden" name="action" value="change_role">
+                            <input type="hidden" name="username" value="{{ user.username }}">
+                            <select name="new_role" onchange="this.form.submit()" class="form-select form-select-sm d-inline-block w-auto">
+                                <option value="employee" {% if user.role == 'employee' %}selected{% endif %}>Employee</option>
+                                <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                                <option value="superowner" {% if user.role == 'superowner' %}selected{% endif %}>Superowner</option>
+                            </select>
+                        </form>
+                    </td>
+                    <td>
+                        <span class="badge {{ 'bg-success' if user.active else 'bg-secondary' }}">
+                            {{ 'Active' if user.active else 'Inactive' }}
+                        </span>
+                    </td>
+                    <td class="text-end pe-3">
+                        <form method="POST" class="d-inline">
+                            <input type="hidden" name="username" value="{{ user.username }}">
+                            <button type="submit" name="action" value="toggle" class="btn btn-sm btn-outline-primary">Toggle Status</button>
+                            <button type="submit" name="action" value="delete" class="btn btn-sm btn-outline-danger" 
+                                    onclick="return confirm('Confirm delete user: {{ user.username }}?')">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

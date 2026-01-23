@@ -1,13 +1,110 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
-    <p>
-        
-    </p>
-</body>
-</html>
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container py-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="mb-1">Dashboard</h2>
+      <p class="text-muted mb-0">Quick overview of activity</p>
+    </div>
+    <span class="badge bg-dark">Updated: {{ now if now else "Just now" }}</span>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <p class="text-muted mb-1">Total Users</p>
+          <h3 class="mb-0">{{ kpis }}</h3>
+          <small class="text-muted">+ {{ (kpis) | int }} this week</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <p class="text-muted mb-1">Revenue</p>
+          <h3 class="mb-0">${{kpis}}</h3>
+          <small class="text-muted">Last 7 days</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <p class="text-muted mb-1">Orders</p>
+          <h3 class="mb-0">{{ kpis.orders }}</h3>
+          <small class="text-muted">Today</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart + Table -->
+  <div class="row g-3">
+    <!-- Chart -->
+    <div class="col-12 col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="mb-0">Orders (Last 7 Days)</h5>
+            <span class="text-muted small">Sample data</span>
+          </div>
+          <canvas id="ordersChart" height="120"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Orders Table -->
+    <div class="col-12 col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="mb-0">Recent Orders</h5>
+            <span class="text-muted small">{{ recent_orders|length }} items</span>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th class="text-end">Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for o in recent_orders %}
+                <tr>
+                  <td class="fw-semibold">{{ o.id }}</td>
+                  <td>{{ o.customer }}</td>
+                  <td class="text-end">${{ "%.2f"|format(o.amount) }}</td>
+                  <td>
+                    {% if o.status == "Paid" %}
+                      <span class="badge bg-success">Paid</span>
+                    {% elif o.status == "Pending" %}
+                      <span class="badge bg-warning text-dark">Pending</span>
+                    {% else %}
+                      <span class="badge bg-secondary">Refunded</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

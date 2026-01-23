@@ -5,7 +5,7 @@
     <title>{% block title %}{% endblock %}</title>
 
     {% block head %}
-    <!-- Bootstrap 4.5.2 CSS -->
+
     <link
         rel="stylesheet"
         href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
@@ -67,7 +67,7 @@
     color: #111;
 }
 
-/* Header */
+
 .analysis-header {
     display: flex;
     justify-content: space-between;
@@ -100,7 +100,7 @@
     cursor: pointer;
 }
 
-/* Metrics */
+
 .metrics-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -141,7 +141,7 @@
     font-size: 13px;
 }
 
-/* Charts */
+
 .charts-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -174,10 +174,21 @@
     font-size: 14px;
     background: #fafafa;
 }      
+
     </style>
     {% endblock %}
 </head>
-
+<script>
+    const nav = document.querySelector('.navbar');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 50) {
+        nav.classList.add('scrolled');
+      } else {
+        nav.classList.remove('scrolled');
+      }
+    });
+  </script>
+  
 <body>
 
     {% include 'includes/admin_navbar.html' %}

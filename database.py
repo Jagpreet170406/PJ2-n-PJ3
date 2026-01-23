@@ -1,11 +1,33 @@
 import sqlite3
 import os
+from werkzeug.security import generate_password_hash
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "database.db")
 
 conn = sqlite3.connect(DB_PATH)
 cursor = conn.cursor()
+
+# =========================
+# USERS (RBAC / AUTH)
+# =========================
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS users (
+    user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('employee','admin','superowner')),
+    active INTEGER DEFAULT 1
+);
+""")
+
+# Default SUPEROWNER (created once)
+cursor.execute("SELECT 1 FROM users WHERE role='superowner' LIMIT 1")
+if not cursor.fetchone():
+    cursor.execute("""
+        INSERT INTO users (username, password_hash, role, active)
+        VALUES (?, ?, 'superowner', 1)
+    """, ("superowner", generate_password_hash("changeme123")))
 
 # =========================
 # LEGENDS
@@ -122,12 +144,4 @@ CREATE TABLE IF NOT EXISTS inventory (
 conn.commit()
 conn.close()
 
-print("✅ database.db created successfully with correct schema")
-
-
-
-
-
-
-
-
+print("✅ database.db created successfully with USERS + BUSINESS schema")
