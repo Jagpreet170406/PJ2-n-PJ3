@@ -15,8 +15,21 @@ DB = os.path.join(BASE_DIR, "database.db")
 # --------------------
 def init_db():
     with sqlite3.connect(DB) as conn:
+        # User & Transactions tables
         conn.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password_hash TEXT, role TEXT, active INTEGER DEFAULT 1)")
         conn.execute("CREATE TABLE IF NOT EXISTS transactions (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, payment_type TEXT, masked_card TEXT, amount REAL, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)")
+        
+        # NEW: Products table to handle your "shit ton" of records
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS products (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                name TEXT, 
+                category TEXT, 
+                price REAL, 
+                image_url TEXT,
+                stock INTEGER DEFAULT 0
+            )
+        """)
         conn.commit()
 
 def get_db():
@@ -30,7 +43,6 @@ def get_db():
 def require_staff(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Kick unauthorized users back to the customer shop
         if session.get("role") not in ["employee", "admin", "superowner"]:
             return redirect(url_for('cart'))
         return f(*args, **kwargs)
@@ -46,9 +58,16 @@ def root():
         return redirect(url_for("home"))
     return redirect(url_for("cart"))
 
+# UPDATED: Now fetches all records from the DB for the shop
 @app.route("/cart")
 def cart():
-    return render_template("cart.html", role=session.get("role", "customer"))
+    with get_db() as conn:
+        # Get all products. If you have THOUSANDS, we can later add "LIMIT 20" for pagination
+        products = conn.execute("SELECT * FROM products ORDER BY category ASC").fetchall()
+    
+    return render_template("cart.html", 
+                           products=products, 
+                           role=session.get("role", "customer"))
 
 @app.route("/contact")
 def contact():
@@ -56,7 +75,7 @@ def contact():
 
 @app.route("/process-payment", methods=["POST"])
 def process_payment():
-    pay_method = request.form.get("payment_method")
+    pay_method = request.form.get("payment_method", "Credit Card")
     card_num = request.form.get("card_number", "")
     total_val = request.form.get("total_amount")
     
@@ -67,11 +86,11 @@ def process_payment():
                      (session.get("username", "Guest"), pay_method, masked, total_val))
         conn.commit()
     
-    flash(f"Payment successful via {pay_method}!", "success")
+    flash(f"Payment successful! Amount: SGD {total_val}", "success")
     return redirect(url_for('cart'))
 
 # --------------------
-# HIDDEN STAFF LOGIN (URL: /staff-login only)
+# HIDDEN STAFF LOGIN
 # --------------------
 @app.route("/staff-login", methods=["GET", "POST"])
 def staff_login():
@@ -88,7 +107,6 @@ def staff_login():
             return redirect(url_for("home"))
         flash("Invalid credentials", "danger")
 
-    # Pass role="customer" so the hidden side stays hidden (Customer Navbar shows)
     return render_template("staff_login.html", role="customer")
 
 # --------------------
@@ -102,20 +120,21 @@ def home():
 @app.route("/inventory")
 @require_staff
 def inventory():
-    return render_template("inventory.html", role=session.get("role"))
+    # Showing all products in the admin inventory view too
+    with get_db() as conn:
+        products = conn.execute("SELECT * FROM products").fetchall()
+    return render_template("inventory.html", products=products, role=session.get("role"))
 
 @app.route("/dashboard")
 @require_staff
 def dashboard():
     return render_template("dashboard.html", role=session.get("role"))
 
-# FIXED: Points to your actual file "market_analysis.html"
 @app.route("/market-analysis")
 @require_staff
 def market_analysis():
     return render_template("market_analysis.html", role=session.get("role"))
 
-# FIXED: Points to your actual file "real_time_analytics.html"
 @app.route("/real-time-analytics")
 @require_staff
 def real_time_analytics():
