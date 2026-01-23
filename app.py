@@ -31,13 +31,12 @@ def require_staff(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if session.get("role") not in ["employee", "admin", "superowner"]:
-            # If not staff, kick them back to the cart
             return redirect(url_for('cart'))
         return f(*args, **kwargs)
     return decorated_function
 
 # --------------------
-# PUBLIC ROUTES (CUSTOMER SIDE)
+# CUSTOMER ROUTES
 # --------------------
 @app.route("/")
 def root():
@@ -48,13 +47,11 @@ def root():
 
 @app.route("/cart")
 def cart():
-    # Shows Customer Navbar
     return render_template("cart.html", role=session.get("role", "customer"))
 
 @app.route("/contact")
 def contact():
-    # Placeholder for Contact Us - Shows Customer Navbar
-    return "Contact Us Page Content", 200 # Or render_template('contact.html', role='customer')
+    return render_template("contact.html", role="customer")
 
 @app.route("/process-payment", methods=["POST"])
 def process_payment():
@@ -62,7 +59,6 @@ def process_payment():
     card_num = request.form.get("card_number", "")
     total_val = request.form.get("total_amount")
     
-    # Masking for security
     masked = f"**** **** **** {card_num[-4:]}" if len(card_num) >= 4 else "DIGITAL_PAY"
     
     with get_db() as conn:
@@ -78,7 +74,6 @@ def process_payment():
 # --------------------
 @app.route("/staff-login", methods=["GET", "POST"])
 def staff_login():
-    # If they are already logged in, take them to the admin home
     if session.get("role") in ["employee", "admin", "superowner"]:
         return redirect(url_for("home"))
 
@@ -92,11 +87,10 @@ def staff_login():
             return redirect(url_for("home"))
         flash("Invalid credentials", "danger")
 
-    # Pass role='customer' so the login page STILL shows the customer navbar (hidden vibe)
     return render_template("staff_login.html", role="customer")
 
 # --------------------
-# PROTECTED STAFF ROUTES
+# PROTECTED STAFF ROUTES (FIXED ENDPOINTS)
 # --------------------
 @app.route("/home")
 @require_staff
@@ -113,15 +107,21 @@ def inventory():
 def dashboard():
     return render_template("dashboard.html", role=session.get("role"))
 
+# FIXED: Endpoint matches url_for('market_analysis')
 @app.route("/market-analysis")
 @require_staff
 def market_analysis():
     return render_template("analysis.html", role=session.get("role"))
 
+# FIXED: Endpoint matches url_for('real_time_analytics')
+@app.route("/real-time-analytics")
+@require_staff
+def real_time_analytics():
+    return render_template("real_time.html", role=session.get("role"))
+
 @app.route("/logout")
 def logout():
     session.clear()
-    flash("Logged out successfully", "info")
     return redirect(url_for("cart"))
 
 if __name__ == "__main__":
