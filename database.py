@@ -21,16 +21,13 @@ CREATE TABLE IF NOT EXISTS users (
 );
 """)
 
-# Create default SUPEROWNER if not exists
+# Default SUPEROWNER (created once)
 cursor.execute("SELECT 1 FROM users WHERE role='superowner' LIMIT 1")
 if not cursor.fetchone():
-    cursor.execute(
-        """
+    cursor.execute("""
         INSERT INTO users (username, password_hash, role, active)
         VALUES (?, ?, 'superowner', 1)
-        """,
-        ("superowner", generate_password_hash("changeme123")),
-    )
+    """, ("superowner", generate_password_hash("changeme123")))
 
 # =========================
 # LEGENDS
@@ -148,6 +145,7 @@ conn.commit()
 conn.close()
 
 print("✅ database.db created successfully with USERS + BUSINESS schema")
+
 
 
 
