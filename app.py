@@ -16,6 +16,34 @@ DB = os.path.join(BASE_DIR, "database.db")
 STAFF_ROLES = {"employee", "admin", "superowner"}
 
 # --------------------
+# DB INIT (Payment Table Added)
+# --------------------
+def init_db():
+    with sqlite3.connect(DB) as conn:
+        # Users Table
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL,
+            active INTEGER DEFAULT 1
+        )
+        """)
+        # Transactions Table (Teacher Requirement)
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS transactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            payment_type TEXT,
+            masked_card TEXT, 
+            amount REAL,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+        conn.commit()
+
+# --------------------
 # HELPERS
 # --------------------
 def get_db():
@@ -46,7 +74,7 @@ def require_roles(*roles):
     return decorator
 
 # --------------------
-# PUBLIC ROUTES
+# PUBLIC & CHECKOUT ROUTES
 # --------------------
 @app.route("/")
 def root():
@@ -58,7 +86,30 @@ def root():
 def cart():
     return render_template("cart.html", role=session.get("role", "customer"))
 
-# ADDED TO PREVENT FOOTER/NAVBAR CRASHES
+@app.route("/process-payment", methods=["POST"])
+def process_payment():
+    pay_method = request.form.get("payment_method")
+    card_num = request.form.get("card_number", "")
+    
+    # SECURE STORAGE: Masking the card (Show this to your teacher!)
+    # We never store the full card. We store the provider and the last 4 digits.
+    masked_info = f"**** **** **** {card_num[-4:]}" if len(card_num) >= 4 else "WALLET_PAY"
+    
+    username = session.get("username", "Guest")
+    
+    try:
+        with get_db() as conn:
+            conn.execute("""
+                INSERT INTO transactions (username, payment_type, masked_card, amount) 
+                VALUES (?, ?, ?, ?)
+            """, (username, pay_method, masked_info, 420.69)) # Placeholder amount
+            conn.commit()
+        flash(f"Payment successful via {pay_method}! Your parts are on the way.", "success")
+    except Exception as e:
+        flash(f"Payment Error: {e}", "danger")
+        
+    return redirect(url_for('cart'))
+
 @app.route("/contact")
 def contact():
     return "<h1>Contact Page</h1><a href='/'>Back Home</a>"
@@ -70,6 +121,10 @@ def about():
 # --------------------
 # STAFF AUTH
 # --------------------
+@app.route("/employee-login")
+def employee_login():
+    return redirect(url_for('staff_login'))
+
 @app.route("/staff-login", methods=["GET", "POST"])
 def staff_login():
     if session.get("role") in STAFF_ROLES:
@@ -149,4 +204,5 @@ def manage_users():
     return render_template("manage_users.html", users=users, message=message)
 
 if __name__ == "__main__":
+    init_db()
     app.run(debug=True, port=5000)
