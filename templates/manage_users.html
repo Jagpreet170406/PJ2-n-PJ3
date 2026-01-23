@@ -1,243 +1,65 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Manage Users - Superowner Panel</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: #f5f5f5;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-            border-bottom: 3px solid #667eea;
-            padding-bottom: 10px;
-        }
-        .nav {
-            margin-bottom: 20px;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 5px;
-        }
-        .nav a {
-            margin-right: 15px;
-            color: #667eea;
-            text-decoration: none;
-            font-weight: bold;
-        }
-        .nav a:hover {
-            text-decoration: underline;
-        }
-        .message {
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 5px;
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .section {
-            margin-bottom: 40px;
-        }
-        h2 {
-            color: #555;
-            border-left: 4px solid #667eea;
-            padding-left: 10px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        th {
-            background: #667eea;
-            color: white;
-            font-weight: bold;
-        }
-        tr:hover {
-            background: #f5f5f5;
-        }
-        .status-active {
-            color: #28a745;
-            font-weight: bold;
-        }
-        .status-disabled {
-            color: #dc3545;
-            font-weight: bold;
-        }
-        .form-inline {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        input[type="text"],
-        input[type="password"],
-        select {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        button {
-            padding: 8px 15px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        button:hover {
-            background: #5568d3;
-        }
-        button.danger {
-            background: #dc3545;
-        }
-        button.danger:hover {
-            background: #c82333;
-        }
-        button.warning {
-            background: #ffc107;
-            color: #333;
-        }
-        button.warning:hover {
-            background: #e0a800;
-        }
-        .add-user-form {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 5px;
-            margin-top: 15px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Manage Users (Superowner Panel)</h1>
-        
-        <div class="nav">
-            <a href="/home">← Back to Home</a>
-            <a href="/db-panel">Database Panel</a>
-            <a href="/logout">Logout</a>
-        </div>
+from werkzeug.security import generate_password_hash
 
-        {% if message %}
-        <div class="message">{{ message }}</div>
-        {% endif %}
+@app.route("/manage-users", methods=["GET", "POST"])
+@require_roles("superowner")
+def manage_users():
+    conn = sqlite3.connect(DB)
+    c = conn.cursor()
+    message = ""
 
-        <!-- Add New User -->
-        <div class="section">
-            <h2>Add New User</h2>
-            <div class="add-user-form">
-                <form method="POST">
-                    <input type="hidden" name="action" value="add">
-                    <div class="form-group">
-                        <label>Username</label>
-                        <input type="text" name="username" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" name="password" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Role</label>
-                        <select name="role" required>
-                            <option value="employee">Employee</option>
-                            <option value="admin">Admin</option>
-                            <option value="superowner">Superowner</option>
-                        </select>
-                    </div>
-                    <button type="submit">Add User</button>
-                </form>
-            </div>
-        </div>
+    if request.method == "POST":
+        action = request.form.get("action")
 
-        <!-- Current Users -->
-        <div class="section">
-            <h2>Current Users</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Username</th>
-                        <th>Role</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for user in users %}
-                    <tr>
-                        <td>{{ user[0] }}</td>
-                        <td>{{ user[1] }}</td>
-                        <td>
-                            {% if user[2] == 1 %}
-                            <span class="status-active">Active</span>
-                            {% else %}
-                            <span class="status-disabled">Disabled</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="form-inline">
-                                <!-- Toggle Active/Disabled -->
-                                <form method="POST" style="display: inline;">
-                                    <input type="hidden" name="action" value="toggle">
-                                    <input type="hidden" name="username" value="{{ user[0] }}">
-                                    <button type="submit" class="warning">
-                                        {% if user[2] == 1 %}Disable{% else %}Enable{% endif %}
-                                    </button>
-                                </form>
-                                
-                                <!-- Change Role -->
-                                <form method="POST" style="display: inline;">
-                                    <input type="hidden" name="action" value="change_role">
-                                    <input type="hidden" name="username" value="{{ user[0] }}">
-                                    <select name="new_role" required>
-                                        <option value="employee" {% if user[1]=='employee' %}selected{% endif %}>Employee</option>
-                                        <option value="admin" {% if user[1]=='admin' %}selected{% endif %}>Admin</option>
-                                        <option value="superowner" {% if user[1]=='superowner' %}selected{% endif %}>Superowner</option>
-                                    </select>
-                                    <button type="submit">Change Role</button>
-                                </form>
-                                
-                                <!-- Delete User -->
-                                <form method="POST" style="display: inline;">
-                                    <input type="hidden" name="action" value="delete">
-                                    <input type="hidden" name="username" value="{{ user[0] }}">
-                                    <button type="submit" class="danger" 
-                                            onclick="return confirm('Are you sure you want to delete {{ user[0] }}?')">
-                                        Delete
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</body>
-</html>
+        if action == "add":
+            username = request.form.get("username", "").strip()
+            password = request.form.get("password", "").strip()
+            role = request.form.get("role", "").strip()
+
+            try:
+                # Use hashed password
+                hashed_password = generate_password_hash(password)
+                c.execute(
+                    "INSERT INTO users(username, password_hash, role, active) VALUES (?, ?, ?, 1)",
+                    (username, hashed_password, role)
+                )
+                conn.commit()
+                message = f"User '{username}' added as {role}."
+            except sqlite3.IntegrityError:
+                message = f"Error: Username '{username}' already exists."
+            except Exception as e:
+                message = f"Error: {e}"
+
+        elif action == "toggle":
+            username = request.form.get("username", "").strip()
+            c.execute("SELECT active FROM users WHERE username=?", (username,))
+            result = c.fetchone()
+            if result:
+                new_status = 0 if result[0] == 1 else 1
+                c.execute("UPDATE users SET active=? WHERE username=?", (new_status, username))
+                conn.commit()
+                message = f"User '{username}' {'enabled' if new_status == 1 else 'disabled'}."
+            else:
+                message = f"User '{username}' not found."
+
+        elif action == "delete":
+            username = request.form.get("username", "").strip()
+            if username == session.get("username"):
+                message = "Error: Cannot delete your own account."
+            else:
+                c.execute("DELETE FROM users WHERE username=?", (username,))
+                conn.commit()
+                message = f"User '{username}' deleted."
+
+        elif action == "change_role":
+            username = request.form.get("username", "").strip()
+            new_role = request.form.get("new_role", "").strip()
+            c.execute("UPDATE users SET role=? WHERE username=?", (new_role, username))
+            conn.commit()
+            message = f"User '{username}' role changed to {new_role}."
+
+    # Fetch all users for display
+    c.execute("SELECT username, role, active FROM users ORDER BY role, username")
+    users = c.fetchall()
+    conn.close()
+
+    return render_template("manage_users.html", users=users, message=message)
