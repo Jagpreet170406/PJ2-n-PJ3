@@ -244,7 +244,7 @@
                         {# Only show form if product is in stock #}
                         {% if 'stock' not in product.keys() or product['stock'] > 0 %}
                         <form action="{{ url_for('process_payment') }}" method="POST">
-                            {# CSRF Protection #}
+                            {# CSRF Protection - Flask-WTF auto-generates this #}
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             
                             {# Only send product ID - price verification happens server-side #}
