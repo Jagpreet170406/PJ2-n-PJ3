@@ -213,21 +213,11 @@
         <div class="product-grid">
             {% for product in products %}
             <div class="product-card">
-                {% set category_images = {
-                    'Engine Parts': 'https://via.placeholder.com/300x200/1e3a8a/ffffff?text=Engine+Parts',
-                    'Brake System': 'https://via.placeholder.com/300x200/dc2626/ffffff?text=Brake+System',
-                    'Suspension': 'https://via.placeholder.com/300x200/ea580c/ffffff?text=Suspension',
-                    'Electrical': 'https://via.placeholder.com/300x200/eab308/ffffff?text=Electrical',
-                    'Filters': 'https://via.placeholder.com/300x200/16a34a/ffffff?text=Filters',
-                    'Lubricants': 'https://via.placeholder.com/300x200/0891b2/ffffff?text=Lubricants',
-                    'Body Parts': 'https://via.placeholder.com/300x200/7c3aed/ffffff?text=Body+Parts',
-                    'Transmission': 'https://via.placeholder.com/300x200/db2777/ffffff?text=Transmission'
-                } %}
-                <img src="{{ product['image_url'] if product['image_url'] else category_images.get(product['category'], 'https://via.placeholder.com/300x200/6b7280/ffffff?text=' + product['category']|urlencode) }}" 
+                <img src="{{ product['image_url'] or 'https://via.placeholder.com/300x200/dc2626/ffffff?text=NO+IMAGE' }}" 
                      class="item-image"
                      alt="{{ product['hem_name'] }} - {{ product['category'] }}"
                      loading="lazy"
-                     onerror="this.src='https://via.placeholder.com/300x200/6b7280/ffffff?text=No+Image'">
+                     onerror="this.src='https://via.placeholder.com/300x200/ff0000/ffffff?text=ERROR+LOADING'">
                 <div class="card-details">
                     <small class="text-uppercase text-muted fw-bold" style="font-size: 10px;">{{ product['category'] }}</small>
                     <h5 class="mb-1">{{ product['hem_name'] }}</h5>

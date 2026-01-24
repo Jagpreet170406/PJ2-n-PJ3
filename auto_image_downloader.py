@@ -1,4 +1,63 @@
 """
+SIMPLE IMAGE SOLUTION - Uses placehold.co (more reliable than via.placeholder)
+"""
+
+import sqlite3
+
+DB_PATH = "database.db"
+
+def create_product_specific_placeholders():
+    """
+    Creates unique placeholders with actual product names
+    Uses placehold.co - more reliable than via.placeholder
+    """
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    print("="*70)
+    print("🏷️  CREATING PRODUCT-SPECIFIC PLACEHOLDERS")
+    print("="*70)
+    
+    # Get products needing images
+    products = cursor.execute("""
+        SELECT inventory_id, hem_name, category 
+        FROM inventory
+    """).fetchall()
+    
+    total = len(products)
+    print(f"\n📊 Processing {total} products...")
+    
+    updated = 0
+    
+    for product in products:
+        # Create short name for placeholder
+        short_name = product['hem_name'][:25].replace(' ', '+')
+        
+        # Use placehold.co instead (more reliable)
+        placeholder_url = f"https://placehold.co/300x200/2563eb/white?text={short_name}"
+        
+        cursor.execute(
+            "UPDATE inventory SET image_url = ? WHERE inventory_id = ?",
+            (placeholder_url, product['inventory_id'])
+        )
+        
+        updated += 1
+        
+        if updated % 1000 == 0:
+            print(f"  Progress: {updated}/{total}...")
+            conn.commit()
+    
+    conn.commit()
+    conn.close()
+    
+    print(f"\n✅ DONE! Updated {updated} products")
+    print("🎨 Using placehold.co service (more reliable)")
+
+if __name__ == "__main__":
+    create_product_specific_placeholders()
+    print("\n🌐 Refresh your website to see images!")
+"""
 SIMPLE IMAGE SOLUTION - NO API NEEDED
 Just uses pre-made placeholder images based on categories
 """
