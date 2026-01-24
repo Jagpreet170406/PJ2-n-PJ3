@@ -2,84 +2,161 @@
 
 {% block title %}Home{% endblock %}
 
-{% block head %}
-{{ super() }}
+{% block content %}
+
 <style>
-.hero-section {
-    background-color: #0f0f0f;
-    color: white;
-    padding: 6rem 0;
-    text-align: center;
+/* Make sure nothing adds white margins */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #000;
+}
+
+/* FULL SCREEN HERO */
+.hero {
+  position: relative;
+  width: 100vw;     /* edge-to-edge */
+  height: 100vh;    /* full screen */
+  overflow: hidden;
+}
+
+/* Background image + dark overlay */
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(0,0,0,0.55) 0%,
+      rgba(0,0,0,0.35) 45%,
+      rgba(0,0,0,0.70) 100%
+    ),
+    url("{{ url_for('static', filename='preview.jpg') }}");
+
+  background-size: cover;      /* fills screen */
+  background-position: center; /* keeps subject centered */
+  background-repeat: no-repeat;
+}
+
+/* Optional vignette (Squarespace look) */
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(0,0,0,0) 30%,
+    rgba(0,0,0,0.65) 100%
+  );
+  pointer-events: none;
+}
+
+/* Center the text/button */
+.hero-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #fff;
+
+  padding: 0 20px;
+}
+
+/* Text styles */
+.hero-kicker {
+  letter-spacing: 0.35em;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 0.8rem;
+  text-transform: uppercase;
 }
 
 .hero-title {
-    font-size: 3rem;
-    font-weight: 700;
+  font-size: clamp(2.6rem, 5vw, 4.2rem);
+  font-weight: 800;
+  margin: 0 0 0.8rem;
 }
 
 .hero-subtitle {
-    color: #b3b3b3;
-    margin: 1.5rem 0 2.5rem;
+  color: rgba(255,255,255,0.7);
+  max-width: 680px;
+  margin: 0 auto 2rem;
+  font-size: 1.05rem;
 }
 
+/* Button */
 .hero-btn {
-    background-color: white;
-    color: black;
-    padding: 0.9rem 2.5rem;
-    font-weight: 600;
-    border-radius: 8px;
-    text-decoration: none;
+  background: #fff;
+  color: #111;
+  border-radius: 14px;
+  padding: 0.9rem 1.6rem;
+  font-weight: 650;
+  text-decoration: none;
+  display: inline-block;
+}
+.hero-btn:hover { opacity: 0.92; }
+
+/* Make sure any default container margins/padding don't affect hero */
+.container, .container-fluid {
+  margin: 0;
+  padding: 0;
 }
 
-.features-section {
-    background-color: #0f0f0f;
-    padding: 4rem 0;
+/* If your base.html wraps content in a <main> with padding, kill it on this page */
+main, .content, .page, .wrapper {
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
-.feature-card {
-    background-color: #1c1c1c;
-    border: 1px solid #2a2a2a;
-    border-radius: 14px;
-    padding: 2rem;
-    color: white;
-    transition: 0.25s;
+/* Button reset for links */
+.hero-btn {
+  text-decoration: none;        /* remove underline */
+  background: #ffffff;
+  color: #111111;
+  border-radius: 14px;
+  padding: 0.9rem 1.6rem;
+  font-weight: 650;
+  display: inline-block;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-.feature-card:hover {
-    transform: translateY(-6px);
+/* Hover state */
+.hero-btn:hover {
+  background: #e5e7eb;          /* light gray */
+  color: #111111;
+  text-decoration: none;        /* keep underline OFF */
 }
 
-.feature-text {
-    color: #b3b3b3;
-}
+
 </style>
-{% endblock %}
 
-{% block content %}
-<section class="hero-section">
-    <h1 class="hero-title">Welcome to Our Platform</h1>
-    <p class="hero-subtitle">
-        Manage inventory, sales, and analytics in one place
-    </p>
-    <a href="{{ url_for('inventory') }}" class="hero-btn">Get Started</a>
-</section>
+<!-- FULL SCREEN HERO ONLY -->
+<section class="hero">
+  <div class="hero-bg"></div>
 
-<section class="features-section">
-    <div class="container">
-        <div class="row">
-            <div class="col-md-3 mb-4">
-                <div class="feature-card">📦 Inventory</div>
-            </div>
-            <div class="col-md-3 mb-4">
-                <div class="feature-card">🛒 Cart</div>
-            </div>
-            <div class="col-md-3 mb-4">
-                <div class="feature-card">📊 Dashboard</div>
-            </div>
-            <div class="col-md-3 mb-4">
-                <div class="feature-card">📈 Analytics</div>
-            </div>
-        </div>
+  <div class="hero-content">
+    <div>
+      <div class="hero-kicker">CHIN HON</div>
+
+      <h1 class="hero-title">
+        Welcome Back{% if username %}, {{ username }}{% endif %}
+      </h1>
+
+      <p class="hero-subtitle">
+        What shall we get started with today?
+      </p>
+
+      <a href="{{ url_for('dashboard') }}" class="hero-btn">
+        Get Started With Dashboard
+      </a>
     </div>
+  </div>
 </section>
+
 {% endblock %}

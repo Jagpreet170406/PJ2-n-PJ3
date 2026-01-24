@@ -1,0 +1,46 @@
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top custom-navbar"
+     style="background-color: #000;">
+  <div class="container-fluid px-4">
+    
+    <a class="navbar-brand d-flex align-items-center" href="{{ url_for('cart') }}">
+      <img src="{{ url_for('static', filename='chinhon.png') }}" alt="Logo" class="mr-2">
+      <span class="fw-bold">CHIN HON MOTORS</span>
+    </a>
+
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#customerNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="customerNav">
+      <ul class="navbar-nav ml-auto mb-2 mb-lg-0 align-items-center">
+        
+        <li class="nav-item">
+          <a class="nav-link" href="#">About Us</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'cart' %}active{% endif %}" href="{{ url_for('cart') }}">Shop</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('contact') }}">Contact Us</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('staff_login') }}">Staff Login</a>
+        </li>
+
+        <li class="nav-item ml-lg-3">
+          <a href="{{ url_for('checkout') }}" class="nav-link cart-btn d-flex align-items-center">
+            🛒 Cart 
+            <span id="cart-count" class="cart-badge">0</span>
+          </a>
+        </li>
+
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div style="margin-top: 80px;"></div>
+  
