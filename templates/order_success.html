@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+\{% extends "base.html" %}
 {% block content %}
 <div class="container text-center" style="margin-top: 150px; margin-bottom: 100px;">
     <div class="mb-4">
@@ -10,10 +10,32 @@
     <h1 class="font-weight-bold">ORDER PLACED!</h1>
     <p class="lead text-muted">Huat Ah! Your order has been successfully received.</p>
     
-    <div class="card mx-auto shadow-sm border-0 p-4" style="max-width: 500px; background: #f9f9f9;">
+    <!-- Fulfillment Details -->
+    <div class="card mx-auto shadow-sm border-0 p-4 mb-4" style="max-width: 600px; background: #f9f9f9;">
         <h5 id="fulfillment-title" class="font-weight-bold"></h5>
         <hr>
         <p id="fulfillment-details" class="mb-0"></p>
+    </div>
+
+    <!-- Order Receipt -->
+    <div class="card mx-auto shadow-sm border-0 p-4 mb-4" style="max-width: 600px; background: #ffffff;">
+        <h5 class="font-weight-bold mb-3">📝 Order Receipt</h5>
+        <hr>
+        <div id="receipt-items" class="text-left"></div>
+        <hr>
+        <div class="d-flex justify-content-between mb-2">
+            <span>Subtotal:</span>
+            <span id="receipt-subtotal">S$0.00</span>
+        </div>
+        <div class="d-flex justify-content-between mb-2">
+            <span>Delivery Fee:</span>
+            <span id="receipt-shipping">S$0.00</span>
+        </div>
+        <div class="d-flex justify-content-between mb-3">
+            <strong>Total Paid:</strong>
+            <strong class="text-success" id="receipt-total">S$0.00</strong>
+        </div>
+        <small class="text-muted">Payment Method: <span id="receipt-payment-method">-</span></small>
     </div>
 
     <div class="mt-5">
@@ -26,18 +48,63 @@
         // Retrieve order details from URL parameters
         const params = new URLSearchParams(window.location.search);
         const method = params.get('method');
-        const date = params.get('date');
+        const dateOrAddress = params.get('date');
 
         const title = document.getElementById('fulfillment-title');
         const details = document.getElementById('fulfillment-details');
 
+        // Retrieve order data from sessionStorage (saved during checkout)
+        const orderData = JSON.parse(sessionStorage.getItem('last_order') || '{}');
+        const cart = orderData.cart || [];
+        const subtotal = orderData.subtotal || 0;
+        const shipping = orderData.shipping || 0;
+        const total = orderData.total || 0;
+        const paymentMethod = orderData.payment_method || 'Not specified';
+
+        // Display fulfillment details
         if (method === 'delivery') {
             title.innerText = "🚚 Local Delivery Schedule";
-            details.innerHTML = `Estimated Arrival: <strong>${date}</strong><br><small>Our driver will contact you via WhatsApp.</small>`;
+            details.innerHTML = `
+                <strong>Estimated Arrival:</strong> 1-3 Working Days<br>
+                <strong>Delivery Address:</strong> ${dateOrAddress || 'Not provided'}<br>
+                <small class="text-muted">Our driver will contact you via WhatsApp.</small>
+            `;
         } else {
             title.innerText = "🏪 Self-Pickup Confirmed";
-            details.innerHTML = `Please collect your items on: <strong>${date}</strong><br><small>Location: 62 Race Course Rd, S218568</small>`;
+            details.innerHTML = `
+                <strong>Pickup Date:</strong> ${dateOrAddress || 'Not selected'}<br>
+                <strong>Location:</strong> 62 Race Course Rd, S218568<br>
+                <small class="text-muted">Please bring your order confirmation.</small>
+            `;
         }
+
+        // Display receipt items
+        const receiptContainer = document.getElementById('receipt-items');
+        if (cart.length > 0) {
+            receiptContainer.innerHTML = cart.map(item => `
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                    <div class="d-flex align-items-center">
+                        <img src="${item.image}" style="width:40px;height:40px;object-fit:contain;margin-right:10px;">
+                        <div class="text-left">
+                            <strong>${item.name}</strong><br>
+                            <small class="text-muted">Qty: ${item.quantity} × S$${item.price.toFixed(2)}</small>
+                        </div>
+                    </div>
+                    <span class="font-weight-bold">S$${(item.price * item.quantity).toFixed(2)}</span>
+                </div>
+            `).join('');
+        } else {
+            receiptContainer.innerHTML = '<p class="text-muted">No items found</p>';
+        }
+
+        // Display totals
+        document.getElementById('receipt-subtotal').innerText = `S$${subtotal.toFixed(2)}`;
+        document.getElementById('receipt-shipping').innerText = shipping === 0 ? 'FREE' : `S$${shipping.toFixed(2)}`;
+        document.getElementById('receipt-total').innerText = `S$${total.toFixed(2)}`;
+        document.getElementById('receipt-payment-method').innerText = paymentMethod;
+
+        // Clear sessionStorage after displaying
+        sessionStorage.removeItem('last_order');
     });
 </script>
 {% endblock %}

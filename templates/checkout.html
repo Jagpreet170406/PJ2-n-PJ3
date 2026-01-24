@@ -116,32 +116,23 @@
 <script>
 let currentFulfillment = 'pickup';
 
-// LOAD SAVED CARDS FROM LOCALSTORAGE
 function loadSavedCards(){
     const savedCards = JSON.parse(localStorage.getItem('saved_cards') || '[]');
     const select = document.getElementById('saved-card-id');
-    
-    // Clear existing options except "new"
     select.innerHTML = '<option value="new">+ Use a new card</option>';
-    
-    // Add saved cards
-    savedCards.forEach((card, index) => {
+    savedCards.forEach(function(card, index){
         const option = document.createElement('option');
         option.value = index;
-        option.textContent = `💳 ${card.brand} ending in ${card.last4} (Exp: ${card.exp})`;
+        option.textContent = '💳 ' + card.brand + ' ending in ' + card.last4 + ' (Exp: ' + card.exp + ')';
         select.appendChild(option);
     });
 }
 
-// SAVE CARD TO LOCALSTORAGE
 function saveCardToLocalStorage(cardDetails){
     const savedCards = JSON.parse(localStorage.getItem('saved_cards') || '[]');
-    
-    // Check if card already exists
-    const exists = savedCards.some(card => 
-        card.last4 === cardDetails.last4 && card.exp === cardDetails.exp
-    );
-    
+    const exists = savedCards.some(function(card){
+        return card.last4 === cardDetails.last4 && card.exp === cardDetails.exp;
+    });
     if(!exists){
         savedCards.push({
             brand: cardDetails.brand,
@@ -150,13 +141,12 @@ function saveCardToLocalStorage(cardDetails){
             name: cardDetails.name
         });
         localStorage.setItem('saved_cards', JSON.stringify(savedCards));
-        console.log('✅ Card saved to browser!');
+        console.log('Card saved to browser!');
     } else {
-        console.log('ℹ️ Card already saved');
+        console.log('Card already saved');
     }
 }
 
-// CARD VALIDATION
 function validateLuhn(number){
     let sum=0,isSecond=false;
     for(let i=number.length-1;i>=0;i--){
@@ -168,65 +158,52 @@ function validateLuhn(number){
     return (sum%10)==0;
 }
 
-// CARD BRAND DETECTION (for logo display)
 function detectCard(val){
     const logo=document.getElementById('card-logo');
     const input=document.getElementById('card-number');
     const num=val.replace(/\D/g,'');
     input.value=num.replace(/(\d{4})(?=\d)/g,'$1 ').trim();
-
     const VISA="{{ url_for('static', filename='checkout/visa.png') }}";
     const MC="{{ url_for('static', filename='checkout/mastercard.png') }}";
-
     if(num.startsWith('4')){ logo.src=VISA; logo.style.display='inline'; }
     else if(num.startsWith('5')){ logo.src=MC; logo.style.display='inline'; }
     else{ logo.style.display='none'; }
 }
 
-// CARD BRAND DETECTION (for backend)
 function detectCardBrand(num){
     if(num.startsWith('4')) return 'Visa';
     if(num.startsWith('5')) return 'Mastercard';
     return 'Unknown';
 }
 
-// SAVED CARD TOGGLE
 function handleSavedCardChange(){
     const val=document.getElementById('saved-card-id').value;
     const cardDetailsSection = document.getElementById('card-details-section');
-    
     if(val==='new'){
         cardDetailsSection.style.display='block';
-        // Clear inputs
         document.getElementById('card-name').value = '';
         document.getElementById('card-number').value = '';
         document.getElementById('card-exp').value = '';
         document.getElementById('card-cvv').value = '';
     } else {
-        // Load saved card data
         const savedCards = JSON.parse(localStorage.getItem('saved_cards') || '[]');
         const card = savedCards[parseInt(val)];
-        
         if(card){
             document.getElementById('card-name').value = card.name || '';
             document.getElementById('card-number').value = '•••• •••• •••• ' + card.last4;
             document.getElementById('card-exp').value = card.exp;
         }
-        
         cardDetailsSection.style.display='none';
     }
 }
 
-// PAYMENT METHOD SWITCH
 function togglePaymentMethod(){
     const method=document.getElementById('payment-method').value;
     const logo=document.getElementById('card-logo');
     const cardSection=document.getElementById('card-details-section');
     const savedCardsWrapper=document.getElementById('saved-cards-wrapper');
-
     const PAYNOW="{{ url_for('static', filename='checkout/paynow.jpg') }}";
     const PAYLAH="{{ url_for('static', filename='checkout/paylah.png') }}";
-
     if(method==='Credit Card'){
         cardSection.style.display='block';
         savedCardsWrapper.style.display='block';
@@ -246,56 +223,50 @@ function togglePaymentMethod(){
     }
 }
 
-// FULFILLMENT
 function setFulfillment(method){
     currentFulfillment = method;
     document.getElementById('box-pickup').classList.toggle('active', method === 'pickup');
     document.getElementById('box-delivery').classList.toggle('active', method === 'delivery');
-
     document.getElementById('delivery-address-section').classList.toggle('d-none', method === 'pickup');
     document.getElementById('pickup-date-section').classList.toggle('d-none', method === 'delivery');
-
     loadCheckoutCart();
 }
 
-// LOAD CART
 function loadCheckoutCart(){
     const cart=JSON.parse(localStorage.getItem('cart')||'[]');
     const container=document.getElementById('cart-items-container');
     let subtotal=0;
-    container.innerHTML=cart.map((item,i)=>{
+    container.innerHTML=cart.map(function(item,i){
         subtotal+=item.price*item.quantity;
-        return `<div class="d-flex align-items-center mb-3 pb-3 border-bottom">
-            <img src="${item.image}" style="width:50px;height:50px;object-fit:contain;margin-right:15px;">
-            <div class="flex-grow-1"><b>${item.name}</b><br><small>S$${item.price.toFixed(2)}</small></div>
-            <div class="checkout-qty-card mx-2">
-                <button class="btn btn-sm" onclick="updateQty(${i},-1)">−</button>
-                <span class="px-2">${item.quantity}</span>
-                <button class="btn btn-sm" onclick="updateQty(${i},1)">+</button>
-            </div>
-            <div class="font-weight-bold">S$${(item.price*item.quantity).toFixed(2)}</div>
-        </div>`;
+        return '<div class="d-flex align-items-center mb-3 pb-3 border-bottom">' +
+            '<img src="' + item.image + '" style="width:50px;height:50px;object-fit:contain;margin-right:15px;">' +
+            '<div class="flex-grow-1"><b>' + item.name + '</b><br><small>S$' + item.price.toFixed(2) + '</small></div>' +
+            '<div class="checkout-qty-card mx-2">' +
+            '<button class="btn btn-sm" onclick="updateQty(' + i + ',-1)">−</button>' +
+            '<span class="px-2">' + item.quantity + '</span>' +
+            '<button class="btn btn-sm" onclick="updateQty(' + i + ',1)">+</button>' +
+            '</div>' +
+            '<div class="font-weight-bold">S$' + (item.price*item.quantity).toFixed(2) + '</div>' +
+            '</div>';
     }).join('');
     let ship=(currentFulfillment==='delivery')?(subtotal<100?3.50:(subtotal<888?1.50:0)):0;
     updateTotals(subtotal,ship);
 }
 
-// UPDATE TOTALS
 function updateTotals(sub,ship){
-    document.getElementById('summary-subtotal').innerText=`S$${sub.toFixed(2)}`;
-    document.getElementById('summary-shipping').innerText=(ship===0)?'FREE':`S$${ship.toFixed(2)}`;
-    document.getElementById('summary-total').innerText=`S$${(sub+ship).toFixed(2)}`;
+    document.getElementById('summary-subtotal').innerText='S$'+sub.toFixed(2);
+    document.getElementById('summary-shipping').innerText=(ship===0)?'FREE':'S$'+ship.toFixed(2);
+    document.getElementById('summary-total').innerText='S$'+(sub+ship).toFixed(2);
     const box=document.getElementById('delivery-incentive-box');
     if(currentFulfillment==='delivery'&&sub<888){
         box.style.display='block';
         let target=sub<100?100:888;
         let diff=target-sub;
-        document.getElementById('incentive-amount').innerText=`S$${diff.toFixed(2)} to go`;
-        document.getElementById('incentive-bar').style.width=(sub/target*100)+"%";
+        document.getElementById('incentive-amount').innerText='S$'+diff.toFixed(2)+' to go';
+        document.getElementById('incentive-bar').style.width=(sub/target*100)+'%';
     } else { box.style.display='none'; }
 }
 
-// UPDATE CART QTY
 function updateQty(i,d){
     let cart=JSON.parse(localStorage.getItem('cart'));
     cart[i].quantity+=d;
@@ -304,53 +275,47 @@ function updateQty(i,d){
     loadCheckoutCart();
 }
 
-// PROCESS PAYMENT -> SEND TO BACKEND & REDIRECT
 async function processPayment(){
     const btn=document.getElementById('btn-pay');
     const method=document.getElementById('payment-method').value;
     const savedCardId=document.getElementById('saved-card-id').value;
     const section=document.getElementById('payment-card-section');
     const errorMsg=document.getElementById('card-error-msg');
-    errorMsg.innerText="";
+    errorMsg.innerText='';
 
     let cardDetails = null;
 
-    // CARD VALIDATION
     if(method==='Credit Card' && savedCardId==='new'){
         const cardName=document.getElementById('card-name').value.trim();
         const num=document.getElementById('card-number').value.replace(/\D/g,'');
         const exp=document.getElementById('card-exp').value.trim();
         const cvv=document.getElementById('card-cvv').value.trim();
 
-        // Validate card name
         if(!cardName){
             section.classList.add('shake');
-            errorMsg.innerText="❌ Please enter the name on card.";
-            setTimeout(()=>section.classList.remove('shake'),400);
+            errorMsg.innerText='Please enter the name on card.';
+            setTimeout(function(){ section.classList.remove('shake'); },400);
             return;
         }
 
-        // Validate card number
         if((!num.startsWith('4')&&!num.startsWith('5'))||!validateLuhn(num)){
             section.classList.add('shake');
-            errorMsg.innerText="❌ Please provide a valid VISA or Mastercard.";
-            setTimeout(()=>section.classList.remove('shake'),400);
+            errorMsg.innerText='Please provide a valid VISA or Mastercard.';
+            setTimeout(function(){ section.classList.remove('shake'); },400);
             return;
         }
 
-        // Validate expiry
         if(!/^\d{2}\/\d{2}$/.test(exp)){
             section.classList.add('shake');
-            errorMsg.innerText="❌ Please enter expiry date as MM/YY.";
-            setTimeout(()=>section.classList.remove('shake'),400);
+            errorMsg.innerText='Please enter expiry date as MM/YY.';
+            setTimeout(function(){ section.classList.remove('shake'); },400);
             return;
         }
 
-        // Validate CVV
         if(!/^\d{3,4}$/.test(cvv)){
             section.classList.add('shake');
-            errorMsg.innerText="❌ Please enter a valid CVV.";
-            setTimeout(()=>section.classList.remove('shake'),400);
+            errorMsg.innerText='Please enter a valid CVV.';
+            setTimeout(function(){ section.classList.remove('shake'); },400);
             return;
         }
 
@@ -363,17 +328,15 @@ async function processPayment(){
             last4: num.slice(-4)
         };
 
-        // SAVE TO LOCALSTORAGE IF CHECKBOX IS CHECKED
         if(document.getElementById('save-card-checkbox').checked){
             saveCardToLocalStorage(cardDetails);
-            loadSavedCards(); // Refresh dropdown
+            loadSavedCards();
         }
     }
 
     btn.disabled=true;
-    btn.innerHTML="Processing...";
+    btn.innerHTML='Processing...';
 
-    // Pickup / Delivery date info
     let selectedDate = '';
     if(currentFulfillment==='pickup'){
         selectedDate = document.getElementById('pickup-date').value || 'Not selected';
@@ -381,7 +344,6 @@ async function processPayment(){
         selectedDate = document.getElementById('delivery-address').value || 'Address not provided';
     }
 
-    // Payload to backend (simplified - no need to save cards in DB)
     const payload = {
         cart: JSON.parse(localStorage.getItem('cart')),
         total_amount: parseFloat(document.getElementById('summary-total').innerText.replace('S$', '')),
@@ -393,28 +355,42 @@ async function processPayment(){
     try{
         const res = await fetch('/process-payment', {
             method:'POST',
-            headers:{'Content-Type':'application/json','X-CSRFToken':"{{ csrf_token() }}"},
+            headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token() }}'},
             body: JSON.stringify(payload)
         });
         const result = await res.json();
 
         if(result.success){
+            const cart = JSON.parse(localStorage.getItem('cart'));
+            const subtotal = parseFloat(document.getElementById('summary-subtotal').innerText.replace('S$', ''));
+            const shippingText = document.getElementById('summary-shipping').innerText;
+            const shipping = shippingText === 'FREE' ? 0 : parseFloat(shippingText.replace('S$', ''));
+            const total = parseFloat(document.getElementById('summary-total').innerText.replace('S$', ''));
+            
+            var orderData = {
+                cart: cart,
+                subtotal: subtotal,
+                shipping: shipping,
+                total: total,
+                payment_method: method
+            };
+            sessionStorage.setItem('last_order', JSON.stringify(orderData));
+            
             localStorage.removeItem('cart');
-            window.location.href = `/order-success?method=${currentFulfillment}&date=${encodeURIComponent(selectedDate)}`;
+            window.location.href = '/order-success?method=' + currentFulfillment + '&date=' + encodeURIComponent(selectedDate);
         } else {
             alert(result.message);
             btn.disabled=false;
-            btn.innerHTML="💰 CONFIRM & HUAT AH!";
+            btn.innerHTML='💰 CONFIRM & HUAT AH!';
         }
     } catch(err){
         console.error(err);
-        alert("Something went wrong. Please try again.");
+        alert('Something went wrong. Please try again.');
         btn.disabled=false;
-        btn.innerHTML="💰 CONFIRM & HUAT AH!";
+        btn.innerHTML='💰 CONFIRM & HUAT AH!';
     }
 }
 
-// LOAD SAVED CARDS ON PAGE LOAD
 document.addEventListener('DOMContentLoaded', function(){
     loadCheckoutCart();
     loadSavedCards();
