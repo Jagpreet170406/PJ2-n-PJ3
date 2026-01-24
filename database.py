@@ -53,13 +53,13 @@ CREATE TABLE IF NOT EXISTS products (
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS inventory (
     inventory_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    sup_part_no TEXT NOT NULL,
+    sup_part_no TEXT DEFAULT '',
     hem_name TEXT NOT NULL,
     category TEXT DEFAULT 'Lubricants', 
     org TEXT,
     loc_on_shelf TEXT,
     qty INTEGER NOT NULL DEFAULT 0,
-    sell_price REAL NOT NULL,
+    sell_price REAL NOT NULL DEFAULT 0,
     image_url TEXT DEFAULT ''
 );
 """)
@@ -80,7 +80,6 @@ CREATE TABLE IF NOT EXISTS transactions (
 # =========================
 # 6. SALES & PURCHASE (The Enterprise Tables)
 # =========================
-
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS sales_invoice_header (

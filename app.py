@@ -12,9 +12,6 @@ app.secret_key = "chinhon_secret_key"
 # Enable CSRF Protection
 csrf = CSRFProtect(app)
 
-# Exempt JSON API endpoints from CSRF
-csrf.exempt("process_payment")
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB = os.path.join(BASE_DIR, "database.db")
 
@@ -211,9 +208,131 @@ def home():
 @app.route("/inventory")
 @require_staff
 def inventory():
-    with get_db() as conn:
-        products = conn.execute("SELECT * FROM inventory LIMIT 100").fetchall()
-    return render_template("inventory.html", products=products, role=session.get("role"))
+    return render_template("inventory.html", role=session.get("role"))
+
+# --------------------
+# INVENTORY CRUD API ROUTES
+# --------------------
+@app.route("/api/inventory", methods=["GET"])
+@csrf.exempt
+@require_staff
+def api_get_inventory():
+    """Get all inventory items for the inventory management page"""
+    try:
+        with get_db() as conn:
+            items = conn.execute("SELECT * FROM inventory ORDER BY hem_name ASC").fetchall()
+            print(f"✅ Loaded {len(items)} inventory items")
+            return jsonify([dict(item) for item in items])
+    except Exception as e:
+        print(f"❌ Error getting inventory: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/inventory", methods=["POST"])
+@csrf.exempt
+@require_staff
+def api_create_inventory():
+    """Create a new inventory item"""
+    data = request.get_json()
+    
+    print(f"🔍 Received data: {data}")
+    
+    sup_part_no = (data.get('sup_part_no') or '').strip()
+    hem_name = (data.get('hem_name') or '').strip()
+    category = data.get('category', 'Lubricants')
+    qty = int(data.get('qty', 0))
+    sell_price = float(data.get('sell_price', 0))
+    image_url = (data.get('image_url') or '').strip()
+    
+    print(f"📦 Creating product: name='{hem_name}', qty={qty}, price={sell_price}")
+    
+    if not hem_name:
+        print(f"❌ Product name is empty! Received: '{hem_name}'")
+        return jsonify({"success": False, "message": "Product name is required"}), 400
+    
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO inventory (sup_part_no, hem_name, category, qty, sell_price, image_url)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (sup_part_no, hem_name, category, qty, sell_price, image_url))
+            conn.commit()
+            
+            print(f"✅ Product created: {hem_name} (ID: {cursor.lastrowid})")
+            
+            return jsonify({
+                "success": True,
+                "inventory_id": cursor.lastrowid,
+                "message": "Product added successfully"
+            })
+    except Exception as e:
+        print(f"❌ Error creating product: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route("/api/inventory/<int:inventory_id>", methods=["PUT"])
+@csrf.exempt
+@require_staff
+def api_update_inventory(inventory_id):
+    """Update an existing inventory item"""
+    data = request.get_json()
+    
+    print(f"🔍 Update - Received data: {data}")
+    
+    sup_part_no = (data.get('sup_part_no') or '').strip()
+    hem_name = (data.get('hem_name') or '').strip()
+    category = data.get('category', 'Lubricants')
+    qty = int(data.get('qty', 0))
+    sell_price = float(data.get('sell_price', 0))
+    image_url = (data.get('image_url') or '').strip()
+    
+    print(f"📝 Updating product ID {inventory_id}: name='{hem_name}'")
+    
+    if not hem_name:
+        print(f"❌ Product name is empty! Received: '{hem_name}'")
+        return jsonify({"success": False, "message": "Product name is required"}), 400
+    
+    try:
+        with get_db() as conn:
+            conn.execute("""
+                UPDATE inventory
+                SET sup_part_no=?, hem_name=?, category=?, qty=?, sell_price=?, image_url=?
+                WHERE inventory_id=?
+            """, (sup_part_no, hem_name, category, qty, sell_price, image_url, inventory_id))
+            conn.commit()
+            
+            print(f"✅ Product updated: {hem_name} (ID: {inventory_id})")
+            
+            return jsonify({"success": True, "message": "Product updated successfully"})
+    except Exception as e:
+        print(f"❌ Error updating product: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route("/api/inventory/<int:inventory_id>", methods=["DELETE"])
+@csrf.exempt
+@require_staff
+def api_delete_inventory(inventory_id):
+    """Delete an inventory item"""
+    print(f"🗑️ Deleting product ID {inventory_id}")
+    
+    try:
+        with get_db() as conn:
+            conn.execute("DELETE FROM inventory WHERE inventory_id=?", (inventory_id,))
+            conn.commit()
+            
+            print(f"✅ Product deleted (ID: {inventory_id})")
+            
+            return jsonify({"success": True, "message": "Product deleted successfully"})
+    except Exception as e:
+        print(f"❌ Error deleting product: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
 
 # --------------------
 # SALES & PRICE OPTIMIZATION DASHBOARD
