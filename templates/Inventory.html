@@ -5,129 +5,199 @@
 {% block content %}
 
 <style>
-    body {
-        font-family: Inter, Arial, sans-serif;
-        background: black;
-        padding: 30px;
-    }
+body {
+    font-family: Arial, sans-serif;
+    background: #000;
+    color: #fff;
+    padding: 20px;
+}
 
-    .container {
-        background: #f2f2f2;
-        border-radius: 25px;
-        padding: 25px;
-        max-width: 1200px;
-        margin: auto;
-    }
+h1 {
+    font-size: 28px;
+    margin-bottom: 10px;
+}
 
-    .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 25px;
-    }
+.controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
 
-    .header h1 {
-        margin: 0;
-        font-size: 32px;
-    }
+.controls input, .controls select {
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid #333;
+    background: #111;
+    color: #fff;
+}
 
-    .select-btn {
-        background: white;
-        border-radius: 25px;
-        padding: 10px 20px;
-        border: none;
-        font-size: 14px;
-        cursor: pointer;
-    }
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
 
-    .grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 20px;
-    }
+.card {
+    background: #111;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #222;
+    transition: 0.2s;
+}
 
-    .card {
-        background: white;
-        border-radius: 12px;
-        padding: 12px;
-        border: 1px solid #e5e5e5;
-    }
+.card:hover {
+    background: #1f1f1f;
+}
 
-    .img-placeholder {
-        width: 100%;
-        height: 180px;
-        background: #f2f2f2;
-        border-radius: 8px;
-        margin-bottom: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #999;
-        font-size: 13px;
-    }
+.img-placeholder {
+    background: #1a1a1a;
+    height: 150px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #777;
+    margin-bottom: 8px;
+}
 
-    .product-name {
-        font-size: 14px;
-        font-weight: 500;
-        line-height: 1.3;
-        margin-bottom: 8px;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        line-clamp: 2;
-        -webkit-box-orient: vertical;
-        box-orient: vertical;
-        overflow: hidden;
-    }
+.stock {
+    font-size: 13px;
+}
 
-    .stock {
-        font-size: 13px;
-        color: #666;
-    }
+.low {
+    color: orange;
+}
+
+.critical {
+    color: red;
+}
 </style>
 
-<div class="container">
-    <div class="header">
-        <h1>Stocking Opportunity</h1>
-        <button class="select-btn">Select item</button>
+<div>
+    <h1>Inventory</h1>
+    
+    <div class="controls">
+        <input type="text" id="searchInput" placeholder="Search products...">
+        <select id="sortSelect">
+            <option value="">Sort by</option>
+            <option value="name">Name (A–Z)</option>
+            <option value="stock">Stock (High → Low)</option>
+        </select>
     </div>
+    
+    <div class="grid" id="productGrid">
 
-    <div class="grid">
-        <div class="card">
+        <!-- PRODUCT CARDS -->
+        <div class="card" data-name="Shell Engine Oil" data-stock="120">
             <div class="img-placeholder">Image</div>
-            <div class="product-name">Shell Engine Oil</div>
+            <div>Shell Engine Oil</div>
             <div class="stock">Stock: 120 L</div>
         </div>
 
-        <div class="card">
+        <div class="card" data-name="Sinopec Engine Oil" data-stock="110">
             <div class="img-placeholder">Image</div>
-            <div class="product-name">Caltex Engine Oil</div>
-            <div class="stock">Stock: 95 L</div>
-        </div>
-
-        <div class="card">
-            <div class="img-placeholder">Image</div>
-            <div class="product-name">Esso Engine Oil</div>
-            <div class="stock">Stock: 80 L</div>
-        </div>
-
-        <div class="card">
-            <div class="img-placeholder">Image</div>
-            <div class="product-name">SPC Engine Oil</div>
-            <div class="stock">Stock: 60 L</div>
-        </div>
-
-        <div class="card">
-            <div class="img-placeholder">Image</div>
-            <div class="product-name">Sinopec Engine Oil</div>
+            <div>Sinopec Engine Oil</div>
             <div class="stock">Stock: 110 L</div>
         </div>
 
-        <div class="card">
+        <div class="card" data-name="Windshield Wiper" data-stock="100">
             <div class="img-placeholder">Image</div>
-            <div class="product-name">Smart Energy Engine Oil</div>
-            <div class="stock">Stock: 75 L</div>
+            <div>Windshield Wiper</div>
+            <div class="stock">Stock: 100 pcs</div>
         </div>
+
+        <div class="card" data-name="Caltex Engine Oil" data-stock="95">
+            <div class="img-placeholder">Image</div>
+            <div>Caltex Engine Oil</div>
+            <div class="stock">Stock: 95 L</div>
+        </div>
+
+        <div class="card" data-name="Engine Coolant" data-stock="90">
+            <div class="img-placeholder">Image</div>
+            <div>Engine Coolant</div>
+            <div class="stock">Stock: 90 L</div>
+        </div>
+
+        <div class="card" data-name="Esso Engine Oil" data-stock="80">
+            <div class="img-placeholder">Image</div>
+            <div>Esso Engine Oil</div>
+            <div class="stock low">Stock: 80 L ⚠ Low</div>
+        </div>
+
+        <div class="card" data-name="Smart Energy Engine Oil" data-stock="75">
+            <div class="img-placeholder">Image</div>
+            <div>Smart Energy Engine Oil</div>
+            <div class="stock low">Stock: 75 L ⚠ Low</div>
+        </div>
+
+        <div class="card" data-name="Transmission Oil" data-stock="70">
+            <div class="img-placeholder">Image</div>
+            <div>Transmission Oil</div>
+            <div class="stock low">Stock: 70 L ⚠ Low</div>
+        </div>
+
+        <div class="card" data-name="SPC Engine Oil" data-stock="60">
+            <div class="img-placeholder">Image</div>
+            <div>SPC Engine Oil</div>
+            <div class="stock critical">Stock: 60 L 🔴 Critical</div>
+        </div>
+
+        <div class="card" data-name="Brake Fluid" data-stock="50">
+            <div class="img-placeholder">Image</div>
+            <div>Brake Fluid</div>
+            <div class="stock low">Stock: 50 L ⚠ Low</div>
+        </div>
+
+        <div class="card" data-name="Tire" data-stock="40">
+            <div class="img-placeholder">Image</div>
+            <div>Tire</div>
+            <div class="stock critical">Stock: 40 pcs 🔴 Critical</div>
+        </div>
+
+        <div class="card" data-name="Car Battery" data-stock="30">
+            <div class="img-placeholder">Image</div>
+            <div>Car Battery</div>
+            <div class="stock critical">Stock: 30 pcs 🔴 Critical</div>
+        </div>
+
     </div>
 </div>
+
+<script>
+// Grab elements
+const searchInput = document.getElementById("searchInput");
+const sortSelect = document.getElementById("sortSelect");
+const productGrid = document.getElementById("productGrid");
+
+// Search function
+function filterProducts() {
+    const text = searchInput.value.toLowerCase();
+    document.querySelectorAll(".card").forEach(card => {
+        const name = card.dataset.name.toLowerCase();
+        card.style.display = name.includes(text) ? "block" : "none";
+    });
+}
+
+// Sort function
+function sortProducts() {
+    const type = sortSelect.value;
+    const cards = Array.from(document.querySelectorAll(".card"));
+
+    if (type === "name") {
+        cards.sort((a, b) => a.dataset.name.localeCompare(b.dataset.name));
+    } else if (type === "stock") {
+        cards.sort((a, b) => b.dataset.stock - a.dataset.stock);
+    }
+
+    cards.forEach(card => productGrid.appendChild(card));
+}
+
+// Event listeners
+searchInput.addEventListener("keyup", filterProducts);
+sortSelect.addEventListener("change", sortProducts);
+
+// Initial sort by stock
+sortProducts();
+</script>
 
 {% endblock %}
