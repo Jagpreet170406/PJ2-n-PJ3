@@ -1,70 +1,167 @@
 {% extends "base.html" %}
+
 {% block title %}Market Analysis{% endblock %}
 
 {% block content %}
-<div class="analysis-page">
 
-    <!-- Page Header -->
-    <div class="analysis-header">
-        <h1>Market Analysis</h1>
-        <div class="header-actions">
-            <button class="btn-outline">Export Report</button>
-            <button class="btn-solid">Update Prices</button>
-        </div>
+<style>
+/* Make sure nothing adds white margins */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #000;
+}
+
+/* FULL SCREEN HERO */
+.hero {
+  position: relative;
+  width: 100vw;     /* edge-to-edge */
+  height: 100vh;    /* full screen */
+  overflow: hidden;
+}
+
+/* Background image + dark overlay */
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(0,0,0,0.55) 0%,
+      rgba(0,0,0,0.35) 45%,
+      rgba(0,0,0,0.70) 100%
+    ),
+    url("{{ url_for('static', filename='preview.jpg') }}");
+
+  background-size: cover;      /* fills screen */
+  background-position: center; /* keeps subject centered */
+  background-repeat: no-repeat;
+}
+
+/* Optional vignette (Squarespace look) */
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(0,0,0,0) 30%,
+    rgba(0,0,0,0.65) 100%
+  );
+  pointer-events: none;
+}
+
+/* Center the text/button */
+.hero-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #fff;
+
+  padding: 0 20px;
+}
+
+/* Text styles */
+.hero-kicker {
+  letter-spacing: 0.35em;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 0.8rem;
+  text-transform: uppercase;
+}
+
+.hero-title {
+  font-size: clamp(2.6rem, 5vw, 4.2rem);
+  font-weight: 800;
+  margin: 0 0 0.8rem;
+}
+
+.hero-subtitle {
+  color: rgba(255,255,255,0.7);
+  max-width: 680px;
+  margin: 0 auto 2rem;
+  font-size: 1.05rem;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Buttons */
+.hero-btn {
+  background: #fff;
+  color: #111;
+  border-radius: 14px;
+  padding: 0.9rem 1.6rem;
+  font-weight: 650;
+  text-decoration: none;
+  display: inline-block;
+}
+.hero-btn:hover { opacity: 0.92; }
+
+.hero-btn-outline {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 14px;
+  padding: 0.9rem 1.6rem;
+  font-weight: 650;
+  text-decoration: none;
+  display: inline-block;
+}
+.hero-btn-outline:hover {
+  border-color: rgba(255,255,255,0.65);
+}
+
+/* Make sure any default container margins/padding don't affect hero */
+.container, .container-fluid {
+  margin: 0;
+  padding: 0;
+}
+
+/* If your base.html wraps content in a <main> with padding, kill it on this page */
+main, .content, .page, .wrapper {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+</style>
+
+<section class="hero">
+  <div class="hero-bg"></div>
+
+  <div class="hero-content">
+    <div>
+      <div class="hero-kicker">CHIN HON</div>
+
+      <h1 class="hero-title">
+        Market Analysis
+      </h1>
+
+      <p class="hero-subtitle">
+        View trends, pricing insights, and category performance to guide smarter stocking decisions.
+      </p>
+
+      <div class="hero-actions">
+        <a href="{{ url_for('real_time_analytics') }}" class="hero-btn">
+          Go to Real-Time Analysis
+        </a>
+
+        <a href="{{ url_for('dashboard') }}" class="hero-btn-outline">
+          Back to Dashboard
+        </a>
+      </div>
     </div>
+  </div>
+</section>
 
-    <!-- Top Metrics -->
-    <div class="metrics-grid">
-        <div class="metric-card">
-            <p class="metric-label">Avg Market Price</p>
-            <h2>$1330</h2>
-            <span class="metric-negative">-11.3%</span>
-        </div>
-
-        <div class="metric-card">
-            <p class="metric-label">Your Avg Price</p>
-            <h2>$1500</h2>
-            <span class="metric-positive">+2.7%</span>
-        </div>
-
-        <div class="metric-card">
-            <p class="metric-label">Price Gap</p>
-            <h2>$270</h2>
-            <span class="metric-neutral">5.1%</span>
-        </div>
-
-        <div class="metric-card">
-            <p class="metric-label">Competitors Tracked</p>
-            <h2>5</h2>
-            <span class="metric-positive">+3</span>
-        </div>
-    </div>
-
-    <!-- Charts Section -->
-    <div class="charts-grid">
-
-        <div class="chart-card">
-            <h3>Price Distribution by Segment</h3>
-            <div class="chart-placeholder">
-                Bar Chart Placeholder
-            </div>
-        </div>
-
-        <div class="chart-card">
-            <h3>Market Share by Price Range</h3>
-            <div class="chart-placeholder">
-                Bar Chart Placeholder
-            </div>
-        </div>
-
-        <div class="chart-card wide">
-            <h3>Pricing Trend (6 Months)</h3>
-            <div class="chart-placeholder">
-                Line Chart Placeholder
-            </div>
-        </div>
-
-    </div>
-
-</div>
 {% endblock %}
