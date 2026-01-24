@@ -21,14 +21,26 @@ h1 {
     display: flex;
     gap: 10px;
     margin-bottom: 20px;
+    flex-wrap: wrap;
 }
 
-.controls input, .controls select {
+.controls input, .controls select, .controls button {
     padding: 8px 12px;
     border-radius: 10px;
     border: 1px solid #333;
     background: #111;
     color: #fff;
+}
+
+.controls button {
+    background: #0066ff;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.controls button:hover {
+    background: #0052cc;
 }
 
 .grid {
@@ -43,6 +55,7 @@ h1 {
     border-radius: 10px;
     border: 1px solid #222;
     transition: 0.2s;
+    position: relative;
 }
 
 .card:hover {
@@ -71,6 +84,122 @@ h1 {
 .critical {
     color: red;
 }
+
+.card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.card-actions button {
+    flex: 1;
+    padding: 6px 10px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.edit-btn {
+    background: #28a745;
+    color: white;
+}
+
+.edit-btn:hover {
+    background: #218838;
+}
+
+.delete-btn {
+    background: #dc3545;
+    color: white;
+}
+
+.delete-btn:hover {
+    background: #c82333;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: #1a1a1a;
+    padding: 25px;
+    border-radius: 15px;
+    border: 1px solid #333;
+    width: 90%;
+    max-width: 400px;
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.modal-content label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 14px;
+    color: #aaa;
+}
+
+.modal-content input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    background: #111;
+    color: #fff;
+    box-sizing: border-box;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.modal-actions button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.save-btn {
+    background: #0066ff;
+    color: white;
+}
+
+.save-btn:hover {
+    background: #0052cc;
+}
+
+.cancel-btn {
+    background: #555;
+    color: white;
+}
+
+.cancel-btn:hover {
+    background: #666;
+}
 </style>
 
 <div>
@@ -83,121 +212,185 @@ h1 {
             <option value="name">Name (A–Z)</option>
             <option value="stock">Stock (High → Low)</option>
         </select>
+        <button id="addProductBtn">+ Add Product</button>
     </div>
     
     <div class="grid" id="productGrid">
+        <!-- Products will be rendered here by JavaScript -->
+    </div>
+</div>
 
-        <!-- PRODUCT CARDS -->
-        <div class="card" data-name="Shell Engine Oil" data-stock="120">
-            <div class="img-placeholder">Image</div>
-            <div>Shell Engine Oil</div>
-            <div class="stock">Stock: 120 L</div>
-        </div>
-
-        <div class="card" data-name="Sinopec Engine Oil" data-stock="110">
-            <div class="img-placeholder">Image</div>
-            <div>Sinopec Engine Oil</div>
-            <div class="stock">Stock: 110 L</div>
-        </div>
-
-        <div class="card" data-name="Windshield Wiper" data-stock="100">
-            <div class="img-placeholder">Image</div>
-            <div>Windshield Wiper</div>
-            <div class="stock">Stock: 100 pcs</div>
-        </div>
-
-        <div class="card" data-name="Caltex Engine Oil" data-stock="95">
-            <div class="img-placeholder">Image</div>
-            <div>Caltex Engine Oil</div>
-            <div class="stock">Stock: 95 L</div>
-        </div>
-
-        <div class="card" data-name="Engine Coolant" data-stock="90">
-            <div class="img-placeholder">Image</div>
-            <div>Engine Coolant</div>
-            <div class="stock">Stock: 90 L</div>
-        </div>
-
-        <div class="card" data-name="Esso Engine Oil" data-stock="80">
-            <div class="img-placeholder">Image</div>
-            <div>Esso Engine Oil</div>
-            <div class="stock low">Stock: 80 L ⚠ Low</div>
-        </div>
-
-        <div class="card" data-name="Smart Energy Engine Oil" data-stock="75">
-            <div class="img-placeholder">Image</div>
-            <div>Smart Energy Engine Oil</div>
-            <div class="stock low">Stock: 75 L ⚠ Low</div>
-        </div>
-
-        <div class="card" data-name="Transmission Oil" data-stock="70">
-            <div class="img-placeholder">Image</div>
-            <div>Transmission Oil</div>
-            <div class="stock low">Stock: 70 L ⚠ Low</div>
-        </div>
-
-        <div class="card" data-name="SPC Engine Oil" data-stock="60">
-            <div class="img-placeholder">Image</div>
-            <div>SPC Engine Oil</div>
-            <div class="stock critical">Stock: 60 L 🔴 Critical</div>
-        </div>
-
-        <div class="card" data-name="Brake Fluid" data-stock="50">
-            <div class="img-placeholder">Image</div>
-            <div>Brake Fluid</div>
-            <div class="stock low">Stock: 50 L ⚠ Low</div>
-        </div>
-
-        <div class="card" data-name="Tire" data-stock="40">
-            <div class="img-placeholder">Image</div>
-            <div>Tire</div>
-            <div class="stock critical">Stock: 40 pcs 🔴 Critical</div>
-        </div>
-
-        <div class="card" data-name="Car Battery" data-stock="30">
-            <div class="img-placeholder">Image</div>
-            <div>Car Battery</div>
-            <div class="stock critical">Stock: 30 pcs 🔴 Critical</div>
-        </div>
-
+<!-- Modal for Add/Edit Product -->
+<div class="modal" id="productModal">
+    <div class="modal-content">
+        <h2 id="modalTitle">Add Product</h2>
+        <form id="productForm">
+            <label for="productName">Product Name</label>
+            <input type="text" id="productName" required>
+            
+            <label for="productStock">Stock Quantity</label>
+            <input type="number" id="productStock" required min="0">
+            
+            <label for="productUnit">Unit (e.g., L, pcs)</label>
+            <input type="text" id="productUnit" required>
+            
+            <div class="modal-actions">
+                <button type="submit" class="save-btn">Save</button>
+                <button type="button" class="cancel-btn" id="cancelBtn">Cancel</button>
+            </div>
+        </form>
     </div>
 </div>
 
 <script>
+// Initial product data
+let products = [
+    { id: 1, name: "Shell Engine Oil", stock: 120, unit: "L" },
+    { id: 2, name: "Sinopec Engine Oil", stock: 110, unit: "L" },
+    { id: 3, name: "Windshield Wiper", stock: 100, unit: "pcs" },
+    { id: 4, name: "Caltex Engine Oil", stock: 95, unit: "L" },
+    { id: 5, name: "Engine Coolant", stock: 90, unit: "L" },
+    { id: 6, name: "Esso Engine Oil", stock: 80, unit: "L" },
+    { id: 7, name: "Smart Energy Engine Oil", stock: 75, unit: "L" },
+    { id: 8, name: "Transmission Oil", stock: 70, unit: "L" },
+    { id: 9, name: "SPC Engine Oil", stock: 60, unit: "L" },
+    { id: 10, name: "Brake Fluid", stock: 50, unit: "L" },
+    { id: 11, name: "Tire", stock: 40, unit: "pcs" },
+    { id: 12, name: "Car Battery", stock: 30, unit: "pcs" }
+];
+
+let nextId = 13;
+let editingId = null;
+
 // Grab elements
 const searchInput = document.getElementById("searchInput");
 const sortSelect = document.getElementById("sortSelect");
 const productGrid = document.getElementById("productGrid");
+const addProductBtn = document.getElementById("addProductBtn");
+const productModal = document.getElementById("productModal");
+const productForm = document.getElementById("productForm");
+const modalTitle = document.getElementById("modalTitle");
+const cancelBtn = document.getElementById("cancelBtn");
 
-// Search function
-function filterProducts() {
-    const text = searchInput.value.toLowerCase();
-    document.querySelectorAll(".card").forEach(card => {
-        const name = card.dataset.name.toLowerCase();
-        card.style.display = name.includes(text) ? "block" : "none";
-    });
-}
-
-// Sort function
-function sortProducts() {
-    const type = sortSelect.value;
-    const cards = Array.from(document.querySelectorAll(".card"));
-
-    if (type === "name") {
-        cards.sort((a, b) => a.dataset.name.localeCompare(b.dataset.name));
-    } else if (type === "stock") {
-        cards.sort((a, b) => b.dataset.stock - a.dataset.stock);
+// Render products
+function renderProducts() {
+    const searchText = searchInput.value.toLowerCase();
+    const sortType = sortSelect.value;
+    
+    // Filter products
+    let filteredProducts = products.filter(p => 
+        p.name.toLowerCase().includes(searchText)
+    );
+    
+    // Sort products
+    if (sortType === "name") {
+        filteredProducts.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortType === "stock") {
+        filteredProducts.sort((a, b) => b.stock - a.stock);
     }
-
-    cards.forEach(card => productGrid.appendChild(card));
+    
+    // Render
+    productGrid.innerHTML = filteredProducts.map(product => {
+        let stockClass = "";
+        let stockLabel = "";
+        
+        if (product.stock <= 60) {
+            stockClass = "critical";
+            stockLabel = "🔴 Critical";
+        } else if (product.stock <= 80) {
+            stockClass = "low";
+            stockLabel = "⚠ Low";
+        }
+        
+        return `
+            <div class="card">
+                <div class="img-placeholder">Image</div>
+                <div>${product.name}</div>
+                <div class="stock ${stockClass}">Stock: ${product.stock} ${product.unit} ${stockLabel}</div>
+                <div class="card-actions">
+                    <button class="edit-btn" onclick="editProduct(${product.id})">Edit</button>
+                    <button class="delete-btn" onclick="deleteProduct(${product.id})">Delete</button>
+                </div>
+            </div>
+        `;
+    }).join("");
 }
 
-// Event listeners
-searchInput.addEventListener("keyup", filterProducts);
-sortSelect.addEventListener("change", sortProducts);
+// Open modal for adding product
+addProductBtn.addEventListener("click", () => {
+    editingId = null;
+    modalTitle.textContent = "Add Product";
+    productForm.reset();
+    productModal.classList.add("active");
+});
 
-// Initial sort by stock
-sortProducts();
+// Open modal for editing product
+function editProduct(id) {
+    editingId = id;
+    const product = products.find(p => p.id === id);
+    
+    modalTitle.textContent = "Edit Product";
+    document.getElementById("productName").value = product.name;
+    document.getElementById("productStock").value = product.stock;
+    document.getElementById("productUnit").value = product.unit;
+    
+    productModal.classList.add("active");
+}
+
+// Delete product
+function deleteProduct(id) {
+    if (confirm("Are you sure you want to delete this product?")) {
+        products = products.filter(p => p.id !== id);
+        renderProducts();
+    }
+}
+
+// Save product (Create or Update)
+productForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    
+    const name = document.getElementById("productName").value;
+    const stock = parseInt(document.getElementById("productStock").value);
+    const unit = document.getElementById("productUnit").value;
+    
+    if (editingId) {
+        // Update existing product
+        const product = products.find(p => p.id === editingId);
+        product.name = name;
+        product.stock = stock;
+        product.unit = unit;
+    } else {
+        // Create new product
+        products.push({
+            id: nextId++,
+            name: name,
+            stock: stock,
+            unit: unit
+        });
+    }
+    
+    productModal.classList.remove("active");
+    renderProducts();
+});
+
+// Cancel button
+cancelBtn.addEventListener("click", () => {
+    productModal.classList.remove("active");
+});
+
+// Close modal when clicking outside
+productModal.addEventListener("click", (e) => {
+    if (e.target === productModal) {
+        productModal.classList.remove("active");
+    }
+});
+
+// Search and sort
+searchInput.addEventListener("keyup", renderProducts);
+sortSelect.addEventListener("change", renderProducts);
+
+// Initial render
+renderProducts();
 </script>
 
 {% endblock %}
