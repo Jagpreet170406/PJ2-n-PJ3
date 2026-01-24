@@ -18,6 +18,19 @@
     .btn-page { padding: .5rem 1rem; border: 1px solid #2563eb; color: #2563eb; border-radius: 6px; text-decoration: none; }
     .btn-page:hover { background: #2563eb; color: white; }
     .btn-page.disabled { opacity: .4; pointer-events: none; border-color: #ccc; color: #999; }
+    
+    /* Cart buttons */
+    .cart-buttons { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+    .btn-add-cart { background: white; border: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
+    .btn-add-cart:hover { background: #eff6ff; }
+    .btn-buy-now { background: #2563eb; border: 2px solid #2563eb; color: white; font-weight: 600; }
+    .btn-buy-now:hover { background: #1d4ed8; }
+    
+    /* Quantity selector */
+    .qty-selector { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .qty-btn { width: 30px; height: 30px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; }
+    .qty-btn:hover { background: #f3f4f6; }
+    .qty-input { width: 50px; text-align: center; border: 1px solid #ddd; border-radius: 4px; padding: 4px; }
 </style>
 
 <div class="shop-container">
@@ -48,10 +61,10 @@
         <div class="product-grid">
             {% for product in products %}
             <div class="product-card">
-                <img src="{{ url_for('static', filename='products/' ~ product.sup_part_no ~ '.jpg') }}" 
+                <img src="{{ product.image_url or 'https://via.placeholder.com/300x200/f4f4f4/999999?text=No+Image' }}" 
                      class="item-image" 
-                     alt="Product Image"
-                     onerror="this.src='https://via.placeholder.com/300x200?text=No+Image';">
+                     alt="{{ product.hem_name }}"
+                     onerror="this.src='https://via.placeholder.com/300x200/f4f4f4/999999?text=No+Image';">
 
                 <div class="card-details">
                     <small class="text-muted text-uppercase fw-bold">{{ product.category }}</small>
@@ -60,10 +73,25 @@
 
                     <div class="mt-auto">
                         <div class="price-tag mb-2">SGD {{ "%.2f"|format(product.sell_price) }}</div>
-                        <form method="POST" action="{{ url_for('process_payment') }}">
-                            <input type="hidden" name="total_amount" value="{{ product.sell_price }}">
-                            <button type="submit" class="btn btn-outline-primary w-100 btn-sm">Quick Buy</button>
-                        </form>
+                        
+                        <!-- Quantity Selector -->
+                        <div class="qty-selector">
+                            <button type="button" class="qty-btn" onclick="changeQty({{ product.inventory_id }}, -1)">−</button>
+                            <input type="number" id="qty-{{ product.inventory_id }}" class="qty-input" value="1" min="1" max="99" readonly>
+                            <button type="button" class="qty-btn" onclick="changeQty({{ product.inventory_id }}, 1)">+</button>
+                        </div>
+                        
+                        <!-- Cart Buttons -->
+                        <div class="cart-buttons">
+                            <button onclick="addToCart({{ product.inventory_id }}, '{{ product.hem_name }}', {{ product.sell_price }})" 
+                                    class="btn btn-add-cart btn-sm flex-fill">
+                                Add to Cart
+                            </button>
+                            <button onclick="buyNow({{ product.inventory_id }}, '{{ product.hem_name }}', {{ product.sell_price }})" 
+                                    class="btn btn-buy-now btn-sm flex-fill">
+                                Buy Now
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -83,4 +111,86 @@
         {% endif %}
     </main>
 </div>
+
+<script>
+// Cart functionality using sessionStorage
+function getCart() {
+    return JSON.parse(sessionStorage.getItem('cart') || '[]');
+}
+
+function saveCart(cart) {
+    sessionStorage.setItem('cart', JSON.stringify(cart));
+    updateCartBadge();
+}
+
+function updateCartBadge() {
+    const cart = getCart();
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+    
+    // Update cart badge in navbar (you'll need to add this to base.html)
+    const badge = document.querySelector('.cart-badge');
+    if (badge) {
+        badge.textContent = totalItems;
+        badge.style.display = totalItems > 0 ? 'inline-block' : 'none';
+    }
+}
+
+function changeQty(productId, delta) {
+    const input = document.getElementById(`qty-${productId}`);
+    let value = parseInt(input.value) + delta;
+    value = Math.max(1, Math.min(99, value));
+    input.value = value;
+}
+
+function addToCart(productId, productName, price) {
+    const quantity = parseInt(document.getElementById(`qty-${productId}`).value);
+    const cart = getCart();
+    
+    // Check if product already in cart
+    const existing = cart.find(item => item.id === productId);
+    
+    if (existing) {
+        existing.quantity += quantity;
+    } else {
+        cart.push({
+            id: productId,
+            name: productName,
+            price: price,
+            quantity: quantity
+        });
+    }
+    
+    saveCart(cart);
+    
+    // Show success message
+    alert(`✅ Added ${quantity}x ${productName} to cart!`);
+}
+
+function buyNow(productId, productName, price) {
+    const quantity = parseInt(document.getElementById(`qty-${productId}`).value);
+    const cart = getCart();
+    
+    // Check if product already in cart
+    const existing = cart.find(item => item.id === productId);
+    
+    if (existing) {
+        existing.quantity += quantity;
+    } else {
+        cart.push({
+            id: productId,
+            name: productName,
+            price: price,
+            quantity: quantity
+        });
+    }
+    
+    saveCart(cart);
+    
+    // Redirect to checkout
+    window.location.href = "{{ url_for('checkout') }}";
+}
+
+// Initialize cart badge on page load
+document.addEventListener('DOMContentLoaded', updateCartBadge);
+</script>
 {% endblock %}

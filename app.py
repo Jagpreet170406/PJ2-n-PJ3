@@ -1,7 +1,8 @@
 import sqlite3
 import os
+import json
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -19,7 +20,7 @@ DB = os.path.join(BASE_DIR, "database.db")
 # --------------------
 def get_db():
     conn = sqlite3.connect(DB)
-    conn.row_factory = sqlite3.Row  # Crucial for 25k records to access by column name
+    conn.row_factory = sqlite3.Row  
     return conn
 
 # --------------------
@@ -45,19 +46,16 @@ def root():
 
 @app.route("/cart")
 def cart():
-    # 1. Get Parameters for Big Data Handling
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('search', '')
     category_filter = request.args.get('category', '')
     
-    per_page = 24  # Don't load 25k at once!
+    per_page = 24
     offset = (page - 1) * per_page
 
     with get_db() as conn:
-        # 2. Get categories for the sidebar (Distinct list)
         categories = conn.execute("SELECT DISTINCT category FROM inventory WHERE category IS NOT NULL").fetchall()
         
-        # 3. Build Dynamic Query
         base_query = " FROM inventory WHERE qty > 0"
         params = []
 
@@ -69,11 +67,9 @@ def cart():
             base_query += " AND category = ?"
             params.append(category_filter)
 
-        # 4. Count total for Pagination Logic
         total_count = conn.execute("SELECT COUNT(*)" + base_query, params).fetchone()[0]
         total_pages = (total_count // per_page) + (1 if total_count % per_page > 0 else 0)
 
-        # 5. Fetch only the 24 records for this specific page
         final_query = "SELECT *" + base_query + " ORDER BY hem_name ASC LIMIT ? OFFSET ?"
         params.extend([per_page, offset])
         products = conn.execute(final_query, params).fetchall()
@@ -87,43 +83,44 @@ def cart():
                            category_filter=category_filter,
                            role=session.get("role", "customer"))
 
-@app.route("/contact")
-def contact():
-    return render_template("contact.html", role="customer")
+@app.route("/checkout")
+def checkout():
+    """Shopping cart checkout page"""
+    return render_template("checkout.html", role=session.get("role", "customer"))
 
 @app.route("/process-payment", methods=["POST"])
 def process_payment():
-    # Get form data
-    product_id = request.form.get("product_id")
-    quantity = request.form.get("quantity", 1, type=int)
-    pay_method = request.form.get("payment_method", "Credit Card")
+    """Process cart checkout payment via JSON request"""
+    data = request.get_json()
     
-    # SECURITY: Verify price from database, never trust client input
-    with get_db() as conn:
-        if product_id:
-            # Look up the actual product price from database
-            product = conn.execute("SELECT sell_price, hem_name FROM inventory WHERE id = ?", 
-                                 (product_id,)).fetchone()
-            if product:
-                total_val = product['sell_price'] * quantity
-                product_name = product['hem_name']
-            else:
-                flash("Product not found!", "danger")
-                return redirect(url_for('cart'))
-        else:
-            # Fallback for old form submissions without product_id
-            total_val = request.form.get("total_amount", 0, type=float)
-            product_name = "Unknown Product"
+    if not data:
+        return jsonify({"success": False, "message": "No data received"})
+    
+    cart_items = data.get('cart', [])
+    payment_method = data.get('payment_method', 'Credit Card')
+    total_amount = data.get('total_amount', 0)
+    
+    if not cart_items:
+        return jsonify({"success": False, "message": "Cart is empty"})
+    
+    try:
+        with get_db() as conn:
+            # Log transaction
+            conn.execute(
+                "INSERT INTO transactions (username, payment_type, amount) VALUES (?, ?, ?)",
+                (session.get("username", "Guest"), payment_method, total_amount)
+            )
+            conn.commit()
         
-        # Log transaction
-        conn.execute("""
-            INSERT INTO transactions (username, payment_type, amount, product_name, quantity) 
-            VALUES (?, ?, ?, ?, ?)
-        """, (session.get("username", "Guest"), pay_method, total_val, product_name, quantity))
-        conn.commit()
-    
-    flash(f"Payment successful! SGD {total_val:.2f} received for {quantity}x {product_name}.", "success")
-    return redirect(url_for('cart'))
+        return jsonify({"success": True, "message": "Payment successful"})
+        
+    except Exception as e:
+        print(f"Payment error: {e}")
+        return jsonify({"success": False, "message": str(e)})
+
+@app.route("/contact")
+def contact():
+    return render_template("contact.html", role="customer")
 
 # --------------------
 # HIDDEN STAFF LOGIN
@@ -156,10 +153,8 @@ def home():
 @app.route("/inventory")
 @require_staff
 def inventory():
-    # Admin view can also use pagination later if needed, 
-    # but for now, we'll keep it simple or use same logic as cart
     with get_db() as conn:
-        products = conn.execute("SELECT * FROM inventory LIMIT 100").fetchall() # Limit for safety
+        products = conn.execute("SELECT * FROM inventory LIMIT 100").fetchall()
     return render_template("inventory.html", products=products, role=session.get("role"))
 
 @app.route("/dashboard")

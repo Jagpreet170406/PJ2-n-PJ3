@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .checkout-container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+    .cart-items { background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .cart-item { display: grid; grid-template-columns: 80px 1fr auto auto auto; gap: 1rem; align-items: center; padding: 1rem; border-bottom: 1px solid #eee; }
+    .cart-item:last-child { border-bottom: none; }
+    .item-img { width: 80px; height: 80px; object-fit: contain; background: #f4f4f4; border-radius: 8px; }
+    .item-details h6 { margin: 0 0 0.25rem 0; }
+    .item-details small { color: #666; }
+    .qty-control { display: flex; align-items: center; gap: 0.5rem; }
+    .qty-btn { width: 28px; height: 28px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; font-size: 16px; }
+    .qty-btn:hover { background: #f3f4f6; }
+    .qty-display { width: 40px; text-align: center; font-weight: 600; }
+    .item-price { font-weight: 700; color: #dc2626; font-size: 1.1rem; }
+    .btn-remove { color: #dc2626; background: none; border: none; cursor: pointer; font-size: 1.2rem; }
+    .btn-remove:hover { color: #991b1b; }
+    
+    .summary-box { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); position: sticky; top: 2rem; }
+    .summary-row { display: flex; justify-content: space-between; padding: 0.5rem 0; }
+    .summary-row.total { font-size: 1.3rem; font-weight: 800; border-top: 2px solid #eee; padding-top: 1rem; margin-top: 0.5rem; color: #dc2626; }
+    
+    .payment-section { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #eee; }
+    .payment-option { display: flex; align-items: center; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 0.5rem; cursor: pointer; }
+    .payment-option:hover { border-color: #2563eb; background: #eff6ff; }
+    .payment-option input[type="radio"] { margin-right: 0.75rem; }
+    .payment-option.selected { border-color: #2563eb; background: #eff6ff; }
+    
+    .checkout-grid { display: grid; grid-template-columns: 1fr 400px; gap: 2rem; }
+    @media (max-width: 992px) { .checkout-grid { grid-template-columns: 1fr; } }
+    
+    .empty-cart { text-align: center; padding: 4rem 2rem; }
+    .empty-cart-icon { font-size: 4rem; margin-bottom: 1rem; }
+</style>
+
+<div class="checkout-container">
+    <h2 class="mb-4">🛒 Shopping Cart & Checkout</h2>
+    
+    <div id="checkout-content" class="checkout-grid">
+        <!-- Cart Items (Left) -->
+        <div>
+            <div class="cart-items">
+                <h5 class="mb-3">Cart Items</h5>
+                <div id="cart-items-container">
+                    <!-- Items loaded by JavaScript -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Order Summary (Right) -->
+        <div>
+            <div class="summary-box">
+                <h5 class="mb-3">Order Summary</h5>
+                
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span id="subtotal">SGD 0.00</span>
+                </div>
+                <div class="summary-row">
+                    <span>Shipping</span>
+                    <span id="shipping">SGD 0.00</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Total</span>
+                    <span id="total">SGD 0.00</span>
+                </div>
+                
+                <!-- Payment Methods -->
+                <div class="payment-section">
+                    <h6 class="mb-3">Payment Method</h6>
+                    
+                    <label class="payment-option">
+                        <input type="radio" name="payment" value="Credit Card" checked>
+                        <span>💳 Credit Card</span>
+                    </label>
+                    
+                    <label class="payment-option">
+                        <input type="radio" name="payment" value="PayNow">
+                        <span>📱 PayNow</span>
+                    </label>
+                    
+                    <label class="payment-option">
+                        <input type="radio" name="payment" value="Cash">
+                        <span>💵 Cash on Delivery</span>
+                    </label>
+                    
+                    <label class="payment-option">
+                        <input type="radio" name="payment" value="Bank Transfer">
+                        <span>🏦 Bank Transfer</span>
+                    </label>
+                </div>
+                
+                <button onclick="processCheckout()" class="btn btn-primary w-100 mt-3 py-3" style="font-size: 1.1rem; font-weight: 700;">
+                    Place Order
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Empty Cart Message -->
+    <div id="empty-cart" class="empty-cart" style="display: none;">
+        <div class="empty-cart-icon">🛒</div>
+        <h4>Your cart is empty</h4>
+        <p class="text-muted">Add some items to get started!</p>
+        <a href="{{ url_for('cart') }}" class="btn btn-primary mt-3">Continue Shopping</a>
+    </div>
+</div>
+
+<script>
+function getCart() {
+    return JSON.parse(sessionStorage.getItem('cart') || '[]');
+}
+
+function saveCart(cart) {
+    sessionStorage.setItem('cart', JSON.stringify(cart));
+    renderCart();
+}
+
+function renderCart() {
+    const cart = getCart();
+    const container = document.getElementById('cart-items-container');
+    const checkoutContent = document.getElementById('checkout-content');
+    const emptyCart = document.getElementById('empty-cart');
+    
+    if (cart.length === 0) {
+        checkoutContent.style.display = 'none';
+        emptyCart.style.display = 'block';
+        return;
+    }
+    
+    checkoutContent.style.display = 'grid';
+    emptyCart.style.display = 'none';
+    
+    container.innerHTML = cart.map((item, index) => `
+        <div class="cart-item">
+            <img src="https://via.placeholder.com/80x80/f4f4f4/999999?text=Product" class="item-img" alt="${item.name}">
+            
+            <div class="item-details">
+                <h6>${item.name}</h6>
+                <small class="text-muted">Product ID: ${item.id}</small>
+            </div>
+            
+            <div class="qty-control">
+                <button class="qty-btn" onclick="updateQuantity(${index}, -1)">−</button>
+                <span class="qty-display">${item.quantity}</span>
+                <button class="qty-btn" onclick="updateQuantity(${index}, 1)">+</button>
+            </div>
+            
+            <div class="item-price">
+                SGD ${(item.price * item.quantity).toFixed(2)}
+            </div>
+            
+            <button class="btn-remove" onclick="removeItem(${index})" title="Remove">🗑️</button>
+        </div>
+    `).join('');
+    
+    updateSummary();
+}
+
+function updateQuantity(index, delta) {
+    const cart = getCart();
+    cart[index].quantity = Math.max(1, cart[index].quantity + delta);
+    saveCart(cart);
+}
+
+function removeItem(index) {
+    const cart = getCart();
+    cart.splice(index, 1);
+    saveCart(cart);
+}
+
+function updateSummary() {
+    const cart = getCart();
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const shipping = subtotal > 0 ? 5.00 : 0; // SGD 5 flat shipping
+    const total = subtotal + shipping;
+    
+    document.getElementById('subtotal').textContent = `SGD ${subtotal.toFixed(2)}`;
+    document.getElementById('shipping').textContent = `SGD ${shipping.toFixed(2)}`;
+    document.getElementById('total').textContent = `SGD ${total.toFixed(2)}`;
+}
+
+function processCheckout() {
+    const cart = getCart();
+    
+    if (cart.length === 0) {
+        alert('Your cart is empty!');
+        return;
+    }
+    
+    const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const shipping = 5.00;
+    const total = subtotal + shipping;
+    
+    // Send to backend
+    fetch("{{ url_for('process_payment') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            cart: cart,
+            payment_method: paymentMethod,
+            total_amount: total
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`✅ Order placed successfully!\n\nTotal: SGD ${total.toFixed(2)}\nPayment: ${paymentMethod}\n\nThank you for your purchase!`);
+            
+            // Clear cart
+            sessionStorage.removeItem('cart');
+            
+            // Redirect to shop
+            window.location.href = "{{ url_for('cart') }}";
+        } else {
+            alert('❌ Payment failed. Please try again.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('❌ An error occurred. Please try again.');
+    });
+}
+
+// Add click handlers for payment options
+document.addEventListener('DOMContentLoaded', function() {
+    renderCart();
+    
+    // Style selected payment option
+    document.querySelectorAll('.payment-option').forEach(option => {
+        option.addEventListener('click', function() {
+            document.querySelectorAll('.payment-option').forEach(o => o.classList.remove('selected'));
+            this.classList.add('selected');
+            this.querySelector('input[type="radio"]').checked = true;
+        });
+    });
+});
+</script>
+{% endblock %}
