@@ -1,196 +1,216 @@
 {% extends "base.html" %}
-{% block title %}Checkout - Chin Hon Motors{% endblock %}
+{% block title %}Checkout - Huat Ah!{% endblock %}
 
 {% block content %}
 <div class="container mb-5" style="margin-top: 100px;">
-    <h2 class="mb-4">Secure Checkout</h2>
+    <h2 class="mb-4">Confirm Order & Huat! 🧧</h2>
     
     <div class="row">
         <div class="col-md-8">
-            <div class="card p-3 shadow-sm mb-4 border-0" style="background: #f8f9fa;">
-                <h5 class="font-weight-bold">1. Review Items</h5>
+            <div class="card p-3 shadow-sm mb-4 border-0" style="background: #fdfdfd; border-left: 5px solid #2563eb !important;">
+                <h5 class="font-weight-bold">1. Review Your Basket</h5>
                 <hr>
-                <div id="cart-items-container"></div>
+                <div id="cart-items-container">
+                    </div>
             </div>
 
             <div class="card p-3 shadow-sm mb-4">
-                <h5 class="font-weight-bold">2. Fulfillment Details</h5>
+                <h5 class="font-weight-bold">2. How to get your parts?</h5>
                 <hr>
-                <div class="btn-group btn-group-toggle d-flex mb-3" data-toggle="buttons">
-                    <label class="btn btn-outline-dark flex-fill active py-3">
-                        <input type="radio" name="fulfillment" id="method-pickup" value="pickup" checked onchange="updateFulfillmentUI()"> 
-                        <strong>🏪 Self-Pickup</strong>
-                    </label>
-                    <label class="btn btn-outline-dark flex-fill py-3">
-                        <input type="radio" name="fulfillment" id="method-delivery" value="delivery" onchange="updateFulfillmentUI()"> 
-                        <strong>🚚 Local Delivery</strong>
-                    </label>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="p-3 border rounded text-center selection-box active" id="box-pickup" onclick="setFulfillment('pickup')">
+                            <h3 class="mb-1">🏪</h3>
+                            <div class="font-weight-bold">Self-Pickup</div>
+                            <small class="text-success">Free (Huat ah!)</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 border rounded text-center selection-box" id="box-delivery" onclick="setFulfillment('delivery')">
+                            <h3 class="mb-1">🚚</h3>
+                            <div class="font-weight-bold">Local Delivery</div>
+                            <small class="text-primary">Flat S$3.50</small>
+                        </div>
+                    </div>
                 </div>
+
+                <div id="delivery-address-section" class="form-group mb-3 d-none">
+                    <label class="font-weight-bold">📍 Delivery Address</label>
+                    <textarea id="delivery-address" class="form-control" rows="2" placeholder="Unit no, Street name, Postal code"></textarea>
+                </div>
+
                 <div class="form-group mb-3">
-                    <label class="font-weight-bold" id="date-label">📅 Select Date:</label>
+                    <label class="font-weight-bold" id="date-label">📅 Scheduled Date:</label>
                     <input type="date" id="fulfillment-date" class="form-control form-control-lg">
                 </div>
             </div>
 
             <div class="card p-3 shadow-sm mb-4">
-                <h5 class="font-weight-bold">3. Payment Method</h5>
+                <h5 class="font-weight-bold">3. Payment Details</h5>
                 <hr>
-                
-                <div class="text-center mb-3" style="height: 50px;">
-                    <img id="active-method-img" src="https://logo.clearbit.com/visa.com" height="40" alt="Payment Icon">
+                <div class="text-center mb-3">
+                    <img id="active-method-img" src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" height="40" alt="Icon">
                 </div>
 
-                <select class="form-control form-control-lg mb-3" id="payment-method" onchange="togglePaymentFields()">
+                <select class="form-control form-control-lg mb-4" id="payment-method" onchange="togglePaymentFields()">
                     <option value="Credit Card">Credit / Debit Card</option>
-                    <option value="PayNow">PayNow QR</option>
-                    <option value="Google Pay">Google Pay</option>
+                    <option value="PayNow">PayNow (DBS/UOB/OCBC)</option>
                 </select>
 
                 <div id="card-details-section">
-                    <div class="form-group mb-2">
-                        <label class="small font-weight-bold">Cardholder Name</label>
-                        <input type="text" id="card-name" class="form-control" placeholder="NAME ON CARD">
-                    </div>
-                    <div class="form-group mb-2 position-relative">
-                        <label class="small font-weight-bold">Card Number</label>
-                        <input type="text" id="card-number" class="form-control" placeholder="4xxx xxxx xxxx xxxx" maxlength="19" oninput="detectCardType()">
-                        <div id="card-type-indicator" style="position: absolute; right: 10px; top: 35px;"></div>
-                    </div>
+                    <input type="text" id="card-name" class="form-control mb-2" placeholder="NAME ON CARD">
+                    <input type="text" id="card-number" class="form-control mb-2" placeholder="CARD NUMBER" maxlength="19" oninput="detectCardType()">
                     <div class="row">
-                        <div class="col-6">
-                            <label class="small font-weight-bold">Expiry</label>
-                            <input type="text" id="card-expiry" class="form-control" placeholder="MM/YY" maxlength="5">
-                        </div>
-                        <div class="col-6">
-                            <label class="small font-weight-bold">CVV (Required)</label>
-                            <input type="text" id="card-cvv" class="form-control" placeholder="123" maxlength="3">
-                        </div>
+                        <div class="col-6"><input type="text" id="card-expiry" class="form-control" placeholder="MM/YY" maxlength="5"></div>
+                        <div class="col-6"><input type="password" id="card-cvv" class="form-control" placeholder="CVV" maxlength="3"></div>
                     </div>
-                    <div class="form-check mt-3">
-                        <input type="checkbox" class="form-check-input" id="save-card-check">
-                        <label class="form-check-label small" for="save-card-check">Securely remember card details for next time</label>
+                    <div class="mt-3 d-flex justify-content-between">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="save-card-check">
+                            <label class="form-check-label small" for="save-card-check">Save for next time</label>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-link text-danger d-none" id="forget-card-btn" onclick="forgetCard()">Clear Saved Card</button>
                     </div>
-                </div>
-
-                <div id="wallet-note" class="d-none alert alert-info mt-2">
-                    <small>A secure payment window will open after clicking Place Order.</small>
                 </div>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card p-4 shadow-sm sticky-top border-dark" style="top: 110px; border-width: 2px;">
-                <h4 class="font-weight-bold">Order Summary</h4>
+            <div class="card p-4 shadow-sm sticky-top border-primary" style="top: 110px; border-width: 2px;">
+                <h4 class="font-weight-bold">Bill Summary</h4>
                 <hr>
-                <div class="d-flex justify-content-between mb-2"><span>Subtotal</span><span id="summary-subtotal">S$0.00</span></div>
-                <div class="d-flex justify-content-between mb-2"><span>Delivery</span><span id="summary-shipping">S$0.00</span></div>
+                <div class="d-flex justify-content-between mb-2"><span>Items Subtotal</span><span id="summary-subtotal">S$0.00</span></div>
+                <div class="d-flex justify-content-between mb-2"><span>Delivery Fee</span><span id="summary-shipping">S$0.00</span></div>
                 <hr>
-                <div class="d-flex justify-content-between mb-4"><span class="h5 font-weight-bold">Total</span><span class="h5 font-weight-bold text-primary" id="summary-total">S$0.00</span></div>
-                <button class="btn btn-dark btn-block btn-lg py-3 font-weight-bold" onclick="processPayment()">PLACE ORDER</button>
+                <div class="d-flex justify-content-between mb-4"><span class="h4 font-weight-bold">Total</span><span class="h4 font-weight-bold text-primary" id="summary-total">S$0.00</span></div>
+                <button class="btn btn-primary btn-block btn-lg py-3 font-weight-bold" onclick="processPayment()">💰 CONFIRM & HUAT AH!</button>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .selection-box { cursor: pointer; transition: 0.3s; background: white; border: 2px solid #eee; }
+    .selection-box:hover { background: #f0f7ff; }
+    .selection-box.active { border-color: #2563eb !important; background: #eff6ff; }
+    .item-row { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+    .btn-remove { color: #dc3545; cursor: pointer; font-size: 0.8rem; font-weight: bold; padding: 5px; }
+    .btn-remove:hover { color: #a71d2a; }
+</style>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // Use Clearbit for cleaner logos
-    const methodIcons = {
-        'Credit Card': 'https://logo.clearbit.com/visa.com',
-        'PayNow': 'https://logo.clearbit.com/dbs.com.sg',
-        'Google Pay': 'https://logo.clearbit.com/google.com',
-        'Mastercard': 'https://logo.clearbit.com/mastercard.com'
-    };
+    let currentFulfillment = 'pickup';
+    const DELIVERY_FEE = 3.50;
+    const huatMsgs = ["Huat Ah!", "Steady Pom Pi Pi!", "Swee Lah!", "Abundance coming your way!", "Heng Ong Huat ah!"];
 
-    function togglePaymentFields() {
-        const method = document.getElementById('payment-method').value;
-        const cardSection = document.getElementById('card-details-section');
-        const walletNote = document.getElementById('wallet-note');
-        const activeImg = document.getElementById('active-method-img');
+    function getHuat() { return huatMsgs[Math.floor(Math.random() * huatMsgs.length)]; }
 
-        activeImg.src = methodIcons[method] || methodIcons['Credit Card'];
+    function setFulfillment(method) {
+        currentFulfillment = method;
+        document.getElementById('box-pickup').classList.toggle('active', method === 'pickup');
+        document.getElementById('box-delivery').classList.toggle('active', method === 'delivery');
+        document.getElementById('delivery-address-section').classList.toggle('d-none', method === 'pickup');
+        loadCheckoutCart(); // Recalculate with the $3.50 fee
+    }
+
+    function loadCheckoutCart() {
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        const container = document.getElementById('cart-items-container');
+        let subtotal = 0;
         
-        if (method === 'Credit Card') {
-            cardSection.classList.remove('d-none');
-            walletNote.classList.add('d-none');
-            loadSavedCard(); // Auto-fill if exists
-        } else {
-            cardSection.classList.add('d-none');
-            walletNote.classList.remove('d-none');
+        if (cart.length === 0) {
+            container.innerHTML = `<div class="text-center py-4">Cart is empty! <a href="/cart">Shop more parts?</a></div>`;
+            updateTotals(0, 0);
+            return;
         }
+
+        let html = '';
+        cart.forEach((item, index) => {
+            const lineTotal = item.price * item.quantity;
+            subtotal += lineTotal;
+            html += `
+                <div class="item-row">
+                    <div class="flex-grow-1">
+                        <div class="font-weight-bold text-dark">${item.name}</div>
+                        <small class="text-muted">S$${item.price.toFixed(2)} x ${item.quantity}</small>
+                    </div>
+                    <div class="text-right mr-3 font-weight-bold">S$${lineTotal.toFixed(2)}</div>
+                    <div class="btn-remove" onclick="removeItem(${index})">❌</div>
+                </div>`;
+        });
+        
+        container.innerHTML = html;
+        const shipping = currentFulfillment === 'delivery' ? DELIVERY_FEE : 0.00;
+        updateTotals(subtotal, shipping);
     }
 
-    function detectCardType() {
-        let input = document.getElementById('card-number');
-        let number = input.value.replace(/\D/g, '');
-        const activeImg = document.getElementById('active-method-img');
-        input.value = number.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
-
-        if (number.startsWith('4')) activeImg.src = methodIcons['Credit Card'];
-        else if (number.startsWith('5')) activeImg.src = methodIcons['Mastercard'];
+    function updateTotals(subtotal, shipping) {
+        document.getElementById('summary-subtotal').innerText = `S$${subtotal.toFixed(2)}`;
+        document.getElementById('summary-shipping').innerText = shipping === 0 ? 'FREE' : `S$${shipping.toFixed(2)}`;
+        document.getElementById('summary-total').innerText = `S$${(subtotal + shipping).toFixed(2)}`;
     }
 
-    // --- SAVE/LOAD CARD LOGIC ---
-    function loadSavedCard() {
-        const saved = JSON.parse(localStorage.getItem('savedCard'));
-        if (saved) {
-            document.getElementById('card-name').value = saved.name || '';
-            document.getElementById('card-number').value = saved.maskedNumber || '';
-            document.getElementById('card-expiry').value = saved.expiry || '';
-            document.getElementById('save-card-check').checked = true;
-            // Note: CVV is NEVER saved.
-        }
+    function removeItem(index) {
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        cart.splice(index, 1);
+        localStorage.setItem('cart', JSON.stringify(cart));
+        loadCheckoutCart();
+        if (window.updateCartBadge) window.updateCartBadge();
     }
 
     async function processPayment() {
         const cart = JSON.parse(localStorage.getItem('cart')) || [];
-        const method = document.getElementById('payment-method').value;
-        const cardNumber = document.getElementById('card-number').value.replace(/\s+/g, '');
-        const saveCheck = document.getElementById('save-card-check').checked;
+        if (cart.length === 0) { alert("Cart empty leh, buy something first!"); return; }
 
-        if (method === 'Credit Card') {
-            if (cardNumber.length < 15 || !document.getElementById('card-cvv').value) {
-                alert("Please complete card details."); return;
-            }
-            
-            if (saveCheck) {
-                const cardToSave = {
-                    name: document.getElementById('card-name').value,
-                    maskedNumber: "**** **** **** " + cardNumber.slice(-4),
-                    expiry: document.getElementById('card-expiry').value
-                };
-                localStorage.setItem('savedCard', JSON.stringify(cardToSave));
-            } else {
-                localStorage.removeItem('savedCard');
-            }
-        }
+        const date = document.getElementById('fulfillment-date').value;
+        if (!date) { alert("Please select a date!"); return; }
 
-        // ... existing fetch logic to /process-payment ...
+        const totalDisplay = document.getElementById('summary-total').innerText;
+        alert(`${getHuat()} Processing payment for ${totalDisplay}...`);
+
+        const payload = {
+            cart: cart,
+            payment_method: document.getElementById('payment-method').value,
+            fulfillment: currentFulfillment,
+            fulfillment_date: date,
+            address: document.getElementById('delivery-address').value,
+            total_amount: parseFloat(totalDisplay.replace('S$', ''))
+        };
+
         const response = await fetch('/process-payment', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': "{{ csrf_token() }}" },
-            body: JSON.stringify({
-                cart: cart,
-                payment_method: method,
-                fulfillment: document.querySelector('input[name="fulfillment"]:checked').value,
-                fulfillment_date: document.getElementById('fulfillment-date').value,
-                total_amount: parseFloat(document.getElementById('summary-total').innerText.replace('S$', ''))
-            })
+            body: JSON.stringify(payload)
         });
 
         const result = await response.json();
         if (result.success) {
             localStorage.removeItem('cart');
-            window.location.href = `/order-success?method=${payload.fulfillment}&date=${payload.fulfillment_date}`;
+            window.location.href = `/order-success?method=${currentFulfillment}&date=${date}`;
         }
     }
 
-    // Initialize
+    function togglePaymentFields() {
+        const method = document.getElementById('payment-method').value;
+        const cardSection = document.getElementById('card-details-section');
+        const activeImg = document.getElementById('active-method-img');
+        
+        if (method === 'Credit Card') {
+            cardSection.classList.remove('d-none');
+            activeImg.src = "https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg";
+        } else {
+            cardSection.classList.add('d-none');
+            activeImg.src = "https://upload.wikimedia.org/wikipedia/commons/b/b3/PayNow_logo.png";
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
-        loadCheckoutCart(); // (Assume this function from previous code)
-        updateFulfillmentUI(); 
-        togglePaymentFields();
+        loadCheckoutCart();
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('fulfillment-date').min = today;
+        document.getElementById('fulfillment-date').value = today;
     });
 </script>
 {% endblock %}
