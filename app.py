@@ -23,6 +23,23 @@ def get_db():
     conn.row_factory = sqlite3.Row  
     return conn
 
+# Initialize the new table for saved cards if it doesn't exist
+def init_db():
+    with get_db() as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS user_cards (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL,
+                brand TEXT,
+                last4 TEXT,
+                exp TEXT,
+                name TEXT
+            )
+        """)
+        conn.commit()
+
+init_db()
+
 # --------------------
 # SECURITY DECORATOR
 # --------------------
@@ -85,12 +102,24 @@ def cart():
 
 @app.route("/checkout")
 def checkout():
-    """Shopping cart checkout page"""
-    return render_template("checkout.html", role=session.get("role", "customer"))
+    """Shopping cart checkout page - Updated to load saved cards"""
+    user_cards = []
+    username = session.get("username")
+    
+    if username:
+        with get_db() as conn:
+            user_cards = conn.execute(
+                "SELECT id, brand, last4, exp FROM user_cards WHERE username = ?", 
+                (username,)
+            ).fetchall()
+
+    return render_template("checkout.html", 
+                           role=session.get("role", "customer"), 
+                           user_cards=user_cards)
 
 @app.route("/process-payment", methods=["POST"])
 def process_payment():
-    """Process cart checkout payment via JSON request"""
+    """Process cart checkout payment and handle card saving logic"""
     data = request.get_json()
     
     if not data:
@@ -100,31 +129,64 @@ def process_payment():
     payment_method = data.get('payment_method', 'Credit Card')
     total_amount = data.get('total_amount', 0)
     fulfillment = data.get('fulfillment', 'pickup')
-    fulfillment_date = data.get('fulfillment_date', 'Not Specified')
+    
+    # Data for saving/using cards
+    saved_card_id = data.get('saved_card_id')
+    save_this_card = data.get('save_this_card', False)
+    card_details = data.get('card_details')
+    
+    username = session.get("username", "Guest")
     
     if not cart_items:
         return jsonify({"success": False, "message": "Cart is empty"})
     
     try:
         with get_db() as conn:
-            # Log transaction with fulfillment info
-            # Note: Ensure your transactions table has columns for fulfillment if you want to store them
+            # Log transaction
+            payment_label = f"{payment_method} ({fulfillment})"
+            if saved_card_id:
+                payment_label += " [Used Saved Card]"
+
             conn.execute(
                 "INSERT INTO transactions (username, payment_type, amount) VALUES (?, ?, ?)",
-                (session.get("username", "Guest"), f"{payment_method} ({fulfillment})", total_amount)
+                (username, payment_label, total_amount)
             )
+
+            # Logic to save card if requested and user is logged in
+            if save_this_card and card_details and username != "Guest":
+                # Extract all card details from frontend
+                raw_num = card_details.get('number', '').replace(' ', '')
+                last4 = raw_num[-4:] if len(raw_num) >= 4 else "0000"
+                brand = card_details.get('brand', 'Unknown')  # Use brand from frontend
+                exp = card_details.get('exp', '')
+                name = card_details.get('name', '')
+                
+                # Check if card already exists (prevent duplicates)
+                existing = conn.execute(
+                    "SELECT id FROM user_cards WHERE username = ? AND last4 = ? AND exp = ?",
+                    (username, last4, exp)
+                ).fetchone()
+                
+                if not existing:
+                    conn.execute(
+                        "INSERT INTO user_cards (username, brand, last4, exp, name) VALUES (?, ?, ?, ?, ?)",
+                        (username, brand, last4, exp, name)
+                    )
+                    print(f"✅ Card saved: {brand} ending in {last4} for {username}")
+                else:
+                    print(f"ℹ️ Card already exists: {brand} ending in {last4}")
+
             conn.commit()
         
         return jsonify({"success": True, "message": "Payment successful"})
         
     except Exception as e:
-        print(f"Payment error: {e}")
+        print(f"❌ Payment error: {e}")
         return jsonify({"success": False, "message": str(e)})
 
 @app.route("/order-success")
 def order_success():
     """The 'Big Tick' confirmation page"""
-    # These are passed via URL from the frontend: ?method=delivery&date=2024-xx-xx
     method = request.args.get('method', 'pickup')
     date = request.args.get('date', '')
     return render_template("order_success.html", method=method, date=date, role="customer")
