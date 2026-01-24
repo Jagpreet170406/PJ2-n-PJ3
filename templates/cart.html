@@ -2,209 +2,85 @@
 
 {% block content %}
 <style>
-    /* Professional Shop Layout */
-    .shop-container { 
-        max-width: 1400px; 
-        margin: 2rem auto; 
-        padding: 0 1rem; 
-        display: grid; 
-        grid-template-columns: 250px 1fr; 
-        gap: 2rem; 
-    }
-    @media (max-width: 992px) { 
-        .shop-container { grid-template-columns: 1fr; } 
-    }
-
-    /* Sidebar */
-    .sidebar { 
-        background: #f8f9fa; 
-        padding: 1.5rem; 
-        border-radius: 12px; 
-        border: 1px solid #eee; 
-    }
-    .category-link { 
-        display: block; 
-        padding: 0.5rem; 
-        color: #444; 
-        text-decoration: none; 
-        border-radius: 4px;
-    }
-    .category-link:hover,
-    .category-link.active { 
-        color: #2563eb; 
-        font-weight: bold; 
-        background: rgba(37, 99, 235, 0.08);
-    }
-
-    /* Grid */
-    .product-grid { 
-        display: grid; 
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); 
-        gap: 1.5rem; 
-    }
-    .product-card { 
-        background: white; 
-        border: 1px solid #eee; 
-        border-radius: 12px; 
-        overflow: hidden; 
-        transition: 0.25s; 
-        display: flex; 
-        flex-direction: column; 
-    }
-    .product-card:hover { 
-        transform: translateY(-4px); 
-        box-shadow: 0 8px 18px rgba(0,0,0,0.08); 
-        border-color: #2563eb;
-    }
-
-    .item-image { 
-        width: 100%; 
-        height: 200px; 
-        object-fit: cover; 
-        background: #f1f1f1; 
-    }
-
-    .card-details { 
-        padding: 1.25rem; 
-        display: flex; 
-        flex-direction: column; 
-        flex-grow: 1; 
-    }
-
-    .price-tag { 
-        font-size: 1.25rem; 
-        font-weight: 800; 
-        color: #d9534f; 
-        margin: 0.5rem 0; 
-    }
-
-    .stock-badge {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.5rem;
-        border-radius: 4px;
-        font-weight: 600;
-        display: inline-block;
-    }
-    .in-stock { background: #d4edda; color: #155724; }
-    .low-stock { background: #fff3cd; color: #856404; }
-    .out-stock { background: #f8d7da; color: #721c24; }
-
-    .quantity-input {
-        width: 60px;
-        text-align: center;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        padding: 0.25rem;
-    }
-
-    .part-number {
-        font-family: monospace;
-        background: #f8f9fa;
-        padding: 0.2rem 0.4rem;
-        border-radius: 4px;
-        font-size: 0.85rem;
-    }
+    .shop-container { max-width: 1400px; margin: 2rem auto; padding: 0 1rem; display: grid; grid-template-columns: 250px 1fr; gap: 2rem; }
+    @media (max-width: 992px) { .shop-container { grid-template-columns: 1fr; } }
+    .sidebar { background: #f8f9fa; padding: 1.5rem; border-radius: 12px; border: 1px solid #eee; height: fit-content; }
+    .category-link { display: block; padding: .5rem; text-decoration: none; color: #333; border-radius: 6px; }
+    .category-link:hover, .category-link.active { background: #e5edff; font-weight: bold; color: #2563eb; }
+    .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.5rem; }
+    .product-card { background: white; border: 1px solid #eee; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; transition: .2s; height: 100%; }
+    .product-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0, 0, 0, .08); }
+    .item-image { width: 100%; height: 200px; object-fit: contain; background: #f4f4f4; }
+    .card-details { padding: 1rem; display: flex; flex-direction: column; flex-grow: 1; }
+    .part-number { font-family: monospace; background: #f1f1f1; padding: 2px 6px; border-radius: 4px; font-size: .8rem; }
+    .price-tag { font-size: 1.2rem; font-weight: 800; color: #dc2626; }
+    .pagination-box { display: flex; justify-content: center; gap: 1rem; margin-top: 3rem; align-items: center; }
+    .btn-page { padding: .5rem 1rem; border: 1px solid #2563eb; color: #2563eb; border-radius: 6px; text-decoration: none; }
+    .btn-page:hover { background: #2563eb; color: white; }
+    .btn-page.disabled { opacity: .4; pointer-events: none; border-color: #ccc; color: #999; }
 </style>
 
 <div class="shop-container">
     <aside class="sidebar">
-        <h4>📦 Categories</h4>
+        <h5>📦 Categories</h5>
         <hr>
-        <a href="{{ url_for('cart') }}" class="category-link {{ 'active' if not category_filter }}">
-            All Products
-        </a>
-        {% for cat in categories %}
-        <a href="{{ url_for('cart', category=cat['category'], search=search_query) }}"
-           class="category-link {{ 'active' if category_filter == cat['category'] }}">
-            {{ cat['category'] }}
+        <a href="{{ url_for('cart') }}" class="category-link {{ 'active' if not category_filter }}">All Products</a>
+        {% for c in categories %}
+        <a href="{{ url_for('cart', category=c.category, search=search_query) }}"
+            class="category-link {{ 'active' if category_filter == c.category }}">
+            {{ c.category }}
         </a>
         {% endfor %}
     </aside>
 
     <main>
-        <div class="d-flex justify-content-between mb-4">
-            <h1>🛒 Component Shop</h1>
-            <span class="text-muted">Page {{ current_page }} / {{ total_pages }}</span>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>🛒 Component Shop</h2>
+            <span class="text-muted">Page {{ current_page }} of {{ total_pages }}</span>
         </div>
 
-        <form class="d-flex gap-2 mb-4" method="GET">
-            <input type="text" name="search" class="form-control"
-                   placeholder="Search parts..."
-                   value="{{ search_query }}">
+        <form method="GET" class="d-flex gap-2 mb-4">
+            <input class="form-control" type="text" name="search" placeholder="Search name/part no" value="{{ search_query }}">
             <input type="hidden" name="category" value="{{ category_filter }}">
-            <button class="btn btn-primary">Search</button>
+            <button class="btn btn-primary px-4">Search</button>
         </form>
 
         <div class="product-grid">
-        {% for product in products %}
+            {% for product in products %}
             <div class="product-card">
-
-                <!-- 🔥 SKU IMAGE MATCHING -->
-                <img
-                    src="{{ url_for('static', filename='products/' ~ product['sup_part_no'] ~ '.jpg') }}"
-                    class="item-image"
-                    alt="{{ product['hem_name'] }}"
-                    loading="lazy"
-                    onerror="this.onerror=null; this.src='{{ url_for('static', filename='products/no-image.png') }}';"
-                >
+                <img src="{{ url_for('static', filename='products/' ~ product.sup_part_no ~ '.jpg') }}" 
+                     class="item-image" 
+                     alt="Product Image"
+                     onerror="this.src='https://via.placeholder.com/300x200?text=No+Image';">
 
                 <div class="card-details">
-                    <small class="text-uppercase text-muted">{{ product['category'] }}</small>
-
-                    <h5>{{ product['hem_name'] }}</h5>
-
-                    <p class="text-muted small">
-                        Part No: <span class="part-number">{{ product['sup_part_no'] }}</span>
-                    </p>
-
-                    {% if 'stock' in product and product['stock'] > 10 %}
-                        <span class="stock-badge in-stock">✓ In Stock</span>
-                    {% elif 'stock' in product and product['stock'] > 0 %}
-                        <span class="stock-badge low-stock">⚠ Low ({{ product['stock'] }})</span>
-                    {% elif 'stock' in product %}
-                        <span class="stock-badge out-stock">✗ Out of Stock</span>
-                    {% else %}
-                        <span class="stock-badge in-stock">✓ Available</span>
-                    {% endif %}
+                    <small class="text-muted text-uppercase fw-bold">{{ product.category }}</small>
+                    <h6 class="mt-1">{{ product.hem_name }}</h6>
+                    <p class="mb-1 small">Part No: <span class="part-number">{{ product.sup_part_no }}</span></p>
 
                     <div class="mt-auto">
-                        <div class="price-tag">
-                            SGD {{ "{:,.2f}".format(product['sell_price']) }}
-                        </div>
-
-                        {% if 'stock' not in product or product['stock'] > 0 %}
+                        <div class="price-tag mb-2">SGD {{ "%.2f"|format(product.sell_price) }}</div>
                         <form method="POST" action="{{ url_for('process_payment') }}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <input type="hidden" name="product_id" value="{{ product['inventory_id'] }}">
-
-                            <input type="number"
-                                   name="quantity"
-                                   value="1"
-                                   min="1"
-                                   max="10"
-                                   class="quantity-input">
-
-                            <button class="btn btn-outline-primary btn-sm w-100 mt-2">
-                                Quick Buy
-                            </button>
+                            <input type="hidden" name="total_amount" value="{{ product.sell_price }}">
+                            <button type="submit" class="btn btn-outline-primary w-100 btn-sm">Quick Buy</button>
                         </form>
-                        {% else %}
-                        <button class="btn btn-secondary btn-sm w-100 mt-2" disabled>
-                            Out of Stock
-                        </button>
-                        {% endif %}
                     </div>
                 </div>
             </div>
-        {% else %}
-            <div class="text-center w-100 py-5" style="grid-column:1/-1">
-                <h4>No products found</h4>
-                <a href="{{ url_for('cart') }}" class="btn btn-primary mt-2">Clear Filters</a>
-            </div>
-        {% endfor %}
+            {% else %}
+            <div class="text-center w-100 py-5"><h4>No products found</h4></div>
+            {% endfor %}
         </div>
+
+        {% if total_pages > 1 %}
+        <div class="pagination-box">
+            <a class="btn-page {{ 'disabled' if current_page == 1 }}"
+                href="{{ url_for('cart', page=current_page-1, search=search_query, category=category_filter) }}">« Prev</a>
+            <span><strong>{{ current_page }}</strong> / {{ total_pages }}</span>
+            <a class="btn-page {{ 'disabled' if current_page == total_pages }}"
+                href="{{ url_for('cart', page=current_page+1, search=search_query, category=category_filter) }}">Next »</a>
+        </div>
+        {% endif %}
     </main>
 </div>
 {% endblock %}
-
-
