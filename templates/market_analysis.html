@@ -1,167 +1,305 @@
 {% extends "base.html" %}
-
 {% block title %}Market Analysis{% endblock %}
 
 {% block content %}
-
 <style>
-/* Make sure nothing adds white margins */
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  background: #000;
-}
+  html, body { background: #000; }
 
-/* FULL SCREEN HERO */
-.hero {
-  position: relative;
-  width: 100vw;     /* edge-to-edge */
-  height: 100vh;    /* full screen */
-  overflow: hidden;
-}
+  .page-wrap {
+    min-height: 100vh;
+    background: #0b0b0b;
+    padding-top: 90px;
+    padding-bottom: 60px;
+  }
 
-/* Background image + dark overlay */
-.hero-bg {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(
-      180deg,
-      rgba(0,0,0,0.55) 0%,
-      rgba(0,0,0,0.35) 45%,
-      rgba(0,0,0,0.70) 100%
-    ),
-    url("{{ url_for('static', filename='preview.jpg') }}");
+  .hero {
+    max-width: 1100px;
+    margin: 0 auto 18px;
+    padding: 18px 16px 0;
+  }
 
-  background-size: cover;      /* fills screen */
-  background-position: center; /* keeps subject centered */
-  background-repeat: no-repeat;
-}
+  .hero h1 {
+    color: #fff;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0 0 6px;
+  }
 
-/* Optional vignette (Squarespace look) */
-.hero::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    circle at center,
-    rgba(0,0,0,0) 30%,
-    rgba(0,0,0,0.65) 100%
-  );
-  pointer-events: none;
-}
+  .hero p {
+    color: rgba(255,255,255,0.65);
+    margin: 0 0 14px;
+  }
 
-/* Center the text/button */
-.hero-content {
-  position: relative;
-  z-index: 2;
-  height: 100%;
-  width: 100%;
+  .card-shell {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  color: #fff;
+  .panel {
+    background: rgba(255,255,255,0.96);
+    border-radius: 18px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+    padding: 16px;
+  }
 
-  padding: 0 20px;
-}
+  .filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 12px;
+    align-items: end;
+  }
 
-/* Text styles */
-.hero-kicker {
-  letter-spacing: 0.35em;
-  font-size: 0.75rem;
-  color: rgba(255,255,255,0.6);
-  margin-bottom: 0.8rem;
-  text-transform: uppercase;
-}
+  @media (max-width: 900px) {
+    .filters { grid-template-columns: 1fr 1fr; }
+  }
 
-.hero-title {
-  font-size: clamp(2.6rem, 5vw, 4.2rem);
-  font-weight: 800;
-  margin: 0 0 0.8rem;
-}
+  .btn-apply {
+    border-radius: 12px;
+    font-weight: 700;
+    padding: 10px 14px;
+  }
 
-.hero-subtitle {
-  color: rgba(255,255,255,0.7);
-  max-width: 680px;
-  margin: 0 auto 2rem;
-  font-size: 1.05rem;
-}
+  .kpis {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+  }
 
-.hero-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
+  @media (max-width: 1100px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+  }
 
-/* Buttons */
-.hero-btn {
-  background: #fff;
-  color: #111;
-  border-radius: 14px;
-  padding: 0.9rem 1.6rem;
-  font-weight: 650;
-  text-decoration: none;
-  display: inline-block;
-}
-.hero-btn:hover { opacity: 0.92; }
+  .kpi {
+    background: #111;
+    color: #fff;
+    border-radius: 16px;
+    padding: 14px;
+  }
 
-.hero-btn-outline {
-  background: transparent;
-  color: #fff;
-  border: 1px solid rgba(255,255,255,0.35);
-  border-radius: 14px;
-  padding: 0.9rem 1.6rem;
-  font-weight: 650;
-  text-decoration: none;
-  display: inline-block;
-}
-.hero-btn-outline:hover {
-  border-color: rgba(255,255,255,0.65);
-}
+  .kpi .label {
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.65);
+    text-transform: uppercase;
+  }
 
-/* Make sure any default container margins/padding don't affect hero */
-.container, .container-fluid {
-  margin: 0;
-  padding: 0;
-}
+  .kpi .value {
+    font-size: 22px;
+    font-weight: 800;
+    margin-top: 6px;
+  }
 
-/* If your base.html wraps content in a <main> with padding, kill it on this page */
-main, .content, .page, .wrapper {
-  padding: 0 !important;
-  margin: 0 !important;
-}
+  .grid-2 {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 12px;
+  }
+
+  @media (max-width: 1000px) {
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+
+  .table-wrap {
+    overflow: auto;
+    border-radius: 14px;
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+  }
+
+  th, td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  th { background: #f5f5f5; font-weight: 800; }
+  .muted { color: #6b7280; }
+
+  .error {
+    background: rgba(255, 80, 80, 0.1);
+    border: 1px solid rgba(255, 80, 80, 0.35);
+    color: #fff;
+    border-radius: 14px;
+    padding: 12px 14px;
+    max-width: 1100px;
+    margin: 0 auto 14px;
+  }
 </style>
 
-<section class="hero">
-  <div class="hero-bg"></div>
+<div class="page-wrap">
+  {% if error_message %}
+    <div class="error">{{ error_message }}</div>
+  {% endif %}
 
-  <div class="hero-content">
-    <div>
-      <div class="hero-kicker">CHIN HON</div>
+  <div class="hero">
+    <h1>Market Analysis</h1>
+    <p>Real sales insights from your imported invoice data.</p>
+  </div>
 
-      <h1 class="hero-title">
-        Market Analysis
-      </h1>
+  <div class="card-shell">
+    <div class="panel">
 
-      <p class="hero-subtitle">
-        View trends, pricing insights, and category performance to guide smarter stocking decisions.
-      </p>
+      <!-- FILTERS -->
+      <form method="GET" class="filters">
+        <div>
+          <label class="form-label fw-bold">Start date</label>
+          <input type="date" name="start" class="form-control" value="{{ selected.start }}">
+        </div>
 
-      <div class="hero-actions">
-        <a href="{{ url_for('real_time_analytics') }}" class="hero-btn">
-          Go to Real-Time Analysis
-        </a>
+        <div>
+          <label class="form-label fw-bold">End date</label>
+          <input type="date" name="end" class="form-control" value="{{ selected.end }}">
+        </div>
 
-        <a href="{{ url_for('dashboard') }}" class="hero-btn-outline">
-          Back to Dashboard
-        </a>
+        <div>
+          <label class="form-label fw-bold">Legend code</label>
+          <select name="legend" class="form-select">
+            <option value="" {% if not selected.legend %}selected{% endif %}>All</option>
+            {% for l in legends %}
+              <option value="{{ l }}" {% if selected.legend == l %}selected{% endif %}>{{ l }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button class="btn btn-dark btn-apply" type="submit">Apply</button>
+      </form>
+
+      <!-- KPIs -->
+      <div class="kpis">
+        <div class="kpi">
+          <div class="label">Revenue</div>
+          <div class="value">SGD {{ "%.2f"|format(kpis.revenue) }}</div>
+        </div>
+
+        <div class="kpi">
+          <div class="label">GST</div>
+          <div class="value">SGD {{ "%.2f"|format(kpis.gst) }}</div>
+        </div>
+
+        <div class="kpi">
+          <div class="label">Orders</div>
+          <div class="value">{{ kpis.orders }}</div>
+        </div>
+
+        <div class="kpi">
+          <div class="label">Units Sold</div>
+          <div class="value">{{ kpis.units }}</div>
+        </div>
+
+        <div class="kpi">
+          <div class="label">Avg Order Value</div>
+          <div class="value">SGD {{ "%.2f"|format(kpis.aov) }}</div>
+        </div>
       </div>
+
+      <!-- CHART + TABLES -->
+      <div class="grid-2">
+        <div>
+          <h5 class="fw-bold mt-3 mb-2">Revenue Trend (Monthly)</h5>
+          <div class="table-wrap p-3">
+            <canvas id="revChart" height="120"></canvas>
+          </div>
+          <p class="muted mt-2 mb-0">Tip: Use the filters to narrow to a specific date range or legend code.</p>
+        </div>
+
+        <div>
+          <h5 class="fw-bold mt-3 mb-2">Top Products (by Revenue)</h5>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>SKU</th>
+                  <th>Product</th>
+                  <th>Revenue</th>
+                  <th>Units</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in top_products %}
+                  <tr>
+                    <td>{{ p.sku_no }}</td>
+                    <td title="{{ p.hem_name }}">{{ p.hem_name }}</td>
+                    <td>SGD {{ "%.2f"|format(p.revenue) }}</td>
+                    <td>{{ p.units }}</td>
+                  </tr>
+                {% endfor %}
+                {% if top_products|length == 0 %}
+                  <tr><td colspan="4" class="muted">No data for this filter range.</td></tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+
+          <h5 class="fw-bold mt-4 mb-2">Top Customers (by Revenue)</h5>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Revenue</th>
+                  <th>Orders</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in top_customers %}
+                  <tr>
+                    <td>{{ c.customer_code }}</td>
+                    <td>SGD {{ "%.2f"|format(c.revenue) }}</td>
+                    <td>{{ c.orders }}</td>
+                  </tr>
+                {% endfor %}
+                {% if top_customers|length == 0 %}
+                  <tr><td colspan="3" class="muted">No data for this filter range.</td></tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+
     </div>
   </div>
-</section>
+</div>
 
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  const labels = {{ trend_labels|tojson }};
+  const revenue = {{ trend_revenue|tojson }};
+
+  const ctx = document.getElementById("revChart");
+  if (ctx) {
+    new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [{
+          label: "Revenue (SGD)",
+          data: revenue,
+          tension: 0.35
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: true }
+        },
+        scales: {
+          x: { ticks: { maxRotation: 0 } },
+          y: { beginAtZero: true }
+        }
+      }
+    });
+  }
+</script>
 {% endblock %}
