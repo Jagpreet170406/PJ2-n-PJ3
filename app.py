@@ -23,7 +23,7 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
-# Initialize the new table for saved cards if it doesn't exist
+# Initialize the database tables
 def init_db():
     with get_db() as conn:
         conn.execute("""
@@ -34,6 +34,22 @@ def init_db():
                 last4 TEXT,
                 exp TEXT,
                 name TEXT
+            )
+        """)
+        
+        # Sales & Price Optimization Dashboard Table
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS sales_data (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                item_code TEXT NOT NULL,
+                description TEXT,
+                qty_sold INTEGER NOT NULL,
+                total_sales REAL NOT NULL,
+                period TEXT NOT NULL,
+                competitor_price REAL,
+                stock_qty INTEGER DEFAULT 0,
+                demand_level INTEGER DEFAULT 3,
+                recommended_price REAL
             )
         """)
         conn.commit()
@@ -188,10 +204,112 @@ def inventory():
         products = conn.execute("SELECT * FROM inventory LIMIT 100").fetchall()
     return render_template("inventory.html", products=products, role=session.get("role"))
 
+# --------------------
+# SALES & PRICE OPTIMIZATION DASHBOARD
+# --------------------
 @app.route("/dashboard")
 @require_staff
 def dashboard():
-    return render_template("dashboard.html", role=session.get("role"))
+    with get_db() as conn:
+        # Get all sales records
+        parts = conn.execute("""
+            SELECT id, item_code, description, qty_sold, total_sales, 
+                   period, competitor_price, stock_qty, demand_level, recommended_price
+            FROM sales_data
+            ORDER BY id DESC
+        """).fetchall()
+        
+        # Calculate stats
+        stats_row = conn.execute("""
+            SELECT 
+                COUNT(*) as total_items,
+                COALESCE(SUM(total_sales), 0) as total_sales,
+                COALESCE(AVG(recommended_price), 0) as avg_recommended
+            FROM sales_data
+        """).fetchone()
+        
+        stats = {
+            'total_items': stats_row['total_items'],
+            'total_sales': stats_row['total_sales'],
+            'avg_recommended': stats_row['avg_recommended']
+        }
+    
+    return render_template("dashboard.html", parts=parts, stats=stats, role=session.get("role"))
+
+@app.route("/create", methods=["POST"])
+@require_staff
+def create():
+    item_code = request.form.get("item_code")
+    description = request.form.get("description")
+    qty_sold = int(request.form.get("qty_sold"))
+    total_sales = float(request.form.get("total_sales"))
+    period = request.form.get("period")
+    competitor_price = request.form.get("competitor_price")
+    stock_qty = request.form.get("stock_qty", 0)
+    demand_level = request.form.get("demand_level", 3)
+    
+    # Calculate recommended price (AI-style logic)
+    base_price = total_sales / qty_sold
+    competitor_price_val = float(competitor_price) if competitor_price else base_price
+    demand_factor = int(demand_level) / 3.0  # normalize to 1.0 at demand=3
+    
+    # Weighted average: 70% base price + 30% competitor price, adjusted by demand
+    recommended_price = (base_price * 0.7 + competitor_price_val * 0.3) * demand_factor
+    
+    with get_db() as conn:
+        conn.execute("""
+            INSERT INTO sales_data 
+            (item_code, description, qty_sold, total_sales, period, 
+             competitor_price, stock_qty, demand_level, recommended_price)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (item_code, description, qty_sold, total_sales, period,
+              competitor_price, stock_qty, demand_level, recommended_price))
+        conn.commit()
+    
+    flash("Sales record created successfully!", "success")
+    return redirect(url_for("dashboard"))
+
+@app.route("/update/<int:id>", methods=["POST"])
+@require_staff
+def update(id):
+    item_code = request.form.get("item_code")
+    description = request.form.get("description")
+    qty_sold = int(request.form.get("qty_sold"))
+    total_sales = float(request.form.get("total_sales"))
+    period = request.form.get("period")
+    competitor_price = request.form.get("competitor_price")
+    stock_qty = request.form.get("stock_qty", 0)
+    demand_level = request.form.get("demand_level", 3)
+    
+    # Recalculate recommended price
+    base_price = total_sales / qty_sold
+    competitor_price_val = float(competitor_price) if competitor_price else base_price
+    demand_factor = int(demand_level) / 3.0
+    
+    recommended_price = (base_price * 0.7 + competitor_price_val * 0.3) * demand_factor
+    
+    with get_db() as conn:
+        conn.execute("""
+            UPDATE sales_data
+            SET item_code=?, description=?, qty_sold=?, total_sales=?, period=?,
+                competitor_price=?, stock_qty=?, demand_level=?, recommended_price=?
+            WHERE id=?
+        """, (item_code, description, qty_sold, total_sales, period,
+              competitor_price, stock_qty, demand_level, recommended_price, id))
+        conn.commit()
+    
+    flash("Sales record updated successfully!", "success")
+    return redirect(url_for("dashboard"))
+
+@app.route("/delete/<int:id>", methods=["POST"])
+@require_staff
+def delete(id):
+    with get_db() as conn:
+        conn.execute("DELETE FROM sales_data WHERE id=?", (id,))
+        conn.commit()
+    
+    flash("Sales record deleted successfully!", "danger")
+    return redirect(url_for("dashboard"))
 
 # --------------------
 # MARKET ANALYSIS (REAL DATA)

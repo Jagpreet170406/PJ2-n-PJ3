@@ -95,6 +95,7 @@
     <div class="card-header">Add Sales Record</div>
     <div class="card-body">
       <form method="post" action="{{ url_for('create') }}">
+        {{ csrf_token() }}
         <div class="row g-2">
           <div class="col-md-2">
             <label class="form-label">Item Code</label>
@@ -190,6 +191,7 @@
       {% for p in parts %}
       <tr>
         <form method="post" action="{{ url_for('update', id=p[0]) }}">
+          {{ csrf_token() }}
           <td>{{ p[0] }}</td>
           <td><input class="form-control" name="item_code"
                      value="{{ p[1] }}" required></td>
@@ -212,6 +214,7 @@
             <button class="btn btn-sm btn-success" type="submit">Save</button>
         </form>
             <form method="post" action="{{ url_for('delete', id=p[0]) }}">
+              {{ csrf_token() }}
               <button class="btn btn-sm btn-danger"
                       onclick="return confirm('Delete this record?');">
                 Delete
