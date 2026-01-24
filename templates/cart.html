@@ -7,44 +7,28 @@
     .sidebar { background: #f8f9fa; padding: 1.5rem; border-radius: 12px; border: 1px solid #eee; height: fit-content; }
     .category-link { display: block; padding: .5rem; text-decoration: none; color: #333; border-radius: 6px; }
     .category-link:hover, .category-link.active { background: #e5edff; font-weight: bold; color: #2563eb; }
+    
     .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.5rem; }
     .product-card { background: white; border: 1px solid #eee; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; transition: .2s; height: 100%; }
-    .product-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0, 0, 0, .08); }
     .item-image { width: 100%; height: 200px; object-fit: contain; background: #f4f4f4; }
     .card-details { padding: 1rem; display: flex; flex-direction: column; flex-grow: 1; }
-    .part-number { font-family: monospace; background: #f1f1f1; padding: 2px 6px; border-radius: 4px; font-size: .8rem; }
     .price-tag { font-size: 1.2rem; font-weight: 800; color: #dc2626; }
-    .pagination-box { display: flex; justify-content: center; gap: 1rem; margin-top: 3rem; align-items: center; }
-    .btn-page { padding: .5rem 1rem; border: 1px solid #2563eb; color: #2563eb; border-radius: 6px; text-decoration: none; }
-    .btn-page:hover { background: #2563eb; color: white; }
-    .btn-page.disabled { opacity: .4; pointer-events: none; border-color: #ccc; color: #999; }
-    
-    .cart-buttons { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
-    .btn-add-cart { background: white; border: 2px solid #2563eb; color: #2563eb; font-weight: 600; }
-    .btn-add-cart:hover { background: #eff6ff; }
-    .btn-buy-now { background: #2563eb; border: 2px solid #2563eb; color: white; font-weight: 600; }
-    .btn-buy-now:hover { background: #1d4ed8; }
-    
-    .qty-selector { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
-    .qty-btn { width: 30px; height: 30px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; }
-    .qty-btn:hover { background: #f3f4f6; }
-    .qty-input { width: 50px; text-align: center; border: 1px solid #ddd; border-radius: 4px; padding: 4px; }
 
-    /* --- ANIMATION STYLES --- */
-    .flying-item {
-        position: fixed;
-        z-index: 9999;
-        pointer-events: none;
-        transition: all 0.7s cubic-bezier(0.25, 0.1, 0.25, 1);
-        font-size: 24px;
-    }
+    /* QTY CARD FEATURE */
+    .qty-card { border: 2px solid #edeff2; border-radius: 8px; overflow: hidden; display: flex; align-items: center; background: #fcfcfc; }
+    .qty-btn { border: none; background: none; width: 40px; height: 40px; cursor: pointer; font-size: 1.2rem; transition: 0.2s; }
+    .qty-btn:hover { background: #e5edff; color: #2563eb; }
+    .qty-display { width: 50px; text-align: center; font-weight: 800; font-size: 1rem; border: none; background: transparent; }
 
-    @keyframes cart-pop {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.4); }
-        100% { transform: scale(1); }
-    }
-    .cart-pop { animation: cart-pop 0.3s ease-out; }
+    .cart-buttons { display: flex; gap: 0.5rem; margin-top: 1rem; }
+    .btn-add-cart { background: white; border: 2px solid #2563eb; color: #2563eb; font-weight: 600; border-radius: 8px; }
+    .btn-buy-now { background: #2563eb; border: 2px solid #2563eb; color: white; font-weight: 600; border-radius: 8px; }
+
+    /* ANIMATIONS */
+    .flying-item { position: fixed; z-index: 9999; pointer-events: none; transition: all 0.8s cubic-bezier(0.25, 0.1, 0.25, 1); font-size: 50px; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.2)); }
+    .delivery-car { position: fixed; z-index: 10000; font-size: 90px; pointer-events: none; left: -300px; bottom: 30%; transition: left 5s linear, transform 0.5s ease; display: flex; flex-direction: column; align-items: center; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.3)); }
+    .huat-bubble { background: #ffdf00; color: #000; padding: 10px 20px; border-radius: 25px; font-size: 18px; font-weight: 800; margin-bottom: 15px; opacity: 0; transition: opacity 0.5s; border: 2px solid #000; white-space: nowrap; }
+    .van-body { transform: scaleX(-1); }
 </style>
 
 <div class="shop-container">
@@ -53,167 +37,108 @@
         <hr>
         <a href="{{ url_for('cart') }}" class="category-link {{ 'active' if not category_filter }}">All Products</a>
         {% for c in categories %}
-        <a href="{{ url_for('cart', category=c.category, search=search_query) }}"
-            class="category-link {{ 'active' if category_filter == c.category }}">
-            {{ c.category }}
-        </a>
+        <a href="{{ url_for('cart', category=c.category, search=search_query) }}" class="category-link {{ 'active' if category_filter == c.category }}">{{ c.category }}</a>
         {% endfor %}
     </aside>
 
     <main>
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2>🛒 Component Shop</h2>
-            <span class="text-muted">Page {{ current_page }} of {{ total_pages }}</span>
-        </div>
-
-        <form method="GET" class="d-flex gap-2 mb-4">
-            <input class="form-control" type="text" name="search" placeholder="Search name/part no" value="{{ search_query }}">
-            <input type="hidden" name="category" value="{{ category_filter }}">
-            <button class="btn btn-primary px-4">Search</button>
-        </form>
-
         <div class="product-grid">
             {% for product in products %}
             <div class="product-card">
-                <img src="{{ product.image_url or 'https://via.placeholder.com/300x200/f4f4f4/999999?text=No+Image' }}" 
-                     class="item-image" 
-                     alt="{{ product.hem_name }}"
-                     onerror="this.src='https://via.placeholder.com/300x200/f4f4f4/999999?text=No+Image';">
-
+                <img src="{{ product.image_url or 'https://via.placeholder.com/300x200' }}" class="item-image">
                 <div class="card-details">
                     <small class="text-muted text-uppercase fw-bold">{{ product.category }}</small>
-                    <h6 class="mt-1">{{ product.hem_name }}</h6>
-                    <p class="mb-1 small">Part No: <span class="part-number">{{ product.sup_part_no }}</span></p>
-
+                    <h6 class="mt-1 font-weight-bold">{{ product.hem_name }}</h6>
+                    
                     <div class="mt-auto">
                         <div class="price-tag mb-2">SGD {{ "%.2f"|format(product.sell_price) }}</div>
                         
-                        <div class="qty-selector">
-                            <button type="button" class="qty-btn" onclick="changeQty({{ product.inventory_id }}, -1)">−</button>
-                            <input type="number" id="qty-{{ product.inventory_id }}" class="qty-input" value="1" min="1" max="99" readonly>
-                            <button type="button" class="qty-btn" onclick="changeQty({{ product.inventory_id }}, 1)">+</button>
+                        <div class="qty-card mb-2">
+                            <button class="qty-btn" onclick="adjustShopQty('{{ product.inventory_id }}', -1)">−</button>
+                            <input type="number" id="qty-shop-{{ product.inventory_id }}" class="qty-display" value="1" readonly>
+                            <button class="qty-btn" onclick="adjustShopQty('{{ product.inventory_id }}', 1)">+</button>
                         </div>
                         
                         <div class="cart-buttons">
-                            <button onclick="addToCart(event, {{ product.inventory_id }}, '{{ product.hem_name }}', {{ product.sell_price }})" 
-                                    class="btn btn-add-cart btn-sm flex-fill">
-                                Add to Cart
-                            </button>
-                            <button onclick="buyNow(event, {{ product.inventory_id }}, '{{ product.hem_name }}', {{ product.sell_price }})" 
-                                    class="btn btn-buy-now btn-sm flex-fill">
-                                Buy Now
-                            </button>
+                            <button onclick="handleAddToCart(event, {{ product.inventory_id }}, '{{ product.hem_name|escape }}', {{ product.sell_price }}, false)" class="btn btn-add-cart btn-sm flex-fill">Add to Cart</button>
+                            <button onclick="handleAddToCart(event, {{ product.inventory_id }}, '{{ product.hem_name|escape }}', {{ product.sell_price }}, true)" class="btn btn-buy-now btn-sm flex-fill">Buy Now</button>
                         </div>
                     </div>
                 </div>
             </div>
-            {% else %}
-            <div class="text-center w-100 py-5"><h4>No products found</h4></div>
             {% endfor %}
         </div>
-
-        {% if total_pages > 1 %}
-        <div class="pagination-box">
-            <a class="btn-page {{ 'disabled' if current_page == 1 }}"
-                href="{{ url_for('cart', page=current_page-1, search=search_query, category=category_filter) }}">« Prev</a>
-            <span><strong>{{ current_page }}</strong> / {{ total_pages }}</span>
-            <a class="btn-page {{ 'disabled' if current_page == total_pages }}"
-                href="{{ url_for('cart', page=current_page+1, search=search_query, category=category_filter) }}">Next »</a>
-        </div>
-        {% endif %}
     </main>
 </div>
 
 <script>
-function getCart() {
-    return JSON.parse(localStorage.getItem('cart') || '[]');
+function adjustShopQty(id, delta) {
+    const el = document.getElementById(`qty-shop-${id}`);
+    let val = parseInt(el.value) + delta;
+    el.value = val < 1 ? 1 : val;
 }
 
-function saveCart(cart) {
+function handleAddToCart(event, id, name, price, isBuyNow) {
+    event.preventDefault();
+    const qty = parseInt(document.getElementById(`qty-shop-${id}`).value);
+    
+    let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const existing = cart.find(item => item.id === id);
+    if (existing) existing.quantity += qty;
+    else cart.push({ id, name, price: parseFloat(price), quantity: qty });
+    
     localStorage.setItem('cart', JSON.stringify(cart));
     updateCartBadge();
-}
 
-function updateCartBadge() {
-    const cart = getCart();
-    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-    const badge = document.querySelector('.cart-badge');
-    if (badge) {
-        badge.textContent = totalItems;
-        badge.style.display = totalItems > 0 ? 'inline-block' : 'none';
-        // Add pop animation
-        badge.classList.remove('cart-pop');
-        void badge.offsetWidth; // trigger reflow
-        badge.classList.add('cart-pop');
-    }
-}
-
-function changeQty(productId, delta) {
-    const input = document.getElementById(`qty-${productId}`);
-    let value = parseInt(input.value) + delta;
-    value = Math.max(1, Math.min(99, value));
-    input.value = value;
-}
-
-function addToCart(event, productId, productName, price) {
-    const quantity = parseInt(document.getElementById(`qty-${productId}`).value);
-    const cart = getCart();
-    const existing = cart.find(item => item.id === productId);
-    
-    if (existing) {
-        existing.quantity += quantity;
+    if (isBuyNow) {
+        startCarAnimation();
     } else {
-        cart.push({
-            id: productId,
-            name: productName,
-            price: parseFloat(price),
-            quantity: quantity
-        });
+        animateToCart(event);
     }
-    
-    saveCart(cart);
-    animateToCart(event); // Start the movement
 }
 
 function animateToCart(e) {
-    const cartIcon = document.querySelector('.cart-badge') || document.querySelector('a[href*="checkout"]');
-    if (!cartIcon) return;
-
-    // Create flying element (package icon)
+    const cartIcon = document.querySelector('.cart-badge');
     const flyer = document.createElement('div');
     flyer.className = 'flying-item';
     flyer.innerHTML = '📦';
     document.body.appendChild(flyer);
-
-    // Initial position (where the button is)
     const startRect = e.target.getBoundingClientRect();
     const endRect = cartIcon.getBoundingClientRect();
-
     flyer.style.left = startRect.left + 'px';
-    flyer.style.top = startRect.top + 'px';
-
-    // Move to cart
+    flyer.style.top = (startRect.top + window.scrollY) + 'px';
     requestAnimationFrame(() => {
         flyer.style.left = endRect.left + 'px';
-        flyer.style.top = endRect.top + 'px';
-        flyer.style.transform = 'scale(0.2)';
-        flyer.style.opacity = '0.5';
+        flyer.style.top = (endRect.top + window.scrollY) + 'px';
+        flyer.style.transform = 'scale(0.2) rotate(360deg)';
+        flyer.style.opacity = '0';
     });
-
-    // Cleanup
-    setTimeout(() => {
-        flyer.remove();
-    }, 700);
+    setTimeout(() => flyer.remove(), 800);
 }
 
-function buyNow(event, productId, productName, price) {
-    addToCart(event, productId, productName, price);
-    // Short delay so user sees the item "fly" before redirecting
-    setTimeout(() => {
-        window.location.href = "{{ url_for('checkout') }}";
-    }, 400);
+function startCarAnimation() {
+    document.querySelectorAll('button').forEach(b => b.disabled = true);
+    const carWrap = document.createElement('div');
+    carWrap.className = 'delivery-car';
+    carWrap.innerHTML = `<div class="huat-bubble" id="status-msg">Packing Parts...</div><div class="van-body">🚐💨</div>`;
+    document.body.appendChild(carWrap);
+    const bubble = carWrap.querySelector('#status-msg');
+
+    setTimeout(() => { carWrap.style.left = '40%'; bubble.style.opacity = '1'; }, 100);
+    setTimeout(() => { bubble.innerText = "Stock Secured! Huat Ah!"; }, 2000);
+    setTimeout(() => { carWrap.style.left = '120%'; }, 4500);
+    setTimeout(() => { window.location.href = "{{ url_for('checkout') }}"; }, 5500);
 }
 
+function updateCartBadge() {
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const total = cart.reduce((sum, item) => sum + item.quantity, 0);
+    const badge = document.querySelector('.cart-badge');
+    if (badge) {
+        badge.textContent = total;
+        badge.style.display = total > 0 ? 'inline-block' : 'none';
+    }
+}
 document.addEventListener('DOMContentLoaded', updateCartBadge);
 </script>
 {% endblock %}
