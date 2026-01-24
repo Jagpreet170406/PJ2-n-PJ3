@@ -1,243 +1,322 @@
 {% extends "base.html" %}
+{% block title %}Checkout - Chin Hon Motors{% endblock %}
 
 {% block content %}
-<style>
-    .checkout-container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
-    .cart-items { background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .cart-item { display: grid; grid-template-columns: 80px 1fr auto auto auto; gap: 1rem; align-items: center; padding: 1rem; border-bottom: 1px solid #eee; }
-    .cart-item:last-child { border-bottom: none; }
-    .item-img { width: 80px; height: 80px; object-fit: contain; background: #f4f4f4; border-radius: 8px; }
-    .item-details h6 { margin: 0 0 0.25rem 0; }
-    .item-details small { color: #666; }
-    .qty-control { display: flex; align-items: center; gap: 0.5rem; }
-    .qty-btn { width: 28px; height: 28px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; font-size: 16px; }
-    .qty-btn:hover { background: #f3f4f6; }
-    .qty-display { width: 40px; text-align: center; font-weight: 600; }
-    .item-price { font-weight: 700; color: #dc2626; font-size: 1.1rem; }
-    .btn-remove { color: #dc2626; background: none; border: none; cursor: pointer; font-size: 1.2rem; }
-    .btn-remove:hover { color: #991b1b; }
+<div class="container mb-5" style="margin-top: 100px;">
+    <h2 class="mb-4">Secure Checkout</h2>
     
-    .summary-box { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); position: sticky; top: 2rem; }
-    .summary-row { display: flex; justify-content: space-between; padding: 0.5rem 0; }
-    .summary-row.total { font-size: 1.3rem; font-weight: 800; border-top: 2px solid #eee; padding-top: 1rem; margin-top: 0.5rem; color: #dc2626; }
-    
-    .payment-section { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #eee; }
-    .payment-option { display: flex; align-items: center; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 0.5rem; cursor: pointer; }
-    .payment-option:hover { border-color: #2563eb; background: #eff6ff; }
-    .payment-option input[type="radio"] { margin-right: 0.75rem; }
-    .payment-option.selected { border-color: #2563eb; background: #eff6ff; }
-    
-    .checkout-grid { display: grid; grid-template-columns: 1fr 400px; gap: 2rem; }
-    @media (max-width: 992px) { .checkout-grid { grid-template-columns: 1fr; } }
-    
-    .empty-cart { text-align: center; padding: 4rem 2rem; }
-    .empty-cart-icon { font-size: 4rem; margin-bottom: 1rem; }
-</style>
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card p-3 shadow-sm mb-4 border-0" style="background: #f8f9fa;">
+                <h5 class="font-weight-bold">1. Review Items</h5>
+                <hr>
+                <div id="cart-items-container"></div>
+            </div>
 
-<div class="checkout-container">
-    <h2 class="mb-4">🛒 Shopping Cart & Checkout</h2>
-    
-    <div id="checkout-content" class="checkout-grid">
-        <!-- Cart Items (Left) -->
-        <div>
-            <div class="cart-items">
-                <h5 class="mb-3">Cart Items</h5>
-                <div id="cart-items-container">
-                    <!-- Items loaded by JavaScript -->
+            <div class="card p-3 shadow-sm mb-4">
+                <h5 class="font-weight-bold">2. Fulfillment Details</h5>
+                <hr>
+                <div class="btn-group btn-group-toggle d-flex mb-3" data-toggle="buttons">
+                    <label class="btn btn-outline-dark flex-fill active py-3">
+                        <input type="radio" name="fulfillment" id="method-pickup" value="pickup" checked onchange="updateFulfillmentUI()"> 
+                        <strong>🏪 Self-Pickup</strong>
+                    </label>
+                    <label class="btn btn-outline-dark flex-fill py-3">
+                        <input type="radio" name="fulfillment" id="method-delivery" value="delivery" onchange="updateFulfillmentUI()"> 
+                        <strong>🚚 Local Delivery</strong>
+                    </label>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="font-weight-bold" id="date-label">📅 Select Pickup Date:</label>
+                    <input type="date" id="fulfillment-date" class="form-control form-control-lg">
+                    <div id="date-note" class="small mt-1 font-weight-bold text-primary"></div>
+                </div>
+
+                <div id="pickup-details" class="alert alert-secondary border-0">
+                    <h6 class="font-weight-bold mb-1">Collection Point:</h6>
+                    <p class="mb-1">62 Race Course Rd, Singapore 218568</p>
+                    <small class="text-muted">Little India / Farrer Park MRT (Near Mustafa Centre)</small>
+                </div>
+                <div id="shipping-note" class="small font-weight-bold mt-2 d-none"></div>
+            </div>
+
+            <div class="card p-3 shadow-sm mb-4">
+                <h5 class="font-weight-bold">3. Payment Method</h5>
+                <hr>
+                
+                <div class="text-center mb-3" id="method-icon-display" style="height: 50px;">
+                    <img id="active-method-img" src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" height="30" alt="Payment Icon">
+                </div>
+
+                <select class="form-control form-control-lg mb-3" id="payment-method" onchange="togglePaymentFields()">
+                    <option value="Credit Card">Credit / Debit Card (VISA, Mastercard)</option>
+                    <option value="PayNow">PayNow QR</option>
+                    <option value="PayLah">DBS PayLah!</option>
+                    <option value="Google Pay">Google Pay</option>
+                    <option value="Grab Pay">GrabPay</option>
+                </select>
+
+                <div id="card-details-section">
+                    <div class="form-group mb-2 position-relative">
+                        <label class="small font-weight-bold">Card Number (16 Digits)</label>
+                        <input type="text" id="card-number" class="form-control" placeholder="4xxx xxxx xxxx xxxx" maxlength="19" oninput="detectCardType()">
+                        <div id="card-type-indicator" style="position: absolute; right: 10px; top: 35px;"></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <label class="small font-weight-bold">Expiry Date</label>
+                            <input type="text" class="form-control" placeholder="MM/YY" maxlength="5">
+                        </div>
+                        <div class="col-6">
+                            <label class="small font-weight-bold">CVV</label>
+                            <input type="text" class="form-control" placeholder="123" maxlength="3">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="wallet-note" class="d-none alert alert-info mt-2">
+                    <small>A secure payment window / QR code will open after clicking "Place Order".</small>
                 </div>
             </div>
         </div>
-        
-        <!-- Order Summary (Right) -->
-        <div>
-            <div class="summary-box">
-                <h5 class="mb-3">Order Summary</h5>
-                
-                <div class="summary-row">
-                    <span>Subtotal</span>
-                    <span id="subtotal">SGD 0.00</span>
+
+        <div class="col-md-4">
+            <div class="card p-4 shadow-sm sticky-top border-dark" style="top: 110px; border-width: 2px;">
+                <h4 class="font-weight-bold">Order Summary</h4>
+                <hr>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Subtotal</span>
+                    <span id="summary-subtotal" class="font-weight-bold">S$0.00</span>
                 </div>
-                <div class="summary-row">
-                    <span>Shipping</span>
-                    <span id="shipping">SGD 0.00</span>
+                <div class="d-flex justify-content-between mb-2">
+                    <span id="shipping-label" class="text-muted">Delivery Fee</span>
+                    <span id="summary-shipping" class="font-weight-bold">S$0.00</span>
                 </div>
-                <div class="summary-row total">
-                    <span>Total</span>
-                    <span id="total">SGD 0.00</span>
+                <hr>
+                <div class="d-flex justify-content-between mb-4">
+                    <span class="h5 font-weight-bold">Total</span>
+                    <span class="h5 font-weight-bold text-primary" id="summary-total">S$0.00</span>
                 </div>
-                
-                <!-- Payment Methods -->
-                <div class="payment-section">
-                    <h6 class="mb-3">Payment Method</h6>
-                    
-                    <label class="payment-option">
-                        <input type="radio" name="payment" value="Credit Card" checked>
-                        <span>💳 Credit Card</span>
-                    </label>
-                    
-                    <label class="payment-option">
-                        <input type="radio" name="payment" value="PayNow">
-                        <span>📱 PayNow</span>
-                    </label>
-                    
-                    <label class="payment-option">
-                        <input type="radio" name="payment" value="Cash">
-                        <span>💵 Cash on Delivery</span>
-                    </label>
-                    
-                    <label class="payment-option">
-                        <input type="radio" name="payment" value="Bank Transfer">
-                        <span>🏦 Bank Transfer</span>
-                    </label>
-                </div>
-                
-                <button onclick="processCheckout()" class="btn btn-primary w-100 mt-3 py-3" style="font-size: 1.1rem; font-weight: 700;">
-                    Place Order
+                <button class="btn btn-dark btn-block btn-lg py-3 font-weight-bold" onclick="processPayment()">
+                    PLACE ORDER
                 </button>
+                <div class="text-center mt-3">
+                    <small class="text-muted"><i class="fas fa-lock"></i> SSL Secured Payment</small>
+                </div>
             </div>
         </div>
-    </div>
-    
-    <!-- Empty Cart Message -->
-    <div id="empty-cart" class="empty-cart" style="display: none;">
-        <div class="empty-cart-icon">🛒</div>
-        <h4>Your cart is empty</h4>
-        <p class="text-muted">Add some items to get started!</p>
-        <a href="{{ url_for('cart') }}" class="btn btn-primary mt-3">Continue Shopping</a>
     </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
-function getCart() {
-    return JSON.parse(sessionStorage.getItem('cart') || '[]');
-}
+    const methodIcons = {
+        'Credit Card': 'https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg',
+        'PayNow': 'https://upload.wikimedia.org/wikipedia/commons/b/b3/PayNow_logo.png',
+        'PayLah': 'https://upload.wikimedia.org/wikipedia/commons/1/1a/DBS_Bank_logo.svg',
+        'Google Pay': 'https://upload.wikimedia.org/wikipedia/commons/e/e1/Google_Pay_Logo.svg',
+        'Grab Pay': 'https://vignette.wikia.nocookie.net/logopedia/images/a/a2/GrabPay_Logo_2022.svg'
+    };
 
-function saveCart(cart) {
-    sessionStorage.setItem('cart', JSON.stringify(cart));
-    renderCart();
-}
+    function updateFulfillmentUI() {
+        calculateTotal();
+        const isDelivery = document.getElementById('method-delivery').checked;
+        const dateLabel = document.getElementById('date-label');
+        const dateNote = document.getElementById('date-note');
+        const dateInput = document.getElementById('fulfillment-date');
+        
+        // Set min date to today
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.min = today;
 
-function renderCart() {
-    const cart = getCart();
-    const container = document.getElementById('cart-items-container');
-    const checkoutContent = document.getElementById('checkout-content');
-    const emptyCart = document.getElementById('empty-cart');
-    
-    if (cart.length === 0) {
-        checkoutContent.style.display = 'none';
-        emptyCart.style.display = 'block';
-        return;
-    }
-    
-    checkoutContent.style.display = 'grid';
-    emptyCart.style.display = 'none';
-    
-    container.innerHTML = cart.map((item, index) => `
-        <div class="cart-item">
-            <img src="https://via.placeholder.com/80x80/f4f4f4/999999?text=Product" class="item-img" alt="${item.name}">
-            
-            <div class="item-details">
-                <h6>${item.name}</h6>
-                <small class="text-muted">Product ID: ${item.id}</small>
-            </div>
-            
-            <div class="qty-control">
-                <button class="qty-btn" onclick="updateQuantity(${index}, -1)">−</button>
-                <span class="qty-display">${item.quantity}</span>
-                <button class="qty-btn" onclick="updateQuantity(${index}, 1)">+</button>
-            </div>
-            
-            <div class="item-price">
-                SGD ${(item.price * item.quantity).toFixed(2)}
-            </div>
-            
-            <button class="btn-remove" onclick="removeItem(${index})" title="Remove">🗑️</button>
-        </div>
-    `).join('');
-    
-    updateSummary();
-}
-
-function updateQuantity(index, delta) {
-    const cart = getCart();
-    cart[index].quantity = Math.max(1, cart[index].quantity + delta);
-    saveCart(cart);
-}
-
-function removeItem(index) {
-    const cart = getCart();
-    cart.splice(index, 1);
-    saveCart(cart);
-}
-
-function updateSummary() {
-    const cart = getCart();
-    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const shipping = subtotal > 0 ? 5.00 : 0; // SGD 5 flat shipping
-    const total = subtotal + shipping;
-    
-    document.getElementById('subtotal').textContent = `SGD ${subtotal.toFixed(2)}`;
-    document.getElementById('shipping').textContent = `SGD ${shipping.toFixed(2)}`;
-    document.getElementById('total').textContent = `SGD ${total.toFixed(2)}`;
-}
-
-function processCheckout() {
-    const cart = getCart();
-    
-    if (cart.length === 0) {
-        alert('Your cart is empty!');
-        return;
-    }
-    
-    const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
-    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const shipping = 5.00;
-    const total = subtotal + shipping;
-    
-    // Send to backend
-    fetch("{{ url_for('process_payment') }}", {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            cart: cart,
-            payment_method: paymentMethod,
-            total_amount: total
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(`✅ Order placed successfully!\n\nTotal: SGD ${total.toFixed(2)}\nPayment: ${paymentMethod}\n\nThank you for your purchase!`);
-            
-            // Clear cart
-            sessionStorage.removeItem('cart');
-            
-            // Redirect to shop
-            window.location.href = "{{ url_for('cart') }}";
+        if (isDelivery) {
+            dateLabel.innerText = "🚚 Select Delivery Date:";
+            dateNote.innerText = "Deliveries usually arrive within 1-2 working days.";
+            dateNote.className = "small mt-1 font-weight-bold text-info";
         } else {
-            alert('❌ Payment failed. Please try again.');
+            dateLabel.innerText = "📅 Select Pickup Date:";
+            dateNote.innerText = "Kindly collect items today or within 48 hours.";
+            dateNote.className = "small mt-1 font-weight-bold text-success";
+            if (!dateInput.value) dateInput.value = today;
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('❌ An error occurred. Please try again.');
-    });
-}
+    }
 
-// Add click handlers for payment options
-document.addEventListener('DOMContentLoaded', function() {
-    renderCart();
-    
-    // Style selected payment option
-    document.querySelectorAll('.payment-option').forEach(option => {
-        option.addEventListener('click', function() {
-            document.querySelectorAll('.payment-option').forEach(o => o.classList.remove('selected'));
-            this.classList.add('selected');
-            this.querySelector('input[type="radio"]').checked = true;
+    function togglePaymentFields() {
+        const method = document.getElementById('payment-method').value;
+        const cardSection = document.getElementById('card-details-section');
+        const walletNote = document.getElementById('wallet-note');
+        const activeImg = document.getElementById('active-method-img');
+
+        activeImg.src = methodIcons[method];
+
+        if (method === 'Credit Card') {
+            cardSection.classList.remove('d-none');
+            walletNote.classList.add('d-none');
+        } else {
+            cardSection.classList.add('d-none');
+            walletNote.classList.remove('d-none');
+        }
+    }
+
+    function detectCardType() {
+        let input = document.getElementById('card-number');
+        let number = input.value.replace(/\D/g, '');
+        const activeImg = document.getElementById('active-method-img');
+        const indicator = document.getElementById('card-type-indicator');
+
+        input.value = number.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+
+        if (number.startsWith('4')) {
+            activeImg.src = 'https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg';
+            indicator.innerHTML = '<span class="badge badge-primary">VISA</span>';
+        } else if (number.startsWith('5')) {
+            activeImg.src = 'https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg';
+            indicator.innerHTML = '<span class="badge badge-warning text-dark">Mastercard</span>';
+        } else {
+            indicator.innerHTML = '';
+        }
+    }
+
+    function calculateTotal() {
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        const subtotal = cart.reduce((sum, item) => {
+            const price = parseFloat(item.price || 0);
+            const qty = parseInt(item.quantity || 1);
+            return sum + (price * qty);
+        }, 0);
+
+        const isDelivery = document.getElementById('method-delivery').checked;
+        const pickupDetails = document.getElementById('pickup-details');
+        const shippingNote = document.getElementById('shipping-note');
+        
+        let shipping = 0;
+        if (isDelivery) {
+            pickupDetails.classList.add('d-none');
+            shippingNote.classList.remove('d-none');
+            if (subtotal >= 888) {
+                shipping = 0;
+                shippingNote.innerHTML = "🎉 HUAT AH! Free Delivery.";
+                shippingNote.className = "small text-success font-weight-bold mt-2";
+            } else if (subtotal >= 100) { 
+                shipping = 1.50; 
+                shippingNote.innerText = "S$1.50 Delivery Applied."; 
+                shippingNote.className = "small text-info font-weight-bold mt-2"; 
+            } else { 
+                shipping = 3.50; 
+                shippingNote.innerText = "S$3.50 Delivery Applied."; 
+                shippingNote.className = "small text-muted font-weight-bold mt-2"; 
+            }
+        } else {
+            pickupDetails.classList.remove('d-none');
+            shippingNote.classList.add('d-none');
+            shipping = 0;
+        }
+
+        document.getElementById('summary-subtotal').innerText = `S$${subtotal.toFixed(2)}`;
+        document.getElementById('summary-shipping').innerText = `S$${shipping.toFixed(2)}`;
+        document.getElementById('summary-total').innerText = `S$${(subtotal + shipping).toFixed(2)}`;
+    }
+
+    function loadCheckoutCart() {
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        const container = document.getElementById('cart-items-container');
+        
+        if (cart.length === 0) {
+            container.innerHTML = '<div class="text-center py-4 text-muted">Your cart is empty.</div>';
+            return;
+        }
+
+        let html = '<table class="table table-sm table-borderless">';
+        cart.forEach((item, index) => {
+            const name = item.name || "Unknown Part";
+            const price = parseFloat(item.price || 0);
+            const qty = parseInt(item.quantity || 1);
+
+            html += `
+                <tr class="border-bottom">
+                    <td class="py-2">
+                        <strong>${name}</strong><br>
+                        <small class="text-muted">S$${price.toFixed(2)} x ${qty}</small>
+                    </td>
+                    <td class="text-right py-2">
+                        S$${(price * qty).toFixed(2)}<br>
+                        <a href="#" onclick="removeItem(${index}); return false;" class="text-danger small">Remove</a>
+                    </td>
+                </tr>`;
         });
+        html += '</table>';
+        container.innerHTML = html;
+        calculateTotal();
+    }
+
+    function removeItem(index) {
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        cart.splice(index, 1);
+        localStorage.setItem('cart', JSON.stringify(cart));
+        loadCheckoutCart();
+    }
+
+    async function processPayment() {
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        const method = document.getElementById('payment-method').value;
+        const fulfillment = document.querySelector('input[name="fulfillment"]:checked').value;
+        const date = document.getElementById('fulfillment-date').value;
+        const cardNumber = document.getElementById('card-number').value.replace(/\s+/g, '');
+
+        if (cart.length === 0) {
+            alert("Your cart is empty!");
+            return;
+        }
+
+        if (!date) {
+            alert("Please select a date for " + (fulfillment === 'pickup' ? "pickup" : "delivery") + ".");
+            return;
+        }
+
+        if (method === 'Credit Card' && cardNumber.length !== 16) {
+            alert("Please enter a valid 16-digit card number.");
+            return;
+        }
+
+        const payload = {
+            cart: cart,
+            payment_method: method,
+            fulfillment: fulfillment,
+            fulfillment_date: date,
+            total_amount: parseFloat(document.getElementById('summary-total').innerText.replace('S$', '')),
+            card_last_four: method === 'Credit Card' ? cardNumber.slice(-4) : null
+        };
+
+        try {
+            const response = await fetch('/process-payment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': "{{ csrf_token() }}"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                localStorage.removeItem('cart');
+                // Success Redirect with URL parameters for the Big Tick page
+                window.location.href = `/order-success?method=${fulfillment}&date=${date}`;
+            } else {
+                alert("Payment failed: " + result.message);
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            alert("A connection error occurred. Please try again.");
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadCheckoutCart();
+        togglePaymentFields();
+        updateFulfillmentUI();
     });
-});
 </script>
 {% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container text-center" style="margin-top: 150px; margin-bottom: 100px;">
+    <div class="mb-4">
+        <div style="font-size: 80px; color: #28a745; display: inline-block; width: 120px; height: 120px; border: 5px solid #28a745; border-radius: 50%; line-height: 110px;">
+            ✓
+        </div>
+    </div>
+    
+    <h1 class="font-weight-bold">ORDER PLACED!</h1>
+    <p class="lead text-muted">Huat Ah! Your order has been successfully received.</p>
+    
+    <div class="card mx-auto shadow-sm border-0 p-4" style="max-width: 500px; background: #f9f9f9;">
+        <h5 id="fulfillment-title" class="font-weight-bold"></h5>
+        <hr>
+        <p id="fulfillment-details" class="mb-0"></p>
+    </div>
+
+    <div class="mt-5">
+        <a href="{{ url_for('cart') }}" class="btn btn-dark btn-lg px-5">Back to Shop</a>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Retrieve order details from URL parameters
+        const params = new URLSearchParams(window.location.search);
+        const method = params.get('method');
+        const date = params.get('date');
+
+        const title = document.getElementById('fulfillment-title');
+        const details = document.getElementById('fulfillment-details');
+
+        if (method === 'delivery') {
+            title.innerText = "🚚 Local Delivery Schedule";
+            details.innerHTML = `Estimated Arrival: <strong>${date}</strong><br><small>Our driver will contact you via WhatsApp.</small>`;
+        } else {
+            title.innerText = "🏪 Self-Pickup Confirmed";
+            details.innerHTML = `Please collect your items on: <strong>${date}</strong><br><small>Location: 62 Race Course Rd, S218568</small>`;
+        }
+    });
+</script>
+{% endblock %}

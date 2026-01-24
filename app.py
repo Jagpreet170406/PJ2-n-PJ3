@@ -99,16 +99,19 @@ def process_payment():
     cart_items = data.get('cart', [])
     payment_method = data.get('payment_method', 'Credit Card')
     total_amount = data.get('total_amount', 0)
+    fulfillment = data.get('fulfillment', 'pickup')
+    fulfillment_date = data.get('fulfillment_date', 'Not Specified')
     
     if not cart_items:
         return jsonify({"success": False, "message": "Cart is empty"})
     
     try:
         with get_db() as conn:
-            # Log transaction
+            # Log transaction with fulfillment info
+            # Note: Ensure your transactions table has columns for fulfillment if you want to store them
             conn.execute(
                 "INSERT INTO transactions (username, payment_type, amount) VALUES (?, ?, ?)",
-                (session.get("username", "Guest"), payment_method, total_amount)
+                (session.get("username", "Guest"), f"{payment_method} ({fulfillment})", total_amount)
             )
             conn.commit()
         
@@ -117,6 +120,14 @@ def process_payment():
     except Exception as e:
         print(f"Payment error: {e}")
         return jsonify({"success": False, "message": str(e)})
+
+@app.route("/order-success")
+def order_success():
+    """The 'Big Tick' confirmation page"""
+    # These are passed via URL from the frontend: ?method=delivery&date=2024-xx-xx
+    method = request.args.get('method', 'pickup')
+    date = request.args.get('date', '')
+    return render_template("order_success.html", method=method, date=date, role="customer")
 
 @app.route("/contact")
 def contact():
