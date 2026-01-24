@@ -335,110 +335,226 @@ def api_delete_inventory(inventory_id):
         return jsonify({"success": False, "message": str(e)}), 500
 
 # --------------------
-# SALES & PRICE OPTIMIZATION DASHBOARD
+# ENTERPRISE SALES DASHBOARD (REAL DATA FROM 4 TABLES)
 # --------------------
 @app.route("/dashboard")
 @require_staff
 def dashboard():
+    """Enterprise Sales Dashboard - Pulls from sales_invoice_header, sales_invoice_line, products, customers"""
+    
+    # Pagination
+    page = request.args.get('page', 1, type=int)
+    per_page = 50
+    offset = (page - 1) * per_page
+    
+    # Filters
+    search = request.args.get('search', '').strip()
+    start_date = request.args.get('start_date', '').strip()
+    end_date = request.args.get('end_date', '').strip()
+    
     with get_db() as conn:
-        # Get all sales records
-        parts = conn.execute("""
-            SELECT id, item_code, description, qty_sold, total_sales, 
-                   period, competitor_price, stock_qty, demand_level, recommended_price
-            FROM sales_data
-            ORDER BY id DESC
-        """).fetchall()
+        # Build WHERE clause for filters
+        where_clauses = []
+        params = []
         
-        # Calculate stats
-        stats_row = conn.execute("""
+        if search:
+            where_clauses.append("(h.invoice_no LIKE ? OR p.hem_name LIKE ? OR c.customer_code LIKE ?)")
+            params.extend([f'%{search}%', f'%{search}%', f'%{search}%'])
+        
+        if start_date:
+            where_clauses.append("h.invoice_date >= ?")
+            params.append(start_date)
+        
+        if end_date:
+            where_clauses.append("h.invoice_date <= ?")
+            params.append(end_date)
+        
+        where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
+        
+        # KPI Calculations
+        kpi_query = f"""
             SELECT 
-                COUNT(*) as total_items,
-                COALESCE(SUM(total_sales), 0) as total_sales,
-                COALESCE(AVG(recommended_price), 0) as avg_recommended
-            FROM sales_data
-        """).fetchone()
+                COUNT(DISTINCT h.invoice_no) as total_invoices,
+                COUNT(DISTINCT h.customer_id) as total_customers,
+                COALESCE(SUM(l.total_amt), 0) as total_revenue,
+                COALESCE(SUM(l.gst_amt), 0) as total_gst,
+                COALESCE(SUM(l.qty), 0) as total_units,
+                COALESCE(AVG(l.total_amt), 0) as avg_line_value
+            FROM sales_invoice_header h
+            LEFT JOIN sales_invoice_line l ON h.invoice_no = l.invoice_no
+            WHERE {where_sql}
+        """
+        
+        stats_row = conn.execute(kpi_query, params).fetchone()
         
         stats = {
-            'total_items': stats_row['total_items'],
-            'total_sales': stats_row['total_sales'],
-            'avg_recommended': stats_row['avg_recommended']
+            'total_invoices': stats_row['total_invoices'] or 0,
+            'total_customers': stats_row['total_customers'] or 0,
+            'total_revenue': round(stats_row['total_revenue'] or 0, 2),
+            'total_gst': round(stats_row['total_gst'] or 0, 2),
+            'total_units': stats_row['total_units'] or 0,
+            'avg_line_value': round(stats_row['avg_line_value'] or 0, 2)
         }
+        
+        # Get total count for pagination
+        count_query = f"""
+            SELECT COUNT(DISTINCT h.invoice_no) as cnt
+            FROM sales_invoice_header h
+            LEFT JOIN sales_invoice_line l ON h.invoice_no = l.invoice_no
+            LEFT JOIN products p ON l.product_id = p.product_id
+            LEFT JOIN customers c ON h.customer_id = c.customer_id
+            WHERE {where_sql}
+        """
+        total_count = conn.execute(count_query, params).fetchone()['cnt']
+        total_pages = (total_count // per_page) + (1 if total_count % per_page > 0 else 0)
+        
+        # Main data query with JOIN across all 4 tables
+        data_query = f"""
+            SELECT 
+                h.invoice_no,
+                h.invoice_date,
+                h.customer_id,
+                c.customer_code,
+                h.legend_id,
+                l.line_no,
+                l.product_id,
+                p.sku_no,
+                p.hem_name,
+                l.qty,
+                l.total_amt,
+                l.gst_amt
+            FROM sales_invoice_header h
+            LEFT JOIN sales_invoice_line l ON h.invoice_no = l.invoice_no
+            LEFT JOIN products p ON l.product_id = p.product_id
+            LEFT JOIN customers c ON h.customer_id = c.customer_id
+            WHERE {where_sql}
+            ORDER BY h.invoice_date DESC, h.invoice_no DESC
+            LIMIT ? OFFSET ?
+        """
+        
+        params_with_pagination = params + [per_page, offset]
+        sales_data = conn.execute(data_query, params_with_pagination).fetchall()
+        
+        # Get unique customers and products for dropdowns
+        customers = conn.execute("SELECT customer_id, customer_code FROM customers ORDER BY customer_code").fetchall()
+        products = conn.execute("SELECT product_id, sku_no, hem_name FROM products ORDER BY hem_name LIMIT 100").fetchall()
+        
+        # Get sales trend data (monthly breakdown) - use same filters as main query
+        trend_query = f"""
+            SELECT 
+                substr(h.invoice_date, 1, 7) as month,
+                COALESCE(SUM(l.total_amt), 0) as revenue
+            FROM sales_invoice_header h
+            LEFT JOIN sales_invoice_line l ON h.invoice_no = l.invoice_no
+            WHERE {where_sql}
+            GROUP BY month
+            ORDER BY month
+        """
+        trend_rows = conn.execute(trend_query, params).fetchall()
+        trend_labels = [row['month'] if row['month'] else 'Unknown' for row in trend_rows]
+        trend_data = [round(float(row['revenue']), 2) if row['revenue'] else 0 for row in trend_rows]
+        
+        print(f"📊 Trend Query: {trend_query}")
+        print(f"📊 Trend Params: {params}")
+        print(f"📊 Trend data: {len(trend_rows)} months")
+        print(f"📊 Labels: {trend_labels[:10]}")
+        print(f"📊 Data: {trend_data[:10]}")
     
-    return render_template("dashboard.html", parts=parts, stats=stats, role=session.get("role"))
+    return render_template("dashboard.html", 
+                           sales_data=sales_data,
+                           stats=stats,
+                           customers=customers,
+                           products=products,
+                           current_page=page,
+                           total_pages=total_pages,
+                           search=search,
+                           start_date=start_date,
+                           end_date=end_date,
+                           trend_labels=trend_labels,
+                           trend_data=trend_data,
+                           role=session.get("role"))
 
-@app.route("/create", methods=["POST"])
+# --------------------
+# DASHBOARD CRUD OPERATIONS
+# --------------------
+@app.route("/create-invoice", methods=["POST"])
 @require_staff
-def create():
-    item_code = request.form.get("item_code")
-    description = request.form.get("description")
-    qty_sold = int(request.form.get("qty_sold"))
-    total_sales = float(request.form.get("total_sales"))
-    period = request.form.get("period")
-    competitor_price = request.form.get("competitor_price")
-    stock_qty = request.form.get("stock_qty", 0)
-    demand_level = request.form.get("demand_level", 3)
+def create_invoice():
+    """Create new invoice with line items"""
+    invoice_no = request.form.get("invoice_no")
+    invoice_date = request.form.get("invoice_date")
+    customer_id = request.form.get("customer_id")
+    legend_id = request.form.get("legend_id", "SGP")
     
-    # Calculate recommended price (AI-style logic)
-    base_price = total_sales / qty_sold
-    competitor_price_val = float(competitor_price) if competitor_price else base_price
-    demand_factor = int(demand_level) / 3.0  # normalize to 1.0 at demand=3
+    product_id = request.form.get("product_id")
+    qty = int(request.form.get("qty", 1))
+    total_amt = float(request.form.get("total_amt", 0))
+    gst_amt = float(request.form.get("gst_amt", 0))
     
-    # Weighted average: 70% base price + 30% competitor price, adjusted by demand
-    recommended_price = (base_price * 0.7 + competitor_price_val * 0.3) * demand_factor
+    try:
+        with get_db() as conn:
+            # Insert header
+            conn.execute("""
+                INSERT INTO sales_invoice_header (invoice_no, invoice_date, customer_id, legend_id)
+                VALUES (?, ?, ?, ?)
+            """, (invoice_no, invoice_date, customer_id, legend_id))
+            
+            # Insert line item
+            conn.execute("""
+                INSERT INTO sales_invoice_line (invoice_no, line_no, product_id, qty, total_amt, gst_amt)
+                VALUES (?, 1, ?, ?, ?, ?)
+            """, (invoice_no, product_id, qty, total_amt, gst_amt))
+            
+            conn.commit()
+        
+        flash("Invoice created successfully!", "success")
+    except Exception as e:
+        flash(f"Error creating invoice: {str(e)}", "danger")
+        print(f"❌ Create invoice error: {e}")
     
-    with get_db() as conn:
-        conn.execute("""
-            INSERT INTO sales_data 
-            (item_code, description, qty_sold, total_sales, period, 
-             competitor_price, stock_qty, demand_level, recommended_price)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (item_code, description, qty_sold, total_sales, period,
-              competitor_price, stock_qty, demand_level, recommended_price))
-        conn.commit()
-    
-    flash("Sales record created successfully!", "success")
     return redirect(url_for("dashboard"))
 
-@app.route("/update/<int:id>", methods=["POST"])
+@app.route("/update-invoice-line", methods=["POST"])
 @require_staff
-def update(id):
-    item_code = request.form.get("item_code")
-    description = request.form.get("description")
-    qty_sold = int(request.form.get("qty_sold"))
-    total_sales = float(request.form.get("total_sales"))
-    period = request.form.get("period")
-    competitor_price = request.form.get("competitor_price")
-    stock_qty = request.form.get("stock_qty", 0)
-    demand_level = request.form.get("demand_level", 3)
+def update_invoice_line():
+    """Update invoice line item"""
+    invoice_no = request.form.get("invoice_no")
+    line_no = int(request.form.get("line_no"))
+    qty = int(request.form.get("qty"))
+    total_amt = float(request.form.get("total_amt"))
+    gst_amt = float(request.form.get("gst_amt"))
     
-    # Recalculate recommended price
-    base_price = total_sales / qty_sold
-    competitor_price_val = float(competitor_price) if competitor_price else base_price
-    demand_factor = int(demand_level) / 3.0
+    try:
+        with get_db() as conn:
+            conn.execute("""
+                UPDATE sales_invoice_line
+                SET qty=?, total_amt=?, gst_amt=?
+                WHERE invoice_no=? AND line_no=?
+            """, (qty, total_amt, gst_amt, invoice_no, line_no))
+            conn.commit()
+        
+        flash("Invoice line updated successfully!", "success")
+    except Exception as e:
+        flash(f"Error updating invoice line: {str(e)}", "danger")
+        print(f"❌ Update error: {e}")
     
-    recommended_price = (base_price * 0.7 + competitor_price_val * 0.3) * demand_factor
-    
-    with get_db() as conn:
-        conn.execute("""
-            UPDATE sales_data
-            SET item_code=?, description=?, qty_sold=?, total_sales=?, period=?,
-                competitor_price=?, stock_qty=?, demand_level=?, recommended_price=?
-            WHERE id=?
-        """, (item_code, description, qty_sold, total_sales, period,
-              competitor_price, stock_qty, demand_level, recommended_price, id))
-        conn.commit()
-    
-    flash("Sales record updated successfully!", "success")
     return redirect(url_for("dashboard"))
 
-@app.route("/delete/<int:id>", methods=["POST"])
+@app.route("/delete-invoice/<invoice_no>", methods=["POST"])
 @require_staff
-def delete(id):
-    with get_db() as conn:
-        conn.execute("DELETE FROM sales_data WHERE id=?", (id,))
-        conn.commit()
+def delete_invoice(invoice_no):
+    """Delete invoice and all its line items"""
+    try:
+        with get_db() as conn:
+            conn.execute("DELETE FROM sales_invoice_line WHERE invoice_no=?", (invoice_no,))
+            conn.execute("DELETE FROM sales_invoice_header WHERE invoice_no=?", (invoice_no,))
+            conn.commit()
+        
+        flash("Invoice deleted successfully!", "success")
+    except Exception as e:
+        flash(f"Error deleting invoice: {str(e)}", "danger")
+        print(f"❌ Delete error: {e}")
     
-    flash("Sales record deleted successfully!", "danger")
     return redirect(url_for("dashboard"))
 
 # --------------------
@@ -470,8 +586,8 @@ def market_analysis():
             )
 
         try:
-            legends = [r["legend_code"] for r in conn.execute(
-                "SELECT DISTINCT legend_code FROM sales_invoice_header WHERE legend_code IS NOT NULL AND legend_code != '' ORDER BY legend_code"
+            legends = [r["legend_id"] for r in conn.execute(
+                "SELECT DISTINCT legend_id FROM sales_invoice_header WHERE legend_id IS NOT NULL AND legend_id != '' ORDER BY legend_id"
             ).fetchall()]
         except Exception as e:
             print(f"Error fetching legends: {e}")
@@ -504,7 +620,7 @@ def market_analysis():
         params = [start, end]
 
         if legend:
-            where += " AND h.legend_code = ?"
+            where += " AND h.legend_id = ?"
             params.append(legend)
 
         try:
@@ -549,20 +665,22 @@ def market_analysis():
 
             top_products_rows = conn.execute(f"""
                 SELECT
-                    l.sku_no,
-                    COALESCE(p.hem_name, l.sku_no) AS hem_name,
+                    l.product_id,
+                    p.sku_no,
+                    COALESCE(p.hem_name, 'Unknown') AS hem_name,
                     COALESCE(SUM(l.total_amt), 0) AS revenue,
                     COALESCE(SUM(l.qty), 0) AS units
                 FROM sales_invoice_header h
                 JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
-                LEFT JOIN sales_product p ON p.sku_no = l.sku_no
+                LEFT JOIN products p ON p.product_id = l.product_id
                 {where}
-                GROUP BY l.sku_no, hem_name
+                GROUP BY l.product_id, p.sku_no, hem_name
                 ORDER BY revenue DESC
                 LIMIT 10
             """, params).fetchall()
 
             top_products = [{
+                "product_id": r["product_id"],
                 "sku_no": r["sku_no"],
                 "hem_name": r["hem_name"],
                 "revenue": round(float(r["revenue"] or 0), 2),
@@ -577,7 +695,7 @@ def market_analysis():
                     COUNT(DISTINCT h.invoice_no) AS orders
                 FROM sales_invoice_header h
                 JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
-                LEFT JOIN sales_customer c ON c.customer_id = h.customer_id
+                LEFT JOIN customers c ON c.customer_id = h.customer_id
                 {where}
                 GROUP BY h.customer_id, customer_code
                 ORDER BY revenue DESC
