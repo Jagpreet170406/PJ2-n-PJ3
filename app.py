@@ -103,10 +103,9 @@ def cart():
 @app.route("/checkout")
 def checkout():
     """Shopping cart checkout page - Cards now managed in browser localStorage"""
-    # No need to fetch cards from database anymore since they're in localStorage
     return render_template("checkout.html", 
                            role=session.get("role", "customer"), 
-                           user_cards=[])  # Empty list - cards loaded from localStorage in frontend
+                           user_cards=[])
 
 @app.route("/process-payment", methods=["POST"])
 def process_payment():
@@ -129,15 +128,12 @@ def process_payment():
 
     try:
         with get_db() as conn:
-            # Log transaction
             payment_label = f"{payment_method} ({fulfillment})"
-
             conn.execute(
                 "INSERT INTO transactions (username, payment_type, amount) VALUES (?, ?, ?)",
                 (username, payment_label, total_amount)
             )
             conn.commit()
-            
             print(f"✅ Payment processed: {payment_label} - S${total_amount} for {username}")
         
         return jsonify({"success": True, "message": "Payment successful"})
@@ -203,13 +199,11 @@ def dashboard():
 @app.route("/market-analysis")
 @require_staff
 def market_analysis():
-    # Filters (GET params)
     start = request.args.get("start", "").strip()
     end = request.args.get("end", "").strip()
     legend = request.args.get("legend", "").strip()
 
     with get_db() as conn:
-        # Check if tables exist
         try:
             conn.execute("SELECT 1 FROM sales_invoice_header LIMIT 1;").fetchone()
             conn.execute("SELECT 1 FROM sales_invoice_line LIMIT 1;").fetchone()
@@ -227,7 +221,6 @@ def market_analysis():
                 top_customers=[]
             )
 
-        # Get legends
         try:
             legends = [r["legend_code"] for r in conn.execute(
                 "SELECT DISTINCT legend_code FROM sales_invoice_header WHERE legend_code IS NOT NULL AND legend_code != '' ORDER BY legend_code"
@@ -236,7 +229,6 @@ def market_analysis():
             print(f"Error fetching legends: {e}")
             legends = []
 
-        # Get date range
         try:
             max_date_row = conn.execute("SELECT MAX(invoice_date) AS m FROM sales_invoice_header WHERE invoice_date IS NOT NULL").fetchone()
             min_date_row = conn.execute("SELECT MIN(invoice_date) AS m FROM sales_invoice_header WHERE invoice_date IS NOT NULL").fetchone()
@@ -244,7 +236,6 @@ def market_analysis():
             max_date = max_date_row["m"] if max_date_row else None
             min_date = min_date_row["m"] if min_date_row else None
             
-            # Set defaults
             if not end and max_date:
                 end = max_date
             if not start and end:
@@ -255,14 +246,12 @@ def market_analysis():
                 
         except Exception as e:
             print(f"Error with date logic: {e}")
-            # Fallback to today
             from datetime import datetime, timedelta
             if not end:
                 end = datetime.now().strftime("%Y-%m-%d")
             if not start:
                 start = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
 
-        # Build WHERE clause
         where = "WHERE h.invoice_date >= ? AND h.invoice_date <= ?"
         params = [start, end]
 
@@ -271,7 +260,6 @@ def market_analysis():
             params.append(legend)
 
         try:
-            # KPIs
             kpi_row = conn.execute(f"""
                 SELECT
                     COALESCE(SUM(l.total_amt), 0) AS revenue,
@@ -297,7 +285,6 @@ def market_analysis():
                 "aov": round(aov, 2)
             }
 
-            # Trend by month
             trend_rows = conn.execute(f"""
                 SELECT
                     substr(h.invoice_date, 1, 7) AS ym,
@@ -312,7 +299,6 @@ def market_analysis():
             trend_labels = [r["ym"] for r in trend_rows if r["ym"]]
             trend_revenue = [float(r["revenue"] or 0) for r in trend_rows if r["ym"]]
 
-            # Top products
             top_products_rows = conn.execute(f"""
                 SELECT
                     l.sku_no,
@@ -335,7 +321,6 @@ def market_analysis():
                 "units": round(float(r["units"] or 0), 2)
             } for r in top_products_rows]
 
-            # Top customers
             top_customers_rows = conn.execute(f"""
                 SELECT
                     h.customer_id,
