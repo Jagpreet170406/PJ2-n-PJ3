@@ -48,7 +48,7 @@
 
     /* LOGO (OUTSIDE CARD) */
     .login-logo img {
-      height: 120px; /* 🔥 EVEN BIGGER LOGO */
+      height: 120px; /* big logo */
       width: auto;
       opacity: 0.98;
       filter: drop-shadow(0 10px 30px rgba(0,0,0,0.7));
@@ -137,6 +137,8 @@
       {% endif %}
 
       <form method="POST">
+        <!-- ✅ CSRF TOKEN (required because CSRFProtect is enabled) -->
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div class="mb-3">
           <label class="form-label">Username</label>
