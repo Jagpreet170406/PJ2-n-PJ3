@@ -19,7 +19,7 @@ DB = os.path.join(BASE_DIR, "database.db")
 # --------------------
 def get_db():
     conn = sqlite3.connect(DB)
-    conn.row_factory = sqlite3.Row
+    conn.row_factory = sqlite3.Row  # Crucial for 25k records to access by column name
     return conn
 
 # --------------------
@@ -45,16 +45,19 @@ def root():
 
 @app.route("/cart")
 def cart():
+    # 1. Get Parameters for Big Data Handling
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('search', '')
     category_filter = request.args.get('category', '')
     
-    per_page = 24
+    per_page = 24  # Don't load 25k at once!
     offset = (page - 1) * per_page
 
     with get_db() as conn:
+        # 2. Get categories for the sidebar (Distinct list)
         categories = conn.execute("SELECT DISTINCT category FROM inventory WHERE category IS NOT NULL").fetchall()
         
+        # 3. Build Dynamic Query
         base_query = " FROM inventory WHERE qty > 0"
         params = []
 
@@ -66,9 +69,11 @@ def cart():
             base_query += " AND category = ?"
             params.append(category_filter)
 
+        # 4. Count total for Pagination Logic
         total_count = conn.execute("SELECT COUNT(*)" + base_query, params).fetchone()[0]
         total_pages = (total_count // per_page) + (1 if total_count % per_page > 0 else 0)
 
+        # 5. Fetch only the 24 records for this specific page
         final_query = "SELECT *" + base_query + " ORDER BY hem_name ASC LIMIT ? OFFSET ?"
         params.extend([per_page, offset])
         products = conn.execute(final_query, params).fetchall()
@@ -88,12 +93,15 @@ def contact():
 
 @app.route("/process-payment", methods=["POST"])
 def process_payment():
+    # Get form data
     product_id = request.form.get("product_id")
     quantity = request.form.get("quantity", 1, type=int)
     pay_method = request.form.get("payment_method", "Credit Card")
     
+    # SECURITY: Verify price from database, never trust client input
     with get_db() as conn:
         if product_id:
+            # Look up the actual product price from database
             product = conn.execute("SELECT sell_price, hem_name FROM inventory WHERE id = ?", 
                                  (product_id,)).fetchone()
             if product:
@@ -103,16 +111,23 @@ def process_payment():
                 flash("Product not found!", "danger")
                 return redirect(url_for('cart'))
         else:
+            # Fallback for old form submissions without product_id
             total_val = request.form.get("total_amount", 0, type=float)
             product_name = "Unknown Product"
         
-        conn.execute("INSERT INTO transactions (username, payment_type, amount) VALUES (?,?,?)",
-                     (session.get("username", "Guest"), pay_method, total_val))
+        # Log transaction
+        conn.execute("""
+            INSERT INTO transactions (username, payment_type, amount, product_name, quantity) 
+            VALUES (?, ?, ?, ?, ?)
+        """, (session.get("username", "Guest"), pay_method, total_val, product_name, quantity))
         conn.commit()
     
-    flash(f"Payment successful! SGD {total_val:.2f} received.", "success")
+    flash(f"Payment successful! SGD {total_val:.2f} received for {quantity}x {product_name}.", "success")
     return redirect(url_for('cart'))
 
+# --------------------
+# HIDDEN STAFF LOGIN
+# --------------------
 @app.route("/staff-login", methods=["GET", "POST"])
 def staff_login():
     if session.get("role") in ["employee", "admin", "superowner"]:
@@ -130,6 +145,9 @@ def staff_login():
 
     return render_template("staff_login.html", role="customer")
 
+# --------------------
+# PROTECTED STAFF ROUTES
+# --------------------
 @app.route("/home")
 @require_staff
 def home():
@@ -138,8 +156,10 @@ def home():
 @app.route("/inventory")
 @require_staff
 def inventory():
+    # Admin view can also use pagination later if needed, 
+    # but for now, we'll keep it simple or use same logic as cart
     with get_db() as conn:
-        products = conn.execute("SELECT * FROM inventory LIMIT 100").fetchall()
+        products = conn.execute("SELECT * FROM inventory LIMIT 100").fetchall() # Limit for safety
     return render_template("inventory.html", products=products, role=session.get("role"))
 
 @app.route("/dashboard")

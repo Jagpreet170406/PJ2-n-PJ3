@@ -213,11 +213,21 @@
         <div class="product-grid">
             {% for product in products %}
             <div class="product-card">
-                <img src="{{ product['image_url'] if product['image_url'] else 'https://via.placeholder.com/300x200?text=No+Image' }}" 
+                {% set category_images = {
+                    'Engine Parts': 'https://via.placeholder.com/300x200/1e3a8a/ffffff?text=Engine+Parts',
+                    'Brake System': 'https://via.placeholder.com/300x200/dc2626/ffffff?text=Brake+System',
+                    'Suspension': 'https://via.placeholder.com/300x200/ea580c/ffffff?text=Suspension',
+                    'Electrical': 'https://via.placeholder.com/300x200/eab308/ffffff?text=Electrical',
+                    'Filters': 'https://via.placeholder.com/300x200/16a34a/ffffff?text=Filters',
+                    'Lubricants': 'https://via.placeholder.com/300x200/0891b2/ffffff?text=Lubricants',
+                    'Body Parts': 'https://via.placeholder.com/300x200/7c3aed/ffffff?text=Body+Parts',
+                    'Transmission': 'https://via.placeholder.com/300x200/db2777/ffffff?text=Transmission'
+                } %}
+                <img src="{{ product['image_url'] if product['image_url'] else category_images.get(product['category'], 'https://via.placeholder.com/300x200/6b7280/ffffff?text=' + product['category']|urlencode) }}" 
                      class="item-image"
                      alt="{{ product['hem_name'] }} - {{ product['category'] }}"
                      loading="lazy"
-                     onerror="this.src='https://via.placeholder.com/300x200?text=Image+Not+Available'">
+                     onerror="this.src='https://via.placeholder.com/300x200/6b7280/ffffff?text=No+Image'">
                 <div class="card-details">
                     <small class="text-uppercase text-muted fw-bold" style="font-size: 10px;">{{ product['category'] }}</small>
                     <h5 class="mb-1">{{ product['hem_name'] }}</h5>
@@ -248,13 +258,13 @@
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             
                             {# Only send product ID - price verification happens server-side #}
-                            <input type="hidden" name="product_id" value="{{ product['id'] }}">
+                            <input type="hidden" name="product_id" value="{{ product['inventory_id'] }}">
                             
                             {# Quantity Selector #}
                             <div class="quantity-selector">
-                                <label for="qty-{{ product['id'] }}" class="small text-muted mb-0">Qty:</label>
+                                <label for="qty-{{ product['inventory_id'] }}" class="small text-muted mb-0">Qty:</label>
                                 <input type="number" 
-                                       id="qty-{{ product['id'] }}"
+                                       id="qty-{{ product['inventory_id'] }}"
                                        name="quantity" 
                                        class="quantity-input" 
                                        value="1" 
