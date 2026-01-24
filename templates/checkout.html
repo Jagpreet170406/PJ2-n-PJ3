@@ -4,55 +4,81 @@
     <h2 class="mb-4">Confirm Order & Huat! 🧧</h2>
     <div class="row">
         <div class="col-md-8">
-            <div class="card p-4 shadow-sm mb-4">
+            <div class="card p-4 shadow-sm mb-4 border-0" style="border-left: 5px solid #2563eb !important; background: #fdfdfd;">
                 <h5 class="font-weight-bold">1. Review Your Basket</h5>
                 <hr>
                 <div id="cart-items-container"></div>
             </div>
 
             <div class="card p-4 shadow-sm mb-4">
-                <h5 class="font-weight-bold">2. Fulfillment</h5>
+                <h5 class="font-weight-bold">2. Fulfillment Method</h5>
                 <div class="row mt-3">
-                    <div class="col-6">
-                        <div class="p-3 border rounded text-center selection-box active" id="box-pickup" onclick="setFulfillment('pickup')">
-                            <h3>🏪</h3><b>Self-Pickup</b><br><small class="text-success">FREE</small>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="p-3 border rounded text-center selection-box" id="box-delivery" onclick="setFulfillment('delivery')">
-                            <h3>🚚</h3><b>Delivery</b><br><small class="text-primary">Tiered Rates</small>
-                        </div>
-                    </div>
+                    <div class="col-6"><div class="p-3 border rounded text-center selection-box active" id="box-pickup" onclick="setFulfillment('pickup')"><h3>🏪</h3><b>Self-Pickup</b></div></div>
+                    <div class="col-6"><div class="p-3 border rounded text-center selection-box" id="box-delivery" onclick="setFulfillment('delivery')"><h3>🚚</h3><b>Local Delivery</b></div></div>
                 </div>
                 <div id="delivery-address-section" class="mt-3 d-none">
-                    <textarea id="delivery-address" class="form-control" placeholder="Full Delivery Address"></textarea>
+                    <label>📍 Delivery Address</label>
+                    <textarea id="delivery-address" class="form-control" placeholder="Block, Street, Unit No, Postal Code"></textarea>
                 </div>
-                <input type="date" id="fulfillment-date" class="form-control mt-3">
+                <div class="mt-3">
+                    <label>📅 Preferred Date</label>
+                    <input type="date" id="fulfillment-date" class="form-control">
+                </div>
+            </div>
+
+            <div class="card p-4 shadow-sm mb-4">
+                <h5 class="font-weight-bold">3. Payment Details</h5>
+                <hr>
+                <div class="text-center mb-3" style="height: 55px; display: flex; align-items: center; justify-content: center;">
+                    <img id="card-logo" src="{{ url_for('static', filename='checkout/paynow.jpg') }}" height="45" style="transition: 0.3s; object-fit: contain;">
+                </div>
+
+                <select class="form-control form-control-lg mb-4" id="payment-method" onchange="togglePaymentMethod()">
+                    <option value="Credit Card">Credit / Debit Card</option>
+                    <option value="PayNow">PayNow (QR Code)</option>
+                    <option value="PayLah">DBS PayLah!</option>
+                </select>
+
+                <div id="card-details-section">
+                    <input type="text" id="card-name" class="form-control mb-2" placeholder="NAME ON CARD" autocomplete="cc-name">
+                    <input type="tel" id="card-number" class="form-control mb-2" placeholder="CARD NUMBER" maxlength="19" autocomplete="cc-number" oninput="detectCard(this.value)">
+                    <div class="row">
+                        <div class="col-6"><input type="tel" class="form-control" placeholder="MM/YY" maxlength="5" autocomplete="cc-exp"></div>
+                        <div class="col-6"><input type="password" class="form-control" placeholder="CVV" maxlength="4" autocomplete="cc-csc"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card p-4 shadow-sm sticky-top border-primary" style="top: 110px;">
-                <h4 class="font-weight-bold">Summary</h4>
-                <div class="d-flex justify-content-between"><span>Subtotal</span><span id="summary-subtotal">S$0.00</span></div>
-                <div class="d-flex justify-content-between"><span>Delivery</span><span id="summary-shipping">S$0.00</span></div>
-                <div id="shipping-promo" class="alert alert-warning py-1 mt-2 small d-none"></div>
+            <div class="card p-4 shadow-sm sticky-top border-primary" style="top: 110px; border-width: 2px;">
+                <h4 class="font-weight-bold">Bill Summary</h4>
+                <div class="d-flex justify-content-between mb-2"><span>Subtotal</span><span id="summary-subtotal">S$0.00</span></div>
+                <div class="d-flex justify-content-between mb-2"><span>Delivery Fee</span><span id="summary-shipping">S$0.00</span></div>
                 <hr>
-                <div class="d-flex justify-content-between h4 font-weight-bold"><span >Total</span><span id="summary-total" class="text-primary">S$0.00</span></div>
-                <button id="btn-pay" class="btn btn-primary btn-block btn-lg mt-3" onclick="processPayment()">💰 CONFIRM & HUAT!</button>
+                <div class="d-flex justify-content-between mb-4"><span class="h4 font-weight-bold">Total</span><span class="h4 font-weight-bold text-primary" id="summary-total">S$0.00</span></div>
+                <button id="btn-pay" class="btn btn-primary btn-block btn-lg py-3 font-weight-bold" onclick="processPayment()">💰 CONFIRM & HUAT AH!</button>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-    .selection-box { cursor: pointer; transition: 0.3s; }
+    .selection-box { cursor: pointer; transition: 0.3s; border-radius: 12px; border: 2px solid #eee; }
     .selection-box.active { border-color: #2563eb !important; background: #eff6ff; }
-    .checkout-qty-card { display: flex; align-items: center; border: 1px solid #ddd; border-radius: 6px; background: white; }
-    .checkout-qty-btn { border: none; background: none; padding: 2px 8px; cursor: pointer; font-weight: bold; }
+    .checkout-qty-card { display: flex; align-items: center; border: 1px solid #ddd; border-radius: 6px; background: white; padding: 2px 5px; }
+    .checkout-qty-btn { border: none; background: none; padding: 0 8px; cursor: pointer; font-weight: bold; }
 </style>
 
 <script>
+// LOCAL ASSETS MAPPING
+const ICONS = {
+    visa: "{{ url_for('static', filename='checkout/visa.png') }}",
+    mastercard: "{{ url_for('static', filename='checkout/mastercard.png') }}",
+    paynow: "{{ url_for('static', filename='checkout/paynow.jpg') }}",
+    paylah: "{{ url_for('static', filename='checkout/paylah.png') }}"
+};
+
 let currentFulfillment = 'pickup';
 
 function setFulfillment(method) {
@@ -63,43 +89,70 @@ function setFulfillment(method) {
     loadCheckoutCart();
 }
 
+function detectCard(val) {
+    const logo = document.getElementById('card-logo');
+    const num = val.replace(/\D/g, '');
+    document.getElementById('card-number').value = num.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+    
+    if (num.startsWith('4')) {
+        logo.src = ICONS.visa;
+    } else if (num.match(/^5[1-5]/) || num.match(/^2[2-7]/)) {
+        logo.src = ICONS.mastercard;
+    } else {
+        logo.src = ICONS.visa; // Default card view
+        logo.style.opacity = "0.3"; 
+        return;
+    }
+    logo.style.opacity = "1";
+}
+
+function togglePaymentMethod() {
+    const method = document.getElementById('payment-method').value;
+    const cardSection = document.getElementById('card-details-section');
+    const logo = document.getElementById('card-logo');
+
+    if (method === 'Credit Card') {
+        cardSection.style.display = 'block';
+        detectCard(document.getElementById('card-number').value);
+    } else {
+        cardSection.style.display = 'none';
+        logo.src = method === 'PayNow' ? ICONS.paynow : ICONS.paylah;
+        logo.style.opacity = "1";
+    }
+}
+
 function loadCheckoutCart() {
     const cart = JSON.parse(localStorage.getItem('cart') || '[]');
     const container = document.getElementById('cart-items-container');
     let subtotal = 0;
-    
-    if (cart.length === 0) {
-        container.innerHTML = "Cart is empty!";
-        return updateTotals(0, 0);
+    if (cart.length === 0) { 
+        container.innerHTML = "Empty basket!"; 
+        return updateTotals(0,0); 
     }
 
     container.innerHTML = cart.map((item, i) => {
         subtotal += item.price * item.quantity;
         return `
         <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
-            <div class="flex-grow-1"><b>${item.name}</b><br><small>S$${item.price.toFixed(2)}</small></div>
-            <div class="checkout-qty-card mx-3">
+            <img src="${item.image}" style="width:55px; height:55px; object-fit:contain; margin-right:15px; background:#f4f4f4; border-radius:8px;">
+            <div class="flex-grow-1"><b>${item.name}</b><br><small>S$${item.price.toFixed(2)} / pc</small></div>
+            <div class="checkout-qty-card mx-2">
                 <button class="checkout-qty-btn" onclick="updateQty(${i}, -1)">−</button>
-                <span class="px-2">${item.quantity}</span>
+                <span class="px-1 fw-bold">${item.quantity}</span>
                 <button class="checkout-qty-btn" onclick="updateQty(${i}, 1)">+</button>
             </div>
-            <div class="font-weight-bold" style="min-width: 80px;">S$${(item.price * item.quantity).toFixed(2)}</div>
-            <button class="btn btn-link text-danger p-0 ml-2" onclick="updateQty(${i}, -999)">❌</button>
+            <div class="font-weight-bold" style="min-width:80px; text-align:right;">S$${(item.price * item.quantity).toFixed(2)}</div>
+            <button class="btn btn-link text-danger ml-2" onclick="updateQty(${i}, -999)">❌</button>
         </div>`;
     }).join('');
-
-    let ship = 0;
-    if (currentFulfillment === 'delivery') {
-        if (subtotal < 100) ship = 3.50;
-        else if (subtotal <= 888) ship = 1.50;
-        else ship = 0;
-    }
+    
+    let ship = currentFulfillment === 'delivery' ? (subtotal < 100 ? 3.50 : (subtotal <= 888 ? 1.50 : 0)) : 0;
     updateTotals(subtotal, ship);
 }
 
-function updateQty(i, delta) {
+function updateQty(i, d) {
     let cart = JSON.parse(localStorage.getItem('cart'));
-    cart[i].quantity += delta;
+    cart[i].quantity += d;
     if (cart[i].quantity < 1) cart.splice(i, 1);
     localStorage.setItem('cart', JSON.stringify(cart));
     loadCheckoutCart();
@@ -109,26 +162,44 @@ function updateTotals(sub, ship) {
     document.getElementById('summary-subtotal').innerText = `S$${sub.toFixed(2)}`;
     document.getElementById('summary-shipping').innerText = ship === 0 ? 'FREE' : `S$${ship.toFixed(2)}`;
     document.getElementById('summary-total').innerText = `S$${(sub + ship).toFixed(2)}`;
-    
-    const promo = document.getElementById('shipping-promo');
-    if (currentFulfillment === 'delivery' && sub < 888) {
-        promo.classList.remove('d-none');
-        let nextTier = sub < 100 ? 100 : 888;
-        promo.innerText = `Add S$${(nextTier - sub).toFixed(2)} more for cheaper shipping!`;
-    } else promo.classList.add('d-none');
 }
 
 async function processPayment() {
     const btn = document.getElementById('btn-pay');
-    btn.disabled = true;
-    btn.innerHTML = "HUATING... 🧧";
-    // Send fetch request here...
-    setTimeout(() => { 
-        localStorage.removeItem('cart');
-        window.location.href = "/order-success"; 
-    }, 1500);
+    btn.disabled = true; btn.innerHTML = "HUATING... 🧧";
+    
+    const payload = {
+        cart: JSON.parse(localStorage.getItem('cart')),
+        total: parseFloat(document.getElementById('summary-total').innerText.replace('S$', '')),
+        fulfillment: currentFulfillment,
+        date: document.getElementById('fulfillment-date').value,
+        address: document.getElementById('delivery-address').value,
+        payment_method: document.getElementById('payment-method').value
+    };
+
+    try {
+        const res = await fetch('/process-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': "{{ csrf_token() }}" },
+            body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        if (result.success) {
+            localStorage.removeItem('cart');
+            window.location.href = "/order-success";
+        } else {
+            alert("Error: " + result.message);
+            btn.disabled = false; btn.innerText = "💰 CONFIRM & HUAT AH!";
+        }
+    } catch (e) {
+        btn.disabled = false; btn.innerText = "💰 CONFIRM & HUAT AH!";
+    }
 }
 
-document.addEventListener('DOMContentLoaded', loadCheckoutCart);
+document.addEventListener('DOMContentLoaded', () => {
+    loadCheckoutCart();
+    togglePaymentMethod();
+    document.getElementById('fulfillment-date').value = new Date().toISOString().split('T')[0];
+});
 </script>
 {% endblock %}
