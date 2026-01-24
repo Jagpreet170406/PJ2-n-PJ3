@@ -12,39 +12,31 @@
         gap: 2rem; 
     }
     @media (max-width: 992px) { 
-        .shop-container { 
-            grid-template-columns: 1fr; 
-        } 
+        .shop-container { grid-template-columns: 1fr; } 
     }
 
-    /* Sidebar Styling */
+    /* Sidebar */
     .sidebar { 
         background: #f8f9fa; 
         padding: 1.5rem; 
         border-radius: 12px; 
-        height: fit-content; 
         border: 1px solid #eee; 
     }
     .category-link { 
         display: block; 
-        padding: 0.5rem 0; 
+        padding: 0.5rem; 
         color: #444; 
         text-decoration: none; 
-        transition: 0.2s; 
         border-radius: 4px;
-        padding-left: 0.5rem;
     }
-    .category-link:hover, .category-link.active { 
+    .category-link:hover,
+    .category-link.active { 
         color: #2563eb; 
         font-weight: bold; 
-        background: rgba(37, 99, 235, 0.05);
-    }
-    .category-link:focus {
-        outline: 2px solid #2563eb;
-        outline-offset: 2px;
+        background: rgba(37, 99, 235, 0.08);
     }
 
-    /* Product Grid */
+    /* Grid */
     .product-grid { 
         display: grid; 
         grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); 
@@ -55,121 +47,60 @@
         border: 1px solid #eee; 
         border-radius: 12px; 
         overflow: hidden; 
-        transition: 0.3s; 
-        height: 100%; 
+        transition: 0.25s; 
         display: flex; 
         flex-direction: column; 
     }
     .product-card:hover { 
-        transform: translateY(-5px); 
-        box-shadow: 0 10px 20px rgba(0,0,0,0.08); 
+        transform: translateY(-4px); 
+        box-shadow: 0 8px 18px rgba(0,0,0,0.08); 
         border-color: #2563eb;
     }
+
     .item-image { 
         width: 100%; 
         height: 200px; 
         object-fit: cover; 
-        background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%); 
+        background: #f1f1f1; 
     }
+
     .card-details { 
         padding: 1.25rem; 
-        flex-grow: 1; 
         display: flex; 
         flex-direction: column; 
+        flex-grow: 1; 
     }
+
     .price-tag { 
         font-size: 1.25rem; 
         font-weight: 800; 
         color: #d9534f; 
         margin: 0.5rem 0; 
     }
-    
-    /* Stock Badge */
+
     .stock-badge {
         font-size: 0.75rem;
         padding: 0.25rem 0.5rem;
         border-radius: 4px;
-        display: inline-block;
         font-weight: 600;
+        display: inline-block;
     }
-    .stock-badge.in-stock {
-        background: #d4edda;
-        color: #155724;
-    }
-    .stock-badge.low-stock {
-        background: #fff3cd;
-        color: #856404;
-    }
-    .stock-badge.out-stock {
-        background: #f8d7da;
-        color: #721c24;
-    }
-    
-    /* Search & Pagination */
-    .search-bar { 
-        margin-bottom: 2rem; 
-        display: flex; 
-        gap: 0.5rem; 
-    }
-    .form-control { 
-        padding: 0.75rem; 
-        border: 1px solid #ddd; 
-        border-radius: 8px; 
-        width: 100%; 
-    }
-    .form-control:focus {
-        outline: 2px solid #2563eb;
-        outline-offset: 0;
-        border-color: #2563eb;
-    }
-    .pagination-box { 
-        margin-top: 3rem; 
-        display: flex; 
-        justify-content: center; 
-        gap: 1rem; 
-        align-items: center; 
-    }
-    .btn-page { 
-        padding: 0.5rem 1rem; 
-        border: 1px solid #2563eb; 
-        color: #2563eb; 
-        border-radius: 5px; 
-        text-decoration: none; 
-        transition: 0.2s;
-    }
-    .btn-page:hover, .btn-page.active { 
-        background: #2563eb; 
-        color: white; 
-    }
-    .btn-page:focus {
-        outline: 2px solid #2563eb;
-        outline-offset: 2px;
-    }
-    .btn-page:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-    
-    /* Quantity Selector */
-    .quantity-selector {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-        margin-top: 0.5rem;
-    }
+    .in-stock { background: #d4edda; color: #155724; }
+    .low-stock { background: #fff3cd; color: #856404; }
+    .out-stock { background: #f8d7da; color: #721c24; }
+
     .quantity-input {
         width: 60px;
-        padding: 0.25rem;
         text-align: center;
         border: 1px solid #ddd;
         border-radius: 4px;
+        padding: 0.25rem;
     }
-    
-    /* Part Number */
+
     .part-number {
-        font-family: 'Courier New', monospace;
+        font-family: monospace;
         background: #f8f9fa;
-        padding: 0.25rem 0.5rem;
+        padding: 0.2rem 0.4rem;
         border-radius: 4px;
         font-size: 0.85rem;
     }
@@ -179,93 +110,81 @@
     <aside class="sidebar">
         <h4>📦 Categories</h4>
         <hr>
-        <a href="{{ url_for('cart') }}" 
-           class="category-link {{ 'active' if not category_filter }}"
-           aria-label="View all products">
+        <a href="{{ url_for('cart') }}" class="category-link {{ 'active' if not category_filter }}">
             All Products
         </a>
         {% for cat in categories %}
-        <a href="{{ url_for('cart', category=cat['category'], search=search_query) }}" 
-           class="category-link {{ 'active' if category_filter == cat['category'] }}"
-           aria-label="Filter by {{ cat['category'] }}">
+        <a href="{{ url_for('cart', category=cat['category'], search=search_query) }}"
+           class="category-link {{ 'active' if category_filter == cat['category'] }}">
             {{ cat['category'] }}
         </a>
         {% endfor %}
     </aside>
 
     <main>
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex justify-content-between mb-4">
             <h1>🛒 Component Shop</h1>
-            <span class="text-muted">Showing page {{ current_page }} of {{ total_pages }}</span>
+            <span class="text-muted">Page {{ current_page }} / {{ total_pages }}</span>
         </div>
 
-        <form class="search-bar" action="{{ url_for('cart') }}" method="GET">
-            <input type="text" 
-                   name="search" 
-                   class="form-control" 
-                   placeholder="Search 25,000+ parts (e.g. Mobil 1, Brake pads...)" 
-                   value="{{ search_query }}"
-                   aria-label="Search products">
+        <form class="d-flex gap-2 mb-4" method="GET">
+            <input type="text" name="search" class="form-control"
+                   placeholder="Search parts..."
+                   value="{{ search_query }}">
             <input type="hidden" name="category" value="{{ category_filter }}">
-            <button type="submit" class="btn btn-primary px-4">Search</button>
+            <button class="btn btn-primary">Search</button>
         </form>
 
         <div class="product-grid">
-            {% for product in products %}
+        {% for product in products %}
             <div class="product-card">
-                <img src="{{ product['image_url'] or 'https://via.placeholder.com/300x200/dc2626/ffffff?text=NO+IMAGE' }}" 
-                     class="item-image"
-                     alt="{{ product['hem_name'] }} - {{ product['category'] }}"
-                     loading="lazy"
-                     onerror="this.src='https://via.placeholder.com/300x200/ff0000/ffffff?text=ERROR+LOADING'">
+
+                <!-- 🔥 SKU IMAGE MATCHING -->
+                <img
+                    src="{{ url_for('static', filename='products/' ~ product['sup_part_no'] ~ '.jpg') }}"
+                    class="item-image"
+                    alt="{{ product['hem_name'] }}"
+                    loading="lazy"
+                    onerror="this.onerror=null; this.src='{{ url_for('static', filename='products/no-image.png') }}';"
+                >
+
                 <div class="card-details">
-                    <small class="text-uppercase text-muted fw-bold" style="font-size: 10px;">{{ product['category'] }}</small>
-                    <h5 class="mb-1">{{ product['hem_name'] }}</h5>
-                    <p class="text-muted small mb-2">
+                    <small class="text-uppercase text-muted">{{ product['category'] }}</small>
+
+                    <h5>{{ product['hem_name'] }}</h5>
+
+                    <p class="text-muted small">
                         Part No: <span class="part-number">{{ product['sup_part_no'] }}</span>
                     </p>
-                    
-                    {# Stock Status - Check if stock field exists #}
-                    {% if 'stock' in product.keys() %}
-                        {% if product['stock'] > 10 %}
-                            <span class="stock-badge in-stock">✓ In Stock</span>
-                        {% elif product['stock'] > 0 %}
-                            <span class="stock-badge low-stock">⚠ Low Stock ({{ product['stock'] }} left)</span>
-                        {% else %}
-                            <span class="stock-badge out-stock">✗ Out of Stock</span>
-                        {% endif %}
+
+                    {% if 'stock' in product and product['stock'] > 10 %}
+                        <span class="stock-badge in-stock">✓ In Stock</span>
+                    {% elif 'stock' in product and product['stock'] > 0 %}
+                        <span class="stock-badge low-stock">⚠ Low ({{ product['stock'] }})</span>
+                    {% elif 'stock' in product %}
+                        <span class="stock-badge out-stock">✗ Out of Stock</span>
                     {% else %}
                         <span class="stock-badge in-stock">✓ Available</span>
                     {% endif %}
-                    
+
                     <div class="mt-auto">
-                        <div class="price-tag">SGD {{ "{:,.2f}".format(product['sell_price']) }}</div>
-                        
-                        {# Only show form if product is in stock #}
-                        {% if 'stock' not in product.keys() or product['stock'] > 0 %}
-                        <form action="{{ url_for('process_payment') }}" method="POST">
-                            {# CSRF Protection - Flask-WTF auto-generates this #}
+                        <div class="price-tag">
+                            SGD {{ "{:,.2f}".format(product['sell_price']) }}
+                        </div>
+
+                        {% if 'stock' not in product or product['stock'] > 0 %}
+                        <form method="POST" action="{{ url_for('process_payment') }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            
-                            {# Only send product ID - price verification happens server-side #}
                             <input type="hidden" name="product_id" value="{{ product['inventory_id'] }}">
-                            
-                            {# Quantity Selector #}
-                            <div class="quantity-selector">
-                                <label for="qty-{{ product['inventory_id'] }}" class="small text-muted mb-0">Qty:</label>
-                                <input type="number" 
-                                       id="qty-{{ product['inventory_id'] }}"
-                                       name="quantity" 
-                                       class="quantity-input" 
-                                       value="1" 
-                                       min="1" 
-                                       max="{% if 'stock' in product.keys() %}{{ [product['stock'], 10]|min }}{% else %}10{% endif %}"
-                                       aria-label="Quantity">
-                            </div>
-                            
-                            <button type="submit" 
-                                    class="btn btn-outline-primary btn-sm w-100 mt-2"
-                                    aria-label="Add {{ product['hem_name'] }} to cart">
+
+                            <input type="number"
+                                   name="quantity"
+                                   value="1"
+                                   min="1"
+                                   max="10"
+                                   class="quantity-input">
+
+                            <button class="btn btn-outline-primary btn-sm w-100 mt-2">
                                 Quick Buy
                             </button>
                         </form>
@@ -277,68 +196,13 @@
                     </div>
                 </div>
             </div>
-            {% else %}
-            <div class="text-center py-5 w-100" style="grid-column: 1 / -1;">
-                <h3>No items found.</h3>
-                <p>Try searching for something else or changing categories.</p>
-                {% if search_query or category_filter %}
-                <a href="{{ url_for('cart') }}" class="btn btn-primary mt-3">Clear Filters</a>
-                {% endif %}
+        {% else %}
+            <div class="text-center w-100 py-5" style="grid-column:1/-1">
+                <h4>No products found</h4>
+                <a href="{{ url_for('cart') }}" class="btn btn-primary mt-2">Clear Filters</a>
             </div>
-            {% endfor %}
+        {% endfor %}
         </div>
-
-        {% if total_pages > 1 %}
-        <div class="pagination-box">
-            {% if current_page > 1 %}
-            <a href="{{ url_for('cart', page=current_page-1, search=search_query, category=category_filter) }}" 
-               class="btn-page"
-               aria-label="Go to previous page">
-                &laquo; Previous
-            </a>
-            {% else %}
-            <span class="btn-page" style="opacity: 0.3; cursor: not-allowed;">&laquo; Previous</span>
-            {% endif %}
-
-            <span class="fw-bold">Page {{ current_page }} of {{ total_pages }}</span>
-
-            {% if current_page < total_pages %}
-            <a href="{{ url_for('cart', page=current_page+1, search=search_query, category=category_filter) }}" 
-               class="btn-page"
-               aria-label="Go to next page">
-                Next &raquo;
-            </a>
-            {% else %}
-            <span class="btn-page" style="opacity: 0.3; cursor: not-allowed;">Next &raquo;</span>
-            {% endif %}
-        </div>
-        {% endif %}
     </main>
 </div>
-
-{# SEO: Structured Data for Products #}
-{% if products %}
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org/",
-  "@type": "ItemList",
-  "itemListElement": [
-    {% for product in products %}
-    {
-      "@type": "Product",
-      "position": {{ loop.index }},
-      "name": "{{ product['hem_name']|e }}",
-      "sku": "{{ product['sup_part_no']|e }}",
-      "offers": {
-        "@type": "Offer",
-        "price": "{{ product['sell_price'] }}",
-        "priceCurrency": "SGD",
-        "availability": "{% if 'stock' in product.keys() and product['stock'] > 0 %}https://schema.org/InStock{% else %}https://schema.org/OutOfStock{% endif %}"
-      }
-    }{% if not loop.last %},{% endif %}
-    {% endfor %}
-  ]
-}
-</script>
-{% endif %}
 {% endblock %}
