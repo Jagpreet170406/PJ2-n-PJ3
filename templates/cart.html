@@ -29,6 +29,22 @@
     .qty-btn { width: 30px; height: 30px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; }
     .qty-btn:hover { background: #f3f4f6; }
     .qty-input { width: 50px; text-align: center; border: 1px solid #ddd; border-radius: 4px; padding: 4px; }
+
+    /* --- ANIMATION STYLES --- */
+    .flying-item {
+        position: fixed;
+        z-index: 9999;
+        pointer-events: none;
+        transition: all 0.7s cubic-bezier(0.25, 0.1, 0.25, 1);
+        font-size: 24px;
+    }
+
+    @keyframes cart-pop {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.4); }
+        100% { transform: scale(1); }
+    }
+    .cart-pop { animation: cart-pop 0.3s ease-out; }
 </style>
 
 <div class="shop-container">
@@ -79,11 +95,11 @@
                         </div>
                         
                         <div class="cart-buttons">
-                            <button onclick="addToCart({{ product.inventory_id }}, '{{ product.hem_name }}', {{ product.sell_price }})" 
+                            <button onclick="addToCart(event, {{ product.inventory_id }}, '{{ product.hem_name }}', {{ product.sell_price }})" 
                                     class="btn btn-add-cart btn-sm flex-fill">
                                 Add to Cart
                             </button>
-                            <button onclick="buyNow({{ product.inventory_id }}, '{{ product.hem_name }}', {{ product.sell_price }})" 
+                            <button onclick="buyNow(event, {{ product.inventory_id }}, '{{ product.hem_name }}', {{ product.sell_price }})" 
                                     class="btn btn-buy-now btn-sm flex-fill">
                                 Buy Now
                             </button>
@@ -109,7 +125,6 @@
 </div>
 
 <script>
-// --- CORE SYNC FIX: Using localStorage to sync with checkout.html ---
 function getCart() {
     return JSON.parse(localStorage.getItem('cart') || '[]');
 }
@@ -122,12 +137,14 @@ function saveCart(cart) {
 function updateCartBadge() {
     const cart = getCart();
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-    
-    // Looks for .cart-badge in your base.html navbar
     const badge = document.querySelector('.cart-badge');
     if (badge) {
         badge.textContent = totalItems;
         badge.style.display = totalItems > 0 ? 'inline-block' : 'none';
+        // Add pop animation
+        badge.classList.remove('cart-pop');
+        void badge.offsetWidth; // trigger reflow
+        badge.classList.add('cart-pop');
     }
 }
 
@@ -138,10 +155,9 @@ function changeQty(productId, delta) {
     input.value = value;
 }
 
-function addToCart(productId, productName, price) {
+function addToCart(event, productId, productName, price) {
     const quantity = parseInt(document.getElementById(`qty-${productId}`).value);
     const cart = getCart();
-    
     const existing = cart.find(item => item.id === productId);
     
     if (existing) {
@@ -156,14 +172,46 @@ function addToCart(productId, productName, price) {
     }
     
     saveCart(cart);
-    alert(`✅ Added ${quantity}x ${productName} to cart!`);
+    animateToCart(event); // Start the movement
 }
 
-function buyNow(productId, productName, price) {
-    // Add to cart first
-    addToCart(productId, productName, price);
-    // Then immediate redirect to checkout
-    window.location.href = "{{ url_for('checkout') }}";
+function animateToCart(e) {
+    const cartIcon = document.querySelector('.cart-badge') || document.querySelector('a[href*="checkout"]');
+    if (!cartIcon) return;
+
+    // Create flying element (package icon)
+    const flyer = document.createElement('div');
+    flyer.className = 'flying-item';
+    flyer.innerHTML = '📦';
+    document.body.appendChild(flyer);
+
+    // Initial position (where the button is)
+    const startRect = e.target.getBoundingClientRect();
+    const endRect = cartIcon.getBoundingClientRect();
+
+    flyer.style.left = startRect.left + 'px';
+    flyer.style.top = startRect.top + 'px';
+
+    // Move to cart
+    requestAnimationFrame(() => {
+        flyer.style.left = endRect.left + 'px';
+        flyer.style.top = endRect.top + 'px';
+        flyer.style.transform = 'scale(0.2)';
+        flyer.style.opacity = '0.5';
+    });
+
+    // Cleanup
+    setTimeout(() => {
+        flyer.remove();
+    }, 700);
+}
+
+function buyNow(event, productId, productName, price) {
+    addToCart(event, productId, productName, price);
+    // Short delay so user sees the item "fly" before redirecting
+    setTimeout(() => {
+        window.location.href = "{{ url_for('checkout') }}";
+    }, 400);
 }
 
 document.addEventListener('DOMContentLoaded', updateCartBadge);
