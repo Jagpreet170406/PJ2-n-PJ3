@@ -60,9 +60,6 @@
                     <label class="small font-weight-bold text-muted text-uppercase">Select a Saved Card</label>
                     <select class="form-control mb-3" id="saved-card-id" onchange="handleSavedCardChange()">
                         <option value="new">+ Use a new card</option>
-                        {% for card in user_cards %}
-                        <option value="{{ card.id }}">💳 {{ card.brand }} ending in {{ card.last4 }} (Exp: {{ card.exp }})</option>
-                        {% endfor %}
                     </select>
                 </div>
 
@@ -76,7 +73,7 @@
                     <div class="custom-control custom-checkbox mt-3">
                         <input type="checkbox" class="custom-control-input" id="save-card-checkbox" checked>
                         <label class="custom-control-label text-primary font-weight-bold" for="save-card-checkbox" style="cursor:pointer;">
-                            🧧 Save card securely for future orders
+                            🧧 Save card securely in this browser for future orders
                         </label>
                     </div>
                 </div>
@@ -119,6 +116,46 @@
 <script>
 let currentFulfillment = 'pickup';
 
+// LOAD SAVED CARDS FROM LOCALSTORAGE
+function loadSavedCards(){
+    const savedCards = JSON.parse(localStorage.getItem('saved_cards') || '[]');
+    const select = document.getElementById('saved-card-id');
+    
+    // Clear existing options except "new"
+    select.innerHTML = '<option value="new">+ Use a new card</option>';
+    
+    // Add saved cards
+    savedCards.forEach((card, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = `💳 ${card.brand} ending in ${card.last4} (Exp: ${card.exp})`;
+        select.appendChild(option);
+    });
+}
+
+// SAVE CARD TO LOCALSTORAGE
+function saveCardToLocalStorage(cardDetails){
+    const savedCards = JSON.parse(localStorage.getItem('saved_cards') || '[]');
+    
+    // Check if card already exists
+    const exists = savedCards.some(card => 
+        card.last4 === cardDetails.last4 && card.exp === cardDetails.exp
+    );
+    
+    if(!exists){
+        savedCards.push({
+            brand: cardDetails.brand,
+            last4: cardDetails.last4,
+            exp: cardDetails.exp,
+            name: cardDetails.name
+        });
+        localStorage.setItem('saved_cards', JSON.stringify(savedCards));
+        console.log('✅ Card saved to browser!');
+    } else {
+        console.log('ℹ️ Card already saved');
+    }
+}
+
 // CARD VALIDATION
 function validateLuhn(number){
     let sum=0,isSecond=false;
@@ -156,7 +193,28 @@ function detectCardBrand(num){
 // SAVED CARD TOGGLE
 function handleSavedCardChange(){
     const val=document.getElementById('saved-card-id').value;
-    document.getElementById('card-details-section').style.display=(val==='new')?'block':'none';
+    const cardDetailsSection = document.getElementById('card-details-section');
+    
+    if(val==='new'){
+        cardDetailsSection.style.display='block';
+        // Clear inputs
+        document.getElementById('card-name').value = '';
+        document.getElementById('card-number').value = '';
+        document.getElementById('card-exp').value = '';
+        document.getElementById('card-cvv').value = '';
+    } else {
+        // Load saved card data
+        const savedCards = JSON.parse(localStorage.getItem('saved_cards') || '[]');
+        const card = savedCards[parseInt(val)];
+        
+        if(card){
+            document.getElementById('card-name').value = card.name || '';
+            document.getElementById('card-number').value = '•••• •••• •••• ' + card.last4;
+            document.getElementById('card-exp').value = card.exp;
+        }
+        
+        cardDetailsSection.style.display='none';
+    }
 }
 
 // PAYMENT METHOD SWITCH
@@ -255,6 +313,8 @@ async function processPayment(){
     const errorMsg=document.getElementById('card-error-msg');
     errorMsg.innerText="";
 
+    let cardDetails = null;
+
     // CARD VALIDATION
     if(method==='Credit Card' && savedCardId==='new'){
         const cardName=document.getElementById('card-name').value.trim();
@@ -293,6 +353,21 @@ async function processPayment(){
             setTimeout(()=>section.classList.remove('shake'),400);
             return;
         }
+
+        cardDetails = {
+            name: cardName,
+            number: num,
+            exp: exp,
+            cvv: cvv,
+            brand: detectCardBrand(num),
+            last4: num.slice(-4)
+        };
+
+        // SAVE TO LOCALSTORAGE IF CHECKBOX IS CHECKED
+        if(document.getElementById('save-card-checkbox').checked){
+            saveCardToLocalStorage(cardDetails);
+            loadSavedCards(); // Refresh dropdown
+        }
     }
 
     btn.disabled=true;
@@ -306,21 +381,12 @@ async function processPayment(){
         selectedDate = document.getElementById('delivery-address').value || 'Address not provided';
     }
 
-    // Payload to backend
+    // Payload to backend (simplified - no need to save cards in DB)
     const payload = {
         cart: JSON.parse(localStorage.getItem('cart')),
         total_amount: parseFloat(document.getElementById('summary-total').innerText.replace('S$', '')),
         fulfillment: currentFulfillment,
         payment_method: method,
-        saved_card_id: savedCardId==='new'?null:savedCardId,
-        save_this_card: (method==='Credit Card' && savedCardId==='new') ? document.getElementById('save-card-checkbox').checked : false,
-        card_details: (method==='Credit Card' && savedCardId==='new')?{
-            name: document.getElementById('card-name').value.trim(),
-            number: document.getElementById('card-number').value.replace(/\s/g, ''),
-            exp: document.getElementById('card-exp').value.trim(),
-            cvv: document.getElementById('card-cvv').value.trim(),
-            brand: detectCardBrand(document.getElementById('card-number').value.replace(/\s/g, ''))
-        }:null,
         pickup_or_delivery_date: selectedDate
     };
 
@@ -348,7 +414,11 @@ async function processPayment(){
     }
 }
 
-document.addEventListener('DOMContentLoaded',loadCheckoutCart);
+// LOAD SAVED CARDS ON PAGE LOAD
+document.addEventListener('DOMContentLoaded', function(){
+    loadCheckoutCart();
+    loadSavedCards();
+});
 </script>
 {% endblock %}
 

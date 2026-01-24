@@ -102,24 +102,15 @@ def cart():
 
 @app.route("/checkout")
 def checkout():
-    """Shopping cart checkout page - Updated to load saved cards"""
-    user_cards = []
-    username = session.get("username")
-    
-    if username:
-        with get_db() as conn:
-            user_cards = conn.execute(
-                "SELECT id, brand, last4, exp FROM user_cards WHERE username = ?", 
-                (username,)
-            ).fetchall()
-
+    """Shopping cart checkout page - Cards now managed in browser localStorage"""
+    # No need to fetch cards from database anymore since they're in localStorage
     return render_template("checkout.html", 
                            role=session.get("role", "customer"), 
-                           user_cards=user_cards)
+                           user_cards=[])  # Empty list - cards loaded from localStorage in frontend
 
 @app.route("/process-payment", methods=["POST"])
 def process_payment():
-    """Process cart checkout payment and handle card saving logic"""
+    """Process cart checkout payment - Simplified, no card saving to DB"""
     data = request.get_json()
     
     if not data:
@@ -129,11 +120,7 @@ def process_payment():
     payment_method = data.get('payment_method', 'Credit Card')
     total_amount = data.get('total_amount', 0)
     fulfillment = data.get('fulfillment', 'pickup')
-    
-    # Data for saving/using cards
-    saved_card_id = data.get('saved_card_id')
-    save_this_card = data.get('save_this_card', False)
-    card_details = data.get('card_details')
+    pickup_or_delivery_date = data.get('pickup_or_delivery_date', '')
     
     username = session.get("username", "Guest")
     
@@ -144,39 +131,14 @@ def process_payment():
         with get_db() as conn:
             # Log transaction
             payment_label = f"{payment_method} ({fulfillment})"
-            if saved_card_id:
-                payment_label += " [Used Saved Card]"
 
             conn.execute(
                 "INSERT INTO transactions (username, payment_type, amount) VALUES (?, ?, ?)",
                 (username, payment_label, total_amount)
             )
-
-            # Logic to save card if requested and user is logged in
-            if save_this_card and card_details and username != "Guest":
-                # Extract all card details from frontend
-                raw_num = card_details.get('number', '').replace(' ', '')
-                last4 = raw_num[-4:] if len(raw_num) >= 4 else "0000"
-                brand = card_details.get('brand', 'Unknown')  # Use brand from frontend
-                exp = card_details.get('exp', '')
-                name = card_details.get('name', '')
-                
-                # Check if card already exists (prevent duplicates)
-                existing = conn.execute(
-                    "SELECT id FROM user_cards WHERE username = ? AND last4 = ? AND exp = ?",
-                    (username, last4, exp)
-                ).fetchone()
-                
-                if not existing:
-                    conn.execute(
-                        "INSERT INTO user_cards (username, brand, last4, exp, name) VALUES (?, ?, ?, ?, ?)",
-                        (username, brand, last4, exp, name)
-                    )
-                    print(f"✅ Card saved: {brand} ending in {last4} for {username}")
-                else:
-                    print(f"ℹ️ Card already exists: {brand} ending in {last4}")
-
             conn.commit()
+            
+            print(f"✅ Payment processed: {payment_label} - S${total_amount} for {username}")
         
         return jsonify({"success": True, "message": "Payment successful"})
         
