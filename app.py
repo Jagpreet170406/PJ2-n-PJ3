@@ -3,7 +3,7 @@ import os
 import json
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFProtect, generate_csrf
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
@@ -11,6 +11,9 @@ app.secret_key = "chinhon_secret_key"
 
 # Enable CSRF Protection
 csrf = CSRFProtect(app)
+
+# Exempt JSON API endpoints from CSRF
+csrf.exempt("process_payment")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB = os.path.join(BASE_DIR, "database.db")
@@ -55,6 +58,13 @@ def init_db():
         conn.commit()
 
 init_db()
+
+# --------------------
+# CONTEXT PROCESSOR - Makes csrf_token available to all templates
+# --------------------
+@app.context_processor
+def inject_csrf_token():
+    return dict(csrf_token=generate_csrf)
 
 # --------------------
 # SECURITY DECORATOR
@@ -124,6 +134,7 @@ def checkout():
                            user_cards=[])
 
 @app.route("/process-payment", methods=["POST"])
+@csrf.exempt
 def process_payment():
     """Process cart checkout payment - Simplified, no card saving to DB"""
     data = request.get_json()
