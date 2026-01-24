@@ -23,6 +23,23 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
+# Initialize the new table for saved cards if it doesn't exist
+def init_db():
+    with get_db() as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS user_cards (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL,
+                brand TEXT,
+                last4 TEXT,
+                exp TEXT,
+                name TEXT
+            )
+        """)
+        conn.commit()
+
+init_db()
+
 # --------------------
 # SECURITY DECORATOR
 # --------------------
@@ -85,12 +102,15 @@ def cart():
 
 @app.route("/checkout")
 def checkout():
-    """Shopping cart checkout page"""
-    return render_template("checkout.html", role=session.get("role", "customer"))
+    """Shopping cart checkout page - Cards now managed in browser localStorage"""
+    # No need to fetch cards from database anymore since they're in localStorage
+    return render_template("checkout.html", 
+                           role=session.get("role", "customer"), 
+                           user_cards=[])  # Empty list - cards loaded from localStorage in frontend
 
 @app.route("/process-payment", methods=["POST"])
 def process_payment():
-    """Process cart checkout payment via JSON request"""
+    """Process cart checkout payment - Simplified, no card saving to DB"""
     data = request.get_json()
 
     if not data:
@@ -100,23 +120,30 @@ def process_payment():
     payment_method = data.get('payment_method', 'Credit Card')
     total_amount = data.get('total_amount', 0)
     fulfillment = data.get('fulfillment', 'pickup')
-    fulfillment_date = data.get('fulfillment_date', 'Not Specified')
+    pickup_or_delivery_date = data.get('pickup_or_delivery_date', '')
+    
+    username = session.get("username", "Guest")
 
     if not cart_items:
         return jsonify({"success": False, "message": "Cart is empty"})
 
     try:
         with get_db() as conn:
+            # Log transaction
+            payment_label = f"{payment_method} ({fulfillment})"
+
             conn.execute(
                 "INSERT INTO transactions (username, payment_type, amount) VALUES (?, ?, ?)",
-                (session.get("username", "Guest"), f"{payment_method} ({fulfillment})", total_amount)
+                (username, payment_label, total_amount)
             )
             conn.commit()
-
+            
+            print(f"✅ Payment processed: {payment_label} - S${total_amount} for {username}")
+        
         return jsonify({"success": True, "message": "Payment successful"})
 
     except Exception as e:
-        print(f"Payment error: {e}")
+        print(f"❌ Payment error: {e}")
         return jsonify({"success": False, "message": str(e)})
 
 @app.route("/order-success")
