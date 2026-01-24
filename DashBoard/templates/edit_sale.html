@@ -1,0 +1,10 @@
+<h2>Edit Sale</h2>
+<form method="POST" action="/update_sale/{{ sale[0] }}">
+    Item Code: <input name="item_code" value="{{ sale[1] }}"><br>
+    Description: <input name="item_description" value="{{ sale[2] }}"><br>
+    Quantity: <input name="quantity" value="{{ sale[3] }}" type="number"><br>
+    Sales Value: <input name="sales_value" value="{{ sale[4] }}" type="number" step="0.01"><br>
+    Period: <input name="time_period" value="{{ sale[5] }}"><br>
+    <button type="submit">Save</button>
+</form>
+<a href="/dashboard">Back</a>

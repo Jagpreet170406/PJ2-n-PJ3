@@ -15,7 +15,7 @@ def cart():
     return render_template('cart.html')
 
 @app.route("/zhenghong")
-def zheonghong():
+def zhenghong():
     return render_template("zhenghong.html")
 
 @app.route("/nabil2.html")
