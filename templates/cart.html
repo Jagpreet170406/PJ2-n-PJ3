@@ -1,121 +1,423 @@
+<!-- Template Setup (Use Base HTML file as foundation)-->
 {% extends "base.html" %}
-
 {% block content %}
+
+<!-- ============================================ -->
+<!-- CSS STYLING -->
+<!-- ============================================ -->
 <style>
-    /* Background image */
-    body {
-        background-color: white;
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-        background-repeat: no-repeat;
+   
+   /* Background for Cart Page (Full White to ensure consistency. Even if BG images added it would stay centered.) */
+body {
+    background-color: white;
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+}
+    
+    /* Main Shop Container: 2-column grid layout (sidebar + products). Max 1400px wide, centered on page */
+    .shop-container { 
+        max-width: 1400px; 
+        margin: 2rem auto; 
+        padding: 0 1rem; 
+        display: grid; 
+        grid-template-columns: 250px 1fr; /* Left: 250px sidebar, Right: remaining space */
+        gap: 2rem; 
     }
     
-    .shop-container { max-width: 1400px; margin: 2rem auto; padding: 0 1rem; display: grid; grid-template-columns: 250px 1fr; gap: 2rem; }
-    @media (max-width: 992px) { .shop-container { grid-template-columns: 1fr; } }
+    /* Responsive: On screens smaller than 992px, stack sidebar and products vertically instead of side-by-side */
+    @media (max-width: 992px) { 
+        .shop-container { grid-template-columns: 1fr; } 
+    }
     
-    .sidebar { background: rgba(248, 249, 250, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid #eee; height: fit-content; position: sticky; top: 100px; backdrop-filter: blur(10px); }
-    .category-link { display: block; padding: .6rem; text-decoration: none; color: #333; border-radius: 8px; transition: 0.2s; }
-    .category-link:hover, .category-link.active { background: #e5edff; font-weight: bold; color: #2563eb; padding-left: 1rem; }
+    /* Sidebar: Semi-transparent gray box with blur effect. STICKY means it follows you when you scroll! */
+    .sidebar { 
+        background: rgba(248, 249, 250, 0.95); /* 95% opaque light gray */
+        padding: 1.5rem; 
+        border-radius: 12px; 
+        border: 1px solid #eee; 
+        height: fit-content; 
+        position: sticky; /* This makes it stick to screen when scrolling */
+        top: 100px; /* Stays 100px from top when scrolling */
+        backdrop-filter: blur(10px); /* Blurs background behind sidebar */
+    }
     
-    .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem; }
-    .product-card { background: rgba(255, 255, 255, 0.95); border: 1px solid #eee; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; transition: 0.3s; height: 100%; backdrop-filter: blur(10px); }
-    .product-card:hover { transform: translateY(-5px); box-shadow: 0 12px 24px rgba(0,0,0,0.08); }
+    /* Category Links: Block-style links with hover effects */
+    .category-link { 
+        display: block; 
+        padding: .6rem; 
+        text-decoration: none; 
+        color: #333; 
+        border-radius: 8px; 
+        transition: 0.2s; /* Smooth transition for hover effects */
+    }
     
-    .item-image { width: 100%; height: 200px; object-fit: contain; background: #f9f9f9; padding: 10px; }
-    .card-details { padding: 1.25rem; display: flex; flex-direction: column; flex-grow: 1; }
-    .price-tag { font-size: 1.3rem; font-weight: 800; color: #dc2626; margin-bottom: 1rem; }
-
-    /* QTY CARD */
-    .qty-card { border: 2px solid #edeff2; border-radius: 10px; display: flex; align-items: center; background: #fcfcfc; margin-bottom: 12px; justify-content: space-between; }
-    .qty-btn { border: none; background: none; width: 45px; height: 40px; cursor: pointer; font-size: 1.2rem; font-weight: bold; color: #666; }
-    .qty-btn:hover { background: #e5edff; color: #2563eb; }
-    .qty-display { width: 50px; text-align: center; font-weight: 800; border: none; background: transparent; font-size: 1rem; }
-
-    .cart-buttons { display: flex; gap: 0.6rem; }
-    .btn-add-cart { background: white; border: 2px solid #2563eb; color: #2563eb; font-weight: 700; border-radius: 10px; }
-    .btn-buy-now { background: #2563eb; border: 2px solid #2563eb; color: white; font-weight: 700; border-radius: 10px; }
-
-    /* SMART PAGINATION */
-    .pagination-wrapper { margin-top: 3rem; display: flex; flex-direction: column; align-items: center; }
-    .pagination { background: rgba(255, 255, 255, 0.95); padding: 5px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); backdrop-filter: blur(10px); }
-    .page-link { color: #2563eb; font-weight: bold; border: none; margin: 0 2px; border-radius: 8px !important; }
-    .page-item.active .page-link { background-color: #2563eb; color: white; }
-    .page-item.disabled .page-link { color: #ccc; }
-
-    /* ANIMATIONS */
-    .flying-item { position: fixed; z-index: 9999; pointer-events: none; transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); font-size: 55px; filter: drop-shadow(0 5px 15px rgba(0,0,0,0.3)); }
-    .delivery-car { position: fixed; z-index: 10000; font-size: 100px; pointer-events: none; left: -350px; bottom: 30%; transition: left 5s linear; display: flex; flex-direction: column; align-items: center; }
-    .huat-bubble { background: #ffdf00; color: #000; padding: 12px 24px; border-radius: 30px; font-size: 20px; font-weight: 900; margin-bottom: 15px; opacity: 0; transition: opacity 0.5s; border: 3px solid #000; white-space: nowrap; }
-    .van-body { transform: scaleX(-1); }
+    /* Category Link Hover/Active: Light blue background, bold text, slides right slightly */
+    .category-link:hover, 
+    .category-link.active { 
+        background: #e5edff; /* Light blue */
+        font-weight: bold; 
+        color: #2563eb; /* Darker blue */
+        padding-left: 1rem; /* Slides right by increasing left padding */
+    }
     
-    /* Search form alignment */
+    /* Product Grid: Auto-adjusting grid that fits as many 260px-wide cards as possible per row */
+    .product-grid { 
+        display: grid; 
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); /* Magic! Auto-creates columns */
+        gap: 1.5rem; 
+    }
+    
+    /* Product Card: Individual product box with hover lift effect */
+    .product-card { 
+        background: rgba(255, 255, 255, 0.95); /* Semi-transparent white */
+        border: 1px solid #eee; 
+        border-radius: 16px; 
+        overflow: hidden; /* Keeps image from breaking rounded corners */
+        display: flex; 
+        flex-direction: column; /* Stack content vertically: image, text, buttons */
+        transition: 0.3s; 
+        height: 100%; /* All cards same height in each row */
+        backdrop-filter: blur(10px); 
+    }
+    
+    /* Product Card Hover: Lifts up 5px and shows shadow for 3D effect */
+    .product-card:hover { 
+        transform: translateY(-5px); /* Moves card UP by 5px */
+        box-shadow: 0 12px 24px rgba(0,0,0,0.08); /* Soft shadow */
+    }
+    
+    /* Product Image: Fixed height, fits image inside without stretching/cropping */
+    .item-image { 
+        width: 100%; 
+        height: 200px; 
+        object-fit: contain; /* Fits whole image inside without distortion */
+        background: #f9f9f9; /* Light gray background for images */
+        padding: 10px; 
+    }
+    
+    /* Card Details Section: Contains all text and buttons. Grows to fill available space */
+    .card-details { 
+        padding: 1.25rem; 
+        display: flex; 
+        flex-direction: column; 
+        flex-grow: 1; /* Expands to fill remaining card height, pushes buttons to bottom */
+    }
+    
+    /* Price Tag: Big, bold, RED price */
+    .price-tag { 
+        font-size: 1.3rem; 
+        font-weight: 800; 
+        color: #dc2626; /* Red color */
+        margin-bottom: 1rem; 
+    }
+
+    /* ========== QUANTITY SELECTOR (+ and - buttons) ========== */
+    
+    /* Quantity Card Container: Holds minus button, number display, and plus button in a row */
+    .qty-card { 
+        border: 2px solid #edeff2; 
+        border-radius: 10px; 
+        display: flex; 
+        align-items: center; 
+        background: #fcfcfc; 
+        margin-bottom: 12px; 
+        justify-content: space-between; /* Pushes buttons to edges, number in middle */
+    }
+    
+    /* Quantity Buttons (+ and -): Invisible background until hover */
+    .qty-btn { 
+        border: none; 
+        background: none; 
+        width: 45px; 
+        height: 40px; 
+        cursor: pointer; 
+        font-size: 1.2rem; 
+        font-weight: bold; 
+        color: #666; /* Gray text */
+    }
+    
+    /* Quantity Button Hover: Light blue background and darker blue text */
+    .qty-btn:hover { 
+        background: #e5edff; 
+        color: #2563eb; 
+    }
+    
+    /* Quantity Display: The number in the middle. Readonly so users can't type */
+    .qty-display { 
+        width: 50px; 
+        text-align: center; 
+        font-weight: 800; 
+        border: none; 
+        background: transparent; 
+        font-size: 1rem; 
+    }
+
+    /* ========== ADD TO CART & BUY NOW BUTTONS ========== */
+    
+    /* Cart Buttons Container: Holds both buttons side by side with small gap */
+    .cart-buttons { 
+        display: flex; 
+        gap: 0.6rem; 
+    }
+    
+    /* Add to Cart Button: White background with blue border (outlined style) */
+    .btn-add-cart { 
+        background: white; 
+        border: 2px solid #2563eb; 
+        color: #2563eb; 
+        font-weight: 700; 
+        border-radius: 10px; 
+    }
+    
+    /* Buy Now Button: Blue background with white text (solid style) */
+    .btn-buy-now { 
+        background: #2563eb; 
+        border: 2px solid #2563eb; 
+        color: white; 
+        font-weight: 700; 
+        border-radius: 10px; 
+    }
+
+    /* ========== PAGINATION (Page Numbers at Bottom) ========== */
+    
+    /* Pagination Wrapper: Centers pagination at bottom with spacing */
+    .pagination-wrapper { 
+        margin-top: 3rem; 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+    }
+    
+    /* Pagination Container: White rounded box with shadow holding page numbers */
+    .pagination { 
+        background: rgba(255, 255, 255, 0.95); 
+        padding: 5px; 
+        border-radius: 12px; 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+        backdrop-filter: blur(10px); 
+    }
+    
+    /* Page Link: Individual page number styling */
+    .page-link { 
+        color: #2563eb; /* Blue text */
+        font-weight: bold; 
+        border: none; 
+        margin: 0 2px; 
+        border-radius: 8px !important; /* !important overrides Bootstrap defaults */
+    }
+    
+    /* Active Page: Highlighted with blue background and white text */
+    .page-item.active .page-link { 
+        background-color: #2563eb; 
+        color: white; 
+    }
+    
+    /* Disabled Page (prev/next when can't go further): Gray text */
+    .page-item.disabled .page-link { 
+        color: #ccc; 
+    }
+
+    /* ========== ANIMATIONS (Flying box and delivery van) ========== */
+    
+    /* Flying Item: The 📦 box that flies to cart when you click "Add to Cart" */
+    .flying-item { 
+        position: fixed; /* Can move anywhere on screen */
+        z-index: 9999; /* Appears on top of everything */
+        pointer-events: none; /* Can't click on it */
+        transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Bouncy easing curve */
+        font-size: 55px; 
+        filter: drop-shadow(0 5px 15px rgba(0,0,0,0.3)); /* Shadow around emoji */
+    }
+    
+    /* Delivery Car: The 🚐 van that drives across screen for "Buy Now" */
+    .delivery-car { 
+        position: fixed; 
+        z-index: 10000; /* Higher than flying box, appears on top */
+        font-size: 100px; 
+        pointer-events: none; 
+        left: -350px; /* Starts off-screen to the left */
+        bottom: 30%; /* Positioned 30% from bottom of screen */
+        transition: left 5s linear; /* Takes 5 seconds to drive across */
+        display: flex; 
+        flex-direction: column; /* Stacks speech bubble above van */
+        align-items: center; 
+    }
+    
+    /* Speech Bubble: Yellow bubble saying "Packing..." then "Secured! Driving to Checkout..." */
+    .huat-bubble { 
+        background: #ffdf00; /* Bright yellow */
+        color: #000; 
+        padding: 12px 24px; 
+        border-radius: 30px; /* Very rounded for bubble effect */
+        font-size: 20px; 
+        font-weight: 900; 
+        margin-bottom: 15px; 
+        opacity: 0; /* Starts invisible */
+        transition: opacity 0.5s; 
+        border: 3px solid #000; 
+        white-space: nowrap; /* Text won't wrap to new line */
+    }
+    
+    /* Van Body: Flips the van emoji horizontally so it faces right */
+    .van-body { 
+        transform: scaleX(-1); /* Mirrors horizontally */
+    }
+    
+    /* ========== SEARCH FORM ========== */
+    
+    /* Search Form Container: Holds search input and button in a row */
     .search-form { 
         display: flex; 
         gap: 0.5rem; 
-        align-items: stretch;
-        margin-bottom: 1.5rem;
+        align-items: stretch; /* Makes input and button same height */
+        margin-bottom: 1.5rem; 
     }
+    
+    /* Search Input: Takes up most of the space */
     .search-form input[type="text"] { 
-        flex: 1;
-        height: 48px;
+        flex: 1; /* Grows to fill available space */
+        height: 48px; 
     }
+    
+    /* Search Button: Fixed size */
     .search-form button { 
-        height: 48px;
-        padding: 0 1.5rem;
-        white-space: nowrap;
+        height: 48px; 
+        padding: 0 1.5rem; 
+        white-space: nowrap; /* "Search" text won't wrap */
     }
 </style>
 
+<!-- ============================================ -->
+<!-- HTML STRUCTURE -->
+<!-- ============================================ -->
+
+<!-- Main container holding sidebar and products -->
 <div class="shop-container">
+    
+    <!-- ========== LEFT SIDEBAR: Categories and Reset Button ========== -->
     <aside class="sidebar">
+        <!-- Category title -->
         <h5 class="font-weight-bold">Categories</h5>
         <hr>
-        <a href="{{ url_for('cart', search=search_query) }}" class="category-link {{ 'active' if not category_filter }}">All Products</a>
+        
+        <!-- "All Products" link - active when no category filter is selected -->
+        <a href="{{ url_for('cart', search=search_query) }}" 
+           class="category-link {{ 'active' if not category_filter }}">
+            All Products
+        </a>
+        
+        <!-- Loop through all categories from database and create links -->
         {% for c in categories %}
-        <a href="{{ url_for('cart', category=c['category'], search=search_query) }}" class="category-link {{ 'active' if category_filter == c['category'] }}">
-            {{ c['category'] }}
+        <a href="{{ url_for('cart', category=c['category'], search=search_query) }}" 
+           class="category-link {{ 'active' if category_filter == c['category'] }}">
+            {{ c['category'] }} <!-- Display category name (e.g., "Engine", "Brakes") -->
         </a>
         {% endfor %}
         
+        <!-- Reset Cart Button: Deletes cart from browser storage and reloads page -->
         <div class="mt-5">
-            <button onclick="localStorage.removeItem('cart'); location.reload();" class="btn btn-sm btn-outline-secondary border-0" style="font-size: 10px;">Reset Cart Data</button>
+            <button onclick="localStorage.removeItem('cart'); location.reload();" 
+                    class="btn btn-sm btn-outline-secondary border-0" 
+                    style="font-size: 10px;">
+                Reset Cart Data
+            </button>
         </div>
     </aside>
 
+    <!-- ========== MAIN CONTENT AREA: Search, Products, Pagination ========== -->
     <main>
+        
+        <!-- ========== SEARCH FORM ========== -->
+        <!-- Sends GET request to cart page with search query -->
         <form action="{{ url_for('cart') }}" method="GET" class="search-form">
-            <input type="text" name="search" class="form-control" placeholder="Search by name or part number..." value="{{ search_query }}">
+            <!-- Search input box - shows current search query if exists -->
+            <input type="text" 
+                   name="search" 
+                   class="form-control" 
+                   placeholder="Search by name or part number..." 
+                   value="{{ search_query }}">
+            
+            <!-- Hidden input: If user is viewing a category, keep that filter when searching -->
             {% if category_filter %}
                 <input type="hidden" name="category" value="{{ category_filter }}">
             {% endif %}
+            
+            <!-- Search submit button -->
             <button type="submit" class="btn btn-primary">Search</button>
         </form>
 
+        <!-- ========== PRODUCT GRID: All product cards displayed here ========== -->
         <div class="product-grid">
+            
+            <!-- Loop through each product from database -->
             {% for product in products %}
             <div class="product-card">
-                <img src="{{ product['image_url'] or 'https://via.placeholder.com/300x200?text=Parts' }}" class="item-image">
+                
+                <!-- Product Image: Shows product image or placeholder if none exists -->
+                <img src="{{ product['image_url'] or 'https://via.placeholder.com/300x200?text=Parts' }}" 
+                     class="item-image">
+                
+                <!-- Product Details Section -->
                 <div class="card-details">
-                    <small class="text-muted text-uppercase fw-bold">{{ product['category'] }}</small>
-                    <h6 class="mt-1 font-weight-bold" style="min-height: 40px;">{{ product['hem_name'] }}</h6>
                     
+                    <!-- Category name in small gray uppercase text -->
+                    <small class="text-muted text-uppercase fw-bold">{{ product['category'] }}</small>
+                    
+                    <!-- Product name - min-height ensures all names take same vertical space -->
+                    <h6 class="mt-1 font-weight-bold" style="min-height: 40px;">
+                        {{ product['hem_name'] }}
+                    </h6>
+                    
+                    <!-- Bottom section (pushed to bottom by mt-auto) -->
                     <div class="mt-auto">
+                        
+                        <!-- Price: Formatted to 2 decimal places (e.g., SGD 45.50) -->
                         <div class="price-tag">SGD {{ "%.2f"|format(product['sell_price']) }}</div>
                         
+                        <!-- ========== QUANTITY SELECTOR ========== -->
                         <div class="qty-card">
-                            <button class="qty-btn" onclick="adjustShopQty('{{ product['inventory_id'] }}', -1)">−</button>
-                            <input type="number" id="qty-shop-{{ product['inventory_id'] }}" class="qty-display" value="1" readonly>
-                            <button class="qty-btn" onclick="adjustShopQty('{{ product['inventory_id'] }}', 1)">+</button>
+                            <!-- Minus button: Decreases quantity by 1 -->
+                            <button class="qty-btn" 
+                                    onclick="adjustShopQty('{{ product['inventory_id'] }}', -1)">
+                                −
+                            </button>
+                            
+                            <!-- Quantity display: Shows current quantity, readonly prevents typing -->
+                            <input type="number" 
+                                   id="qty-shop-{{ product['inventory_id'] }}" 
+                                   class="qty-display" 
+                                   value="1" 
+                                   readonly>
+                            
+                            <!-- Plus button: Increases quantity by 1 -->
+                            <button class="qty-btn" 
+                                    onclick="adjustShopQty('{{ product['inventory_id'] }}', 1)">
+                                +
+                            </button>
                         </div>
                         
+                        <!-- ========== ADD TO CART & BUY NOW BUTTONS ========== -->
                         <div class="cart-buttons">
-                            <button onclick="handleAddToCart(event, {{ product['inventory_id'] }}, '{{ product['hem_name']|escape }}', {{ product['sell_price'] }}, false)" class="btn btn-add-cart btn-sm flex-fill">Add to Cart</button>
-                            <button onclick="handleAddToCart(event, {{ product['inventory_id'] }}, '{{ product['hem_name']|escape }}', {{ product['sell_price'] }}, true)" class="btn btn-buy-now btn-sm flex-fill">Buy Now</button>
+                            <!-- Add to Cart: Adds item and shows flying box animation -->
+                            <button onclick="handleAddToCart(event, {{ product['inventory_id'] }}, '{{ product['hem_name']|escape }}', {{ product['sell_price'] }}, false)" 
+                                    class="btn btn-add-cart btn-sm flex-fill">
+                                Add to Cart
+                            </button>
+                            
+                            <!-- Buy Now: Adds item, shows van animation, redirects to checkout -->
+                            <button onclick="handleAddToCart(event, {{ product['inventory_id'] }}, '{{ product['hem_name']|escape }}', {{ product['sell_price'] }}, true)" 
+                                    class="btn btn-buy-now btn-sm flex-fill">
+                                Buy Now
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
+            
+            <!-- ========== NO RESULTS MESSAGE ========== -->
+            <!-- Only shows if products loop is empty (no search results) -->
             {% else %}
             <div class="text-center py-5 w-100">
                 <h3 class="text-muted">No items found matching your search. 😭</h3>
@@ -123,115 +425,264 @@
             {% endfor %}
         </div>
 
+        <!-- ========== PAGINATION (Only shows if more than 1 page) ========== -->
         {% if total_pages > 1 %}
         <nav class="pagination-wrapper">
             <ul class="pagination">
+                
+                <!-- ========== PREVIOUS PAGE BUTTON ========== -->
+                <!-- Disabled if on first page (can't go back further) -->
                 <li class="page-item {{ 'disabled' if current_page == 1 }}">
-                    <a class="page-link" href="{{ url_for('cart', page=current_page-1, category=category_filter, search=search_query) }}">«</a>
+                    <a class="page-link" 
+                       href="{{ url_for('cart', page=current_page-1, category=category_filter, search=search_query) }}">
+                        «
+                    </a>
                 </li>
 
+                <!-- ========== FIRST PAGE (Always visible) ========== -->
                 <li class="page-item {{ 'active' if current_page == 1 }}">
-                    <a class="page-link" href="{{ url_for('cart', page=1, category=category_filter, search=search_query) }}">1</a>
+                    <a class="page-link" 
+                       href="{{ url_for('cart', page=1, category=category_filter, search=search_query) }}">
+                        1
+                    </a>
                 </li>
 
+                <!-- ========== FIRST ELLIPSIS (...) ========== -->
+                <!-- Shows "..." if current page is more than 4 (skips pages 2-3) -->
                 {% if current_page > 4 %}
-                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
                 {% endif %}
 
+                <!-- ========== MIDDLE PAGE NUMBERS ========== -->
+                <!-- Only shows pages within 2 of current page (e.g., if on page 10, shows 8,9,10,11,12) -->
                 {% for p in range(1, total_pages + 1) %}
-                    {% if p > 1 and p < total_pages %}
-                        {% if p >= current_page - 2 and p <= current_page + 2 %}
+                    {% if p > 1 and p < total_pages %} <!-- Skip first and last (already shown) -->
+                        {% if p >= current_page - 2 and p <= current_page + 2 %} <!-- Only show nearby pages -->
                             <li class="page-item {{ 'active' if p == current_page }}">
-                                <a class="page-link" href="{{ url_for('cart', page=p, category=category_filter, search=search_query) }}">{{ p }}</a>
+                                <a class="page-link" 
+                                   href="{{ url_for('cart', page=p, category=category_filter, search=search_query) }}">
+                                    {{ p }}
+                                </a>
                             </li>
                         {% endif %}
                     {% endif %}
                 {% endfor %}
 
+                <!-- ========== SECOND ELLIPSIS (...) ========== -->
+                <!-- Shows "..." if current page is more than 3 pages before the last page -->
                 {% if current_page < total_pages - 3 %}
-                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
                 {% endif %}
 
+                <!-- ========== LAST PAGE (Always visible) ========== -->
                 <li class="page-item {{ 'active' if current_page == total_pages }}">
-                    <a class="page-link" href="{{ url_for('cart', page=total_pages, category=category_filter, search=search_query) }}">{{ total_pages }}</a>
+                    <a class="page-link" 
+                       href="{{ url_for('cart', page=total_pages, category=category_filter, search=search_query) }}">
+                        {{ total_pages }}
+                    </a>
                 </li>
 
+                <!-- ========== NEXT PAGE BUTTON ========== -->
+                <!-- Disabled if on last page (can't go forward) -->
                 <li class="page-item {{ 'disabled' if current_page == total_pages }}">
-                    <a class="page-link" href="{{ url_for('cart', page=current_page+1, category=category_filter, search=search_query) }}">»</a>
+                    <a class="page-link" 
+                       href="{{ url_for('cart', page=current_page+1, category=category_filter, search=search_query) }}">
+                        »
+                    </a>
                 </li>
             </ul>
+            
+            <!-- ========== PAGE COUNTER ========== -->
+            <!-- Shows "Page X of Y | Total Items" below pagination -->
             <div class="mt-2 text-muted">
                 <small>Page {{ current_page }} of {{ total_pages }} | 25,119 Items Total</small>
             </div>
         </nav>
         {% endif %}
+        
     </main>
 </div>
 
+<!-- ============================================ -->
+<!-- JAVASCRIPT SECTION -->
+<!-- ============================================ -->
 <script>
+
+/* ========== ADJUST QUANTITY FUNCTION ========== */
+/* Called when user clicks + or - buttons to change quantity */
+/* Parameters: id = product inventory ID, delta = +1 or -1 */
 function adjustShopQty(id, delta) {
+    // Find the quantity input for this specific product
     const el = document.getElementById(`qty-shop-${id}`);
+    
+    // Get current value and add delta (+1 or -1)
     let val = parseInt(el.value) + delta;
+    
+    // If result is less than 1, set to 1 (prevents 0 or negative quantities)
     el.value = val < 1 ? 1 : val;
 }
 
+/* ========== ADD TO CART MAIN FUNCTION ========== */
+/* Handles both "Add to Cart" and "Buy Now" button clicks */
+/* Parameters: 
+   - event: The click event
+   - id: Product inventory ID
+   - name: Product name
+   - price: Product price
+   - isBuyNow: true if "Buy Now" was clicked, false if "Add to Cart"
+*/
 function handleAddToCart(event, id, name, price, isBuyNow) {
-    event.preventDefault();
+    event.preventDefault(); // Prevents default button behavior
+    
+    // Get the quantity user selected
     const qtyInput = document.getElementById(`qty-shop-${id}`);
     const qty = parseInt(qtyInput.value);
+    
+    // Find the product card to get the image
     const card = event.target.closest('.product-card');
     const imageUrl = card.querySelector('.item-image').src;
     
+    /* ========== CART STORAGE LOGIC ========== */
+    // Load cart from browser's localStorage (or empty array if none exists)
     let cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const existing = cart.find(item => item.id === id);
-    if (existing) existing.quantity += qty;
-    else cart.push({ id, name, price: parseFloat(price), quantity: qty, image: imageUrl });
     
+    // Check if this product is already in cart
+    const existing = cart.find(item => item.id === id);
+    
+    if (existing) {
+        // Product already in cart: Add to existing quantity
+        existing.quantity += qty;
+    } else {
+        // Product not in cart: Add as new item
+        cart.push({ 
+            id, 
+            name, 
+            price: parseFloat(price), 
+            quantity: qty, 
+            image: imageUrl 
+        });
+    }
+    
+    // Save updated cart back to localStorage
     localStorage.setItem('cart', JSON.stringify(cart));
+    
+    // Update the cart badge number in navigation
     updateCartBadge();
 
-    if (isBuyNow) startCarAnimation();
-    else animateToCart(event);
+    /* ========== TRIGGER APPROPRIATE ANIMATION ========== */
+    if (isBuyNow) {
+        // "Buy Now" was clicked: Show van animation and redirect to checkout
+        startCarAnimation();
+    } else {
+        // "Add to Cart" was clicked: Show flying box animation
+        animateToCart(event);
+    }
 }
 
+/* ========== FLYING BOX ANIMATION ========== */
+/* Creates a 📦 emoji that flies from button to cart icon */
 function animateToCart(e) {
+    // Find the cart icon in the navigation bar
     const cartIcon = document.querySelector('.cart-badge');
-    if(!cartIcon) return;
+    if(!cartIcon) return; // Exit if cart icon doesn't exist
+    
+    // Create the flying box element
     const flyer = document.createElement('div');
-    flyer.className = 'flying-item'; flyer.innerHTML = '📦';
+    flyer.className = 'flying-item';
+    flyer.innerHTML = '📦';
     document.body.appendChild(flyer);
+    
+    // Get starting position (where button was clicked) and ending position (cart icon)
     const startRect = e.target.getBoundingClientRect();
     const endRect = cartIcon.getBoundingClientRect();
+    
+    // Position box at button location
     flyer.style.left = startRect.left + 'px';
     flyer.style.top = (startRect.top + window.scrollY) + 'px';
+    
+    // On next animation frame, move box to cart location with effects
     requestAnimationFrame(() => {
         flyer.style.left = endRect.left + 'px';
         flyer.style.top = (endRect.top + window.scrollY) + 'px';
-        flyer.style.transform = 'scale(0.2) rotate(360deg)';
-        flyer.style.opacity = '0';
+        flyer.style.transform = 'scale(0.2) rotate(360deg)'; // Shrink and spin
+        flyer.style.opacity = '0'; // Fade out
     });
+    
+    // Remove the flying box after animation completes (800ms)
     setTimeout(() => flyer.remove(), 800);
 }
 
+/* ========== DELIVERY VAN ANIMATION ========== */
+/* Creates a 🚐 van that drives across screen with speech bubble */
 function startCarAnimation() {
+    // Disable all buttons so user can't click during animation
     document.querySelectorAll('button').forEach(b => b.disabled = true);
+    
+    // Create van wrapper with speech bubble and van emoji
     const carWrap = document.createElement('div');
     carWrap.className = 'delivery-car';
-    carWrap.innerHTML = `<div class="huat-bubble" id="status-msg">Packing...</div><div class="van-body">🚐💨</div>`;
+    carWrap.innerHTML = `
+        <div class="huat-bubble" id="status-msg">Packing...</div>
+        <div class="van-body">🚐💨</div>
+    `;
     document.body.appendChild(carWrap);
+    
+    // Get reference to speech bubble
     const bubble = carWrap.querySelector('#status-msg');
-    setTimeout(() => { carWrap.style.left = '40%'; bubble.style.opacity = '1'; }, 100);
-    setTimeout(() => { bubble.innerText = "Secured! Driving to Checkout..."; }, 2500);
-    setTimeout(() => { carWrap.style.left = '120%'; }, 4500);
-    setTimeout(() => { window.location.href = "{{ url_for('checkout') }}"; }, 5500);
+    
+    /* ========== ANIMATION TIMELINE ========== */
+    // After 100ms: Drive van to middle of screen, show "Packing..." bubble
+    setTimeout(() => { 
+        carWrap.style.left = '40%'; 
+        bubble.style.opacity = '1'; 
+    }, 100);
+    
+    // After 2500ms: Change bubble text to "Secured! Driving to Checkout..."
+    setTimeout(() => { 
+        bubble.innerText = "Secured! Driving to Checkout..."; 
+    }, 2500);
+    
+    // After 4500ms: Drive van off-screen to the right
+    setTimeout(() => { 
+        carWrap.style.left = '120%'; 
+    }, 4500);
+    
+    // After 5500ms: Redirect to checkout page
+    setTimeout(() => { 
+        window.location.href = "{{ url_for('checkout') }}"; 
+    }, 5500);
 }
 
+/* ========== UPDATE CART BADGE FUNCTION ========== */
+/* Updates the cart icon number in navigation to show total items */
 function updateCartBadge() {
+    // Load cart from localStorage
     const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    
+    // Add up all quantities from all items in cart
     const total = cart.reduce((sum, item) => sum + item.quantity, 0);
+    
+    // Find cart badge element in navigation
     const badge = document.querySelector('.cart-badge');
-    if (badge) { badge.textContent = total; badge.style.display = total > 0 ? 'inline-block' : 'none'; }
+    
+    if (badge) { 
+        // Set badge text to total number
+        badge.textContent = total; 
+        
+        // Show badge if items exist, hide if cart is empty
+        badge.style.display = total > 0 ? 'inline-block' : 'none'; 
+    }
 }
+
+/* ========== RUN ON PAGE LOAD ========== */
+/* Update cart badge when page first loads */
 document.addEventListener('DOMContentLoaded', updateCartBadge);
+
 </script>
+
+<!-- End of content block -->
 {% endblock %}
