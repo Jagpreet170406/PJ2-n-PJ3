@@ -3,68 +3,177 @@
 
 {% block content %}
 <style>
-  html, body { background: #000; }
-
-  .page-wrap {
-    min-height: 100vh;
-    background: #0b0b0b;
-    padding-top: 90px;
-    padding-bottom: 60px;
+  html, body { 
+    background: #0a0a0a; 
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
   }
 
+  /* ANIMATED BACKGROUND */
+  .page-wrap {
+    min-height: 100vh;
+    padding-top: 100px;
+    padding-bottom: 60px;
+    position: relative;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  /* Animated gradient overlay */
+  .page-wrap::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(
+      -45deg,
+      rgba(102, 126, 234, 0.3),
+      rgba(118, 75, 162, 0.3),
+      rgba(239, 68, 68, 0.3),
+      rgba(59, 130, 246, 0.3)
+    );
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+    z-index: 0;
+  }
+
+  @keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  /* Floating particles */
+  .page-wrap::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: 
+      radial-gradient(circle at 20% 30%, rgba(255,255,255,0.1) 1px, transparent 1px),
+      radial-gradient(circle at 80% 70%, rgba(255,255,255,0.1) 1px, transparent 1px),
+      radial-gradient(circle at 40% 80%, rgba(255,255,255,0.08) 2px, transparent 2px);
+    background-size: 200px 200px, 300px 300px, 250px 250px;
+    animation: float 20s linear infinite;
+    z-index: 0;
+  }
+
+  @keyframes float {
+    from { background-position: 0 0, 0 0, 0 0; }
+    to { background-position: 200px 200px, -300px 300px, 250px -250px; }
+  }
+
+  .page-wrap > * { position: relative; z-index: 1; }
+
+  /* GLASSMORPHIC HERO */
   .hero {
-    max-width: 1100px;
-    margin: 0 auto 18px;
-    padding: 18px 16px 0;
+    max-width: 1200px;
+    margin: 0 auto 30px;
+    padding: 30px 20px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   }
 
   .hero h1 {
     color: #fff;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    margin: 0 0 6px;
+    font-weight: 900;
+    font-size: 3.5rem;
+    letter-spacing: -0.03em;
+    margin: 0 0 10px;
+    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   .hero p {
-    color: rgba(255,255,255,0.65);
-    margin: 0 0 14px;
+    color: rgba(255,255,255,0.85);
+    font-size: 1.2rem;
+    margin: 0;
   }
 
+  /* MAIN CONTAINER */
   .card-shell {
-    max-width: 1100px;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 0 16px;
+    padding: 0 20px;
   }
 
+  /* GLASSMORPHIC PANEL */
   .panel {
-    background: rgba(255,255,255,0.96);
-    border-radius: 18px;
-    box-shadow: 0 18px 50px rgba(0,0,0,0.45);
-    padding: 16px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    box-shadow: 0 20px 80px rgba(0, 0, 0, 0.3);
+    padding: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    margin-bottom: 24px;
   }
 
+  /* MODERN FILTERS */
   .filters {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr auto;
-    gap: 12px;
+    gap: 16px;
     align-items: end;
+    margin-bottom: 30px;
   }
 
   @media (max-width: 900px) {
     .filters { grid-template-columns: 1fr 1fr; }
   }
 
-  .btn-apply {
-    border-radius: 12px;
+  .filter-group label {
+    display: block;
     font-weight: 700;
-    padding: 10px 14px;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #374151;
+    margin-bottom: 8px;
   }
 
+  .form-control, .form-select {
+    border-radius: 12px;
+    border: 2px solid #e5e7eb;
+    padding: 12px 16px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    width: 100%;
+  }
+
+  .form-control:focus, .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    outline: none;
+  }
+
+  .btn-apply {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    padding: 12px 32px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  }
+
+  .btn-apply:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+  }
+
+  /* DYNAMIC KPI CARDS */
   .kpis {
-    margin-top: 14px;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    gap: 12px;
+    gap: 16px;
+    margin-bottom: 30px;
   }
 
   @media (max-width: 1100px) {
@@ -72,148 +181,427 @@
   }
 
   .kpi {
-    background: #111;
+    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
     color: #fff;
-    border-radius: 16px;
-    padding: 14px;
+    border-radius: 20px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .kpi::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(102, 126, 234, 0.3) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  .kpi:hover::before {
+    opacity: 1;
+  }
+
+  .kpi:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(102, 126, 234, 0.4);
+    border-color: rgba(102, 126, 234, 0.5);
   }
 
   .kpi .label {
-    font-size: 12px;
-    letter-spacing: 0.12em;
-    color: rgba(255,255,255,0.65);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.6);
     text-transform: uppercase;
+    margin-bottom: 8px;
+    font-weight: 600;
   }
 
   .kpi .value {
-    font-size: 22px;
-    font-weight: 800;
-    margin-top: 6px;
+    font-size: 1.8rem;
+    font-weight: 900;
+    margin: 0;
+    background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
+  /* SECTION HEADERS */
+  .section-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #111827;
+    margin: 0 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-title::before {
+    content: "";
+    width: 4px;
+    height: 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 2px;
+  }
+
+  /* GRID LAYOUT */
   .grid-2 {
-    margin-top: 14px;
     display: grid;
-    grid-template-columns: 1.4fr 1fr;
-    gap: 12px;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 24px;
   }
 
   @media (max-width: 1000px) {
     .grid-2 { grid-template-columns: 1fr; }
   }
 
-  .table-wrap {
-    overflow: auto;
-    border-radius: 14px;
-    border: 1px solid rgba(0,0,0,0.08);
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 24px;
+  }
+
+  @media (max-width: 900px) {
+    .grid-3 { grid-template-columns: 1fr; }
+  }
+
+  /* CHART CONTAINER */
+  .chart-container {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e5e7eb;
+  }
+
+  /* TABLE STYLING */
+  .table-container {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e5e7eb;
+    margin-bottom: 20px;
   }
 
   table {
     width: 100%;
     border-collapse: collapse;
-    background: #fff;
   }
 
-  th, td {
-    padding: 10px 12px;
-    border-bottom: 1px solid rgba(0,0,0,0.06);
-    font-size: 14px;
-    white-space: nowrap;
+  thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   }
 
-  th { background: #f5f5f5; font-weight: 800; }
-  .muted { color: #6b7280; }
+  th {
+    padding: 16px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: white;
+    text-align: left;
+  }
+
+  td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 0.95rem;
+    color: #374151;
+  }
+
+  tbody tr {
+    transition: background-color 0.2s ease;
+  }
+
+  tbody tr:hover {
+    background-color: #f9fafb;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .muted { 
+    color: #9ca3af;
+    font-style: italic;
+  }
 
   .error {
-    background: rgba(255, 80, 80, 0.1);
-    border: 1px solid rgba(255, 80, 80, 0.35);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(220, 38, 38, 0.9));
+    border: 1px solid rgba(255, 255, 255, 0.3);
     color: #fff;
-    border-radius: 14px;
-    padding: 12px 14px;
-    max-width: 1100px;
-    margin: 0 auto 14px;
+    border-radius: 16px;
+    padding: 16px 20px;
+    max-width: 1200px;
+    margin: 0 auto 20px;
+    font-weight: 600;
+    box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);
   }
+
+  /* TOOLTIP HINT */
+  .hint {
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin-top: 12px;
+    font-style: italic;
+  }
+
+  /* ALERT CARDS */
+  .alert-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border-left: 4px solid;
+    transition: all 0.3s ease;
+  }
+
+  .alert-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  }
+
+  .alert-card.warning {
+    border-left-color: #f59e0b;
+    background: linear-gradient(135deg, #fff 0%, #fffbeb 100%);
+  }
+
+  .alert-card.critical {
+    border-left-color: #ef4444;
+    background: linear-gradient(135deg, #fff 0%, #fef2f2 100%);
+  }
+
+  .alert-card.success {
+    border-left-color: #10b981;
+    background: linear-gradient(135deg, #fff 0%, #f0fdf4 100%);
+  }
+
+  .alert-card.info {
+    border-left-color: #3b82f6;
+    background: linear-gradient(135deg, #fff 0%, #eff6ff 100%);
+  }
+
+  .alert-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .alert-message {
+    font-size: 0.9rem;
+    color: #6b7280;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* INSIGHT CARDS */
+  .insight-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e5e7eb;
+    transition: all 0.3s ease;
+  }
+
+  .insight-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    border-color: #667eea;
+  }
+
+  .insight-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .insight-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  .insight-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+  }
+
+  .insight-body {
+    font-size: 0.95rem;
+    color: #6b7280;
+    line-height: 1.6;
+  }
+
+  .insight-stat {
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: #667eea;
+    margin: 12px 0;
+  }
+
+  /* RECOMMENDATION BADGE */
+  .badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 8px;
+  }
+
+  .badge.buy { background: #d1fae5; color: #065f46; }
+  .badge.hold { background: #fef3c7; color: #92400e; }
+  .badge.review { background: #dbeafe; color: #1e40af; }
 </style>
 
 <div class="page-wrap">
   {% if error_message %}
-    <div class="error">{{ error_message }}</div>
+    <div class="error">⚠️ {{ error_message }}</div>
   {% endif %}
 
   <div class="hero">
-    <h1>Market Analysis</h1>
-    <p>Real sales insights from your imported invoice data.</p>
+    <h1>Market Intelligence</h1>
+    <p>Comprehensive sales analytics with insights and recommendations</p>
   </div>
 
   <div class="card-shell">
+    <!-- FILTERS PANEL -->
     <div class="panel">
-
-      <!-- FILTERS -->
       <form method="GET" class="filters">
-        <div>
-          <label class="form-label fw-bold">Start date</label>
+        <div class="filter-group">
+          <label>Start Date</label>
           <input type="date" name="start" class="form-control" value="{{ selected.start }}">
         </div>
 
-        <div>
-          <label class="form-label fw-bold">End date</label>
+        <div class="filter-group">
+          <label>End Date</label>
           <input type="date" name="end" class="form-control" value="{{ selected.end }}">
         </div>
 
-        <div>
-          <label class="form-label fw-bold">Legend code</label>
+        <div class="filter-group">
+          <label>Legend Code</label>
           <select name="legend" class="form-select">
-            <option value="" {% if not selected.legend %}selected{% endif %}>All</option>
+            <option value="" {% if not selected.legend %}selected{% endif %}>All Legends</option>
             {% for l in legends %}
               <option value="{{ l }}" {% if selected.legend == l %}selected{% endif %}>{{ l }}</option>
             {% endfor %}
           </select>
         </div>
 
-        <button class="btn btn-dark btn-apply" type="submit">Apply</button>
+        <button class="btn-apply" type="submit">Apply Filters</button>
       </form>
 
-      <!-- KPIs -->
+      <!-- KPI DASHBOARD -->
       <div class="kpis">
         <div class="kpi">
-          <div class="label">Revenue</div>
+          <div class="label">Total Revenue</div>
           <div class="value">SGD {{ "%.2f"|format(kpis.revenue) }}</div>
         </div>
 
         <div class="kpi">
-          <div class="label">GST</div>
+          <div class="label">GST Collected</div>
           <div class="value">SGD {{ "%.2f"|format(kpis.gst) }}</div>
         </div>
 
         <div class="kpi">
-          <div class="label">Orders</div>
+          <div class="label">Total Orders</div>
           <div class="value">{{ kpis.orders }}</div>
         </div>
 
         <div class="kpi">
           <div class="label">Units Sold</div>
-          <div class="value">{{ kpis.units }}</div>
+          <div class="value">{{ "%.0f"|format(kpis.units) }}</div>
         </div>
 
         <div class="kpi">
-          <div class="label">Avg Order Value</div>
+          <div class="label">Avg Order</div>
           <div class="value">SGD {{ "%.2f"|format(kpis.aov) }}</div>
         </div>
       </div>
+    </div>
 
-      <!-- CHART + TABLES -->
+    <!-- SMART ALERTS (based on real data) -->
+    <div class="panel">
+      <h3 class="section-title">🚨 Smart Alerts</h3>
+      <div class="grid-3">
+        {% if kpis.orders == 0 %}
+        <div class="alert-card critical">
+          <div class="alert-title">⚠️ No Data Found</div>
+          <p class="alert-message">No orders found for the selected date range. Try adjusting your filters.</p>
+        </div>
+        {% endif %}
+
+        {% if kpis.aov > 0 and kpis.aov < 100 %}
+        <div class="alert-card warning">
+          <div class="alert-title">📊 Low Average Order Value</div>
+          <p class="alert-message">Average order value is SGD {{ "%.2f"|format(kpis.aov) }}. Consider upselling strategies to increase this metric.</p>
+        </div>
+        {% elif kpis.aov >= 500 %}
+        <div class="alert-card success">
+          <div class="alert-title">✅ High Value Orders</div>
+          <p class="alert-message">Excellent! Average order value of SGD {{ "%.2f"|format(kpis.aov) }} shows strong customer spending.</p>
+        </div>
+        {% endif %}
+
+        {% if top_customers|length > 0 %}
+        {% set top_customer_revenue = top_customers[0].revenue %}
+        {% set revenue_concentration = (top_customer_revenue / kpis.revenue * 100)|round(1) if kpis.revenue > 0 else 0 %}
+        {% if revenue_concentration > 30 %}
+        <div class="alert-card warning">
+          <div class="alert-title">🎯 Revenue Concentration Risk</div>
+          <p class="alert-message">Top customer accounts for {{ revenue_concentration }}% of revenue. Diversify your customer base to reduce risk.</p>
+        </div>
+        {% endif %}
+        {% endif %}
+
+        {% if top_products|length >= 3 %}
+        <div class="alert-card info">
+          <div class="alert-title">🏆 Top Performers Identified</div>
+          <p class="alert-message">{{ top_products|length }} top products identified. Focus inventory and marketing on these winners.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- DATA ANALYTICS -->
+    <div class="panel">
       <div class="grid-2">
+        <!-- REVENUE CHART -->
         <div>
-          <h5 class="fw-bold mt-3 mb-2">Revenue Trend (Monthly)</h5>
-          <div class="table-wrap p-3">
-            <canvas id="revChart" height="120"></canvas>
+          <h3 class="section-title">📊 Revenue Trend Analysis</h3>
+          <div class="chart-container">
+            <canvas id="revChart" height="100"></canvas>
           </div>
-          <p class="muted mt-2 mb-0">Tip: Use the filters to narrow to a specific date range or legend code.</p>
+          <p class="hint">💡 Track your revenue patterns to identify seasonal trends and growth opportunities</p>
         </div>
 
+        <!-- DATA TABLES -->
         <div>
-          <h5 class="fw-bold mt-3 mb-2">Top Products (by Revenue)</h5>
-          <div class="table-wrap">
+          <h3 class="section-title">🏆 Top Products</h3>
+          <div class="table-container">
             <table>
               <thead>
                 <tr>
@@ -226,25 +614,25 @@
               <tbody>
                 {% for p in top_products %}
                   <tr>
-                    <td>{{ p.sku_no }}</td>
-                    <td title="{{ p.hem_name }}">{{ p.hem_name }}</td>
-                    <td>SGD {{ "%.2f"|format(p.revenue) }}</td>
-                    <td>{{ p.units }}</td>
+                    <td><strong>{{ p.sku_no }}</strong></td>
+                    <td title="{{ p.hem_name }}">{{ p.hem_name[:30] }}{% if p.hem_name|length > 30 %}...{% endif %}</td>
+                    <td><strong>SGD {{ "%.2f"|format(p.revenue) }}</strong></td>
+                    <td>{{ "%.0f"|format(p.units) }}</td>
                   </tr>
                 {% endfor %}
                 {% if top_products|length == 0 %}
-                  <tr><td colspan="4" class="muted">No data for this filter range.</td></tr>
+                  <tr><td colspan="4" class="muted">No products found for this filter</td></tr>
                 {% endif %}
               </tbody>
             </table>
           </div>
 
-          <h5 class="fw-bold mt-4 mb-2">Top Customers (by Revenue)</h5>
-          <div class="table-wrap">
+          <h3 class="section-title">👥 Top Customers</h3>
+          <div class="table-container">
             <table>
               <thead>
                 <tr>
-                  <th>Customer</th>
+                  <th>Customer Code</th>
                   <th>Revenue</th>
                   <th>Orders</th>
                 </tr>
@@ -252,22 +640,108 @@
               <tbody>
                 {% for c in top_customers %}
                   <tr>
-                    <td>{{ c.customer_code }}</td>
-                    <td>SGD {{ "%.2f"|format(c.revenue) }}</td>
+                    <td><strong>{{ c.customer_code }}</strong></td>
+                    <td><strong>SGD {{ "%.2f"|format(c.revenue) }}</strong></td>
                     <td>{{ c.orders }}</td>
                   </tr>
                 {% endfor %}
                 {% if top_customers|length == 0 %}
-                  <tr><td colspan="3" class="muted">No data for this filter range.</td></tr>
+                  <tr><td colspan="3" class="muted">No customers found for this filter</td></tr>
                 {% endif %}
               </tbody>
             </table>
           </div>
-
         </div>
       </div>
-
     </div>
+
+    <!-- INSIGHTS (based on real data) -->
+    <div class="panel">
+      <h3 class="section-title">💡 Key Insights</h3>
+      <div class="grid-3">
+        <div class="insight-card">
+          <div class="insight-header">
+            <div class="insight-icon">📈</div>
+            <h4 class="insight-title">Revenue Performance</h4>
+          </div>
+          <div class="insight-body">
+            Total revenue: <strong class="insight-stat">SGD {{ "%.2f"|format(kpis.revenue) }}</strong>
+            {% if kpis.revenue > 10000 %}
+            Strong revenue performance for the selected period.
+            <div class="badge buy">Performing Well</div>
+            {% else %}
+            Consider promotional campaigns to boost revenue.
+            <div class="badge review">Room for Growth</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="insight-card">
+          <div class="insight-header">
+            <div class="insight-icon">💰</div>
+            <h4 class="insight-title">Order Value Analysis</h4>
+          </div>
+          <div class="insight-body">
+            Average order value: <strong class="insight-stat">SGD {{ "%.2f"|format(kpis.aov) }}</strong>
+            {% if kpis.aov > 300 %}
+            Excellent order value. Customers are purchasing premium items.
+            {% else %}
+            Implement bundling strategies to increase average order size.
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="insight-card">
+          <div class="insight-header">
+            <div class="insight-icon">📦</div>
+            <h4 class="insight-title">Sales Volume</h4>
+          </div>
+          <div class="insight-body">
+            Total orders: <strong class="insight-stat">{{ kpis.orders }}</strong>
+            {% if kpis.orders > 50 %}
+            High order volume indicates strong demand.
+            <div class="badge buy">High Demand</div>
+            {% elif kpis.orders > 0 %}
+            Moderate order volume. Focus on customer acquisition.
+            <div class="badge hold">Stable</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECOMMENDATIONS (data-driven) -->
+    <div class="panel">
+      <h3 class="section-title">🎯 Recommendations</h3>
+      <div style="background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);">
+        {% if top_products|length > 0 %}
+        <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #f3f4f6;">
+          <h4 style="font-weight: 700; color: #111827; margin-bottom: 8px;">1️⃣ Focus on Top Performers</h4>
+          <p style="color: #6b7280; margin: 0; line-height: 1.6;">Your top product "{{ top_products[0].hem_name }}" generated SGD {{ "%.2f"|format(top_products[0].revenue) }}. Ensure adequate stock levels and consider expanding this product line.</p>
+        </div>
+        {% endif %}
+
+        {% if top_customers|length > 0 %}
+        <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #f3f4f6;">
+          <h4 style="font-weight: 700; color: #111827; margin-bottom: 8px;">2️⃣ Strengthen Customer Relationships</h4>
+          <p style="color: #6b7280; margin: 0; line-height: 1.6;">Customer {{ top_customers[0].customer_code }} placed {{ top_customers[0].orders }} orders worth SGD {{ "%.2f"|format(top_customers[0].revenue) }}. Implement a VIP program to retain your best customers.</p>
+        </div>
+        {% endif %}
+
+        {% if kpis.aov < 300 %}
+        <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #f3f4f6;">
+          <h4 style="font-weight: 700; color: #111827; margin-bottom: 8px;">3️⃣ Increase Average Order Value</h4>
+          <p style="color: #6b7280; margin: 0; line-height: 1.6;">Current AOV is SGD {{ "%.2f"|format(kpis.aov) }}. Introduce product bundles or minimum order incentives to increase this to SGD {{ "%.2f"|format(kpis.aov * 1.3) }}+.</p>
+        </div>
+        {% endif %}
+
+        <div>
+          <h4 style="font-weight: 700; color: #111827; margin-bottom: 8px;">4️⃣ Analyze Seasonal Patterns</h4>
+          <p style="color: #6b7280; margin: 0; line-height: 1.6;">Review the revenue trend chart to identify peak periods. Prepare inventory and marketing campaigns 2-3 months before seasonal spikes.</p>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -286,17 +760,47 @@
         datasets: [{
           label: "Revenue (SGD)",
           data: revenue,
-          tension: 0.35
+          borderColor: "rgba(102, 126, 234, 1)",
+          backgroundColor: "rgba(102, 126, 234, 0.1)",
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 6,
+          pointHoverRadius: 8,
+          pointBackgroundColor: "#fff",
+          pointBorderColor: "rgba(102, 126, 234, 1)",
+          pointBorderWidth: 3
         }]
       },
       options: {
         responsive: true,
+        maintainAspectRatio: true,
         plugins: {
-          legend: { display: true }
+          legend: { 
+            display: true,
+            labels: {
+              font: { size:
+  14, weight: 'bold' },
+              color: '#374151'
+            }
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            backgroundColor: 'rgba(55, 65, 81, 0.9)',
+            titleFont: { size: 16, weight: 'bold' },
+            bodyFont: { size: 14 }
+          }
         },
         scales: {
-          x: { ticks: { maxRotation: 0 } },
-          y: { beginAtZero: true }
+          x: {
+            ticks: { color: '#6b7280', font: { size: 12 } },
+            grid: { display: false }
+          },
+          y: {
+            ticks: { color: '#6b7280', font: { size: 12 } },
+            grid: { color: '#e5e7eb' }
+          }
         }
       }
     });
