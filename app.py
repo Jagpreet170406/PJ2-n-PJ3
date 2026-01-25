@@ -166,6 +166,12 @@ def staff_login():
 def home():
     return render_template("home.html", role=session.get("role"))
 
+@app.route('/about')
+@require_staff
+def about():
+    return render_template('about.html')
+
+
 @app.route("/inventory")
 @require_staff
 def inventory():
