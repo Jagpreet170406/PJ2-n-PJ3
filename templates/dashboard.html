@@ -4,9 +4,10 @@
 
 {% block content %}
 
+<!-- ==================== STYLES ==================== -->
 <style>
-/* PAGE BASE */
-html, body {
+/* === BASE STYLES === */
+body {
     background: #000000;
     margin: 0;
     padding: 0;
@@ -73,16 +74,120 @@ body {
     padding: 0 20px;
 }
 
-/* --- INVERTED THEME BELOW HERO --- */
-.section-card,
+/* === PAGE HEADER === */
+.page-header {
+    margin-bottom: 2rem;
+}
+
+.page-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.page-header p {
+    color: #888;
+    font-size: 0.95rem;
+}
+
+/* === KPI CARDS ===
+   Display key performance indicators in a responsive grid */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.kpi-card {
+    background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+    border: 1px solid #222;
+    border-radius: 16px;
+    padding: 1.5rem;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+/* Hover effect: lift card slightly */
+.kpi-card:hover {
+    transform: translateY(-2px);
+    border-color: #444;
+}
+
+.kpi-label {
+    font-size: 0.8rem;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+}
+
+/* Primary KPI value color (green) */
+.kpi-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #4ade80;
+}
+
+/* Secondary KPI value color (blue) */
+.kpi-value.secondary {
+    color: #60a5fa;
+}
+
+/* Tertiary KPI value color (orange) */
+.kpi-value.tertiary {
+    color: #f59e0b;
+}
+
+/* === FILTERS SECTION ===
+   Container for search and date filters */
 .filters-section {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255,255,255,0.14);
-    border-radius: 24px;
-    padding: 24px;
-    margin-bottom: 24px;
-    backdrop-filter: blur(18px);
-    box-shadow: 0 18px 60px rgba(0,0,0,0.35);
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-group label {
+    font-size: 0.85rem;
+    color: #aaa;
+    margin-bottom: 0.5rem;
+}
+
+.filter-group input, .filter-group select {
+    background: #0a0a0a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 0.75rem;
+    color: #fff;
+    font-size: 0.9rem;
+}
+
+.filter-group input:focus, .filter-group select:focus {
+    outline: none;
+    border-color: #000000;
+}
+
+/* === SECTION CARDS ===
+   Generic container for dashboard sections */
+.section-card {
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
 }
 
 .section-header {
@@ -210,6 +315,8 @@ body {
    - Use 4 columns desktop
    - Ensure form controls are width:100% and grid items can shrink (min-width:0)
 -------------------------------- */
+/* === FORM STYLING ===
+   Styles for the "Create Invoice" form */
 .form-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr)); /* 4 clean columns */
@@ -260,6 +367,7 @@ body {
 }
 
 /* BUTTONS */
+/* === BUTTONS === */
 .btn {
     padding: 12px 18px;
     border-radius: 12px;
@@ -315,6 +423,8 @@ body {
 .btn-cancel:hover { background: rgba(255,255,255,0.24); }
 
 /* TABLE */
+/* === TABLE STYLING ===
+   Generic data table styles */
 .data-table {
     width: 100%;
     border-collapse: collapse;
@@ -396,6 +506,8 @@ body {
 }
 
 /* ALERTS */
+/* === ALERT MESSAGES ===
+   Flash message styling with animation */
 .alert {
     padding: 14px 16px;
     border-radius: 14px;
@@ -438,6 +550,8 @@ body {
 .alert-close:hover { opacity: 1; }
 
 /* PAGINATION */
+/* === PAGINATION ===
+   Page navigation for invoice list */
 .pagination {
     display: flex;
     justify-content: center;
@@ -474,6 +588,72 @@ body {
 }
 
 /* MODAL */
+/* === INVOICE GROUP STYLING ===
+   Collapsible invoice header with expandable line items */
+.invoice-group {
+    border: 1px solid #333;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+/* Invoice header row - clickable to expand/collapse */
+.invoice-header-row {
+    background: #1a1a1a;
+    padding: 1rem;
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1.5fr 1fr 1fr 1fr 1fr 100px;
+    gap: 1rem;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.invoice-header-row:hover {
+    background: #222;
+}
+
+/* Line items container - hidden by default */
+.invoice-lines {
+    display: none;
+    background: #0f0f0f;
+}
+
+/* Show class reveals the line items */
+.invoice-lines.show {
+    display: block;
+}
+
+/* Individual line item styling */
+.line-item {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid #222;
+    display: grid;
+    grid-template-columns: 3fr 1fr 1fr 1fr 100px;
+    gap: 1rem;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.line-item:first-child {
+    border-top: none;
+}
+
+/* === BADGES === */
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-success {
+    background: rgba(74, 222, 128, 0.2);
+    color: #4ade80;
+}
+
+/* === DELETE CONFIRMATION MODAL === */
 .modal {
     display: none;
     position: fixed;
@@ -491,6 +671,7 @@ body {
     to   { opacity: 1; }
 }
 
+/* Show class makes modal visible */
 .modal.show {
     display: flex;
     align-items: center;
@@ -546,260 +727,331 @@ body {
 }
 </style>
 
-<div class="page-wrap">
-    <!-- HERO HEADER -->
-    <div class="hero">
+<!-- ==================== MAIN CONTENT ==================== -->
+<div class="dashboard-container">
+    <!-- Page Header -->
+    <div class="page-header">
         <h1>Enterprise Sales Dashboard</h1>
         <p>Invoice management, revenue tracking, and operational insights</p>
     </div>
 
-    <div class="card-shell">
-
-        <!-- Flash Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}" id="flash-message">
-                        <span>{{ message }}</span>
-                        <button class="alert-close" onclick="this.parentElement.style.display='none'">&times;</button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        <!-- KPI Cards -->
-        <div class="kpi-grid">
-            <div class="kpi-card">
-                <div class="kpi-label">Total Invoices</div>
-                <div class="kpi-value">{{ "{:,}".format(stats.total_invoices) }}</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">Total Revenue</div>
-                <div class="kpi-value secondary">S$ {{ "{:,.2f}".format(stats.total_revenue) }}</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">Total GST</div>
-                <div class="kpi-value tertiary">S$ {{ "{:,.2f}".format(stats.total_gst) }}</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">Units Sold</div>
-                <div class="kpi-value">{{ "{:,}".format(stats.total_units) }}</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">Unique Customers</div>
-                <div class="kpi-value secondary">{{ "{:,}".format(stats.total_customers) }}</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">Avg Line Value</div>
-                <div class="kpi-value tertiary">S$ {{ "{:,.2f}".format(stats.avg_line_value) }}</div>
-            </div>
-        </div>
-
-        <!-- Sales Trend -->
-        <div class="section-card">
-            <div class="section-header">
-                <h2 class="section-title">Sales Trend</h2>
-            </div>
-            <div class="chart-wrap">
-                <canvas id="salesTrendChart" style="max-height: 320px;"></canvas>
-            </div>
-        </div>
-
-        <!-- Filters Section -->
-        <div class="filters-section">
-            <div class="section-header" style="margin-bottom: 12px;">
-                <h2 class="section-title">Filters</h2>
-            </div>
-
-            <form method="GET" action="{{ url_for('dashboard') }}">
-                <div class="filters-grid">
-                    <div class="filter-group">
-                        <label>Search (Invoice/Product/Customer)</label>
-                        <input type="text" name="search" value="{{ search }}" placeholder="Search...">
-                    </div>
-                    <div class="filter-group">
-                        <label>Start Date</label>
-                        <input type="date" name="start_date" value="{{ start_date }}">
-                    </div>
-                    <div class="filter-group">
-                        <label>End Date</label>
-                        <input type="date" name="end_date" value="{{ end_date }}">
-                    </div>
+    <!-- Flash Messages Section -->
+    <!-- Displays success/error messages from server -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}" id="flash-message">
+                    <span>{{ message }}</span>
+                    <button class="alert-close" onclick="this.parentElement.style.display='none'">&times;</button>
                 </div>
-                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                    <button type="submit" class="btn btn-primary">Apply Filters</button>
-                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Clear Filters</a>
-                </div>
-            </form>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- KPI Cards Section -->
+    <!-- Displays 6 key performance indicators in a responsive grid -->
+    <div class="kpi-grid">
+        <!-- Total number of invoices -->
+        <div class="kpi-card">
+            <div class="kpi-label">Total Invoices</div>
+            <div class="kpi-value">{{ "{:,}".format(stats.total_invoices) }}</div>
         </div>
+        
+        <!-- Total revenue in SGD -->
+        <div class="kpi-card">
+            <div class="kpi-label">Total Revenue</div>
+            <div class="kpi-value secondary">S$ {{ "{:,.2f}".format(stats.total_revenue) }}</div>
+        </div>
+        
+        <!-- Total GST collected -->
+        <div class="kpi-card">
+            <div class="kpi-label">Total GST</div>
+            <div class="kpi-value tertiary">S$ {{ "{:,.2f}".format(stats.total_gst) }}</div>
+        </div>
+        
+        <!-- Total units sold across all products -->
+        <div class="kpi-card">
+            <div class="kpi-label">Units Sold</div>
+            <div class="kpi-value">{{ "{:,}".format(stats.total_units) }}</div>
+        </div>
+        
+        <!-- Count of unique customers -->
+        <div class="kpi-card">
+            <div class="kpi-label">Unique Customers</div>
+            <div class="kpi-value secondary">{{ "{:,}".format(stats.total_customers) }}</div>
+        </div>
+        
+        <!-- Average value per invoice line -->
+        <div class="kpi-card">
+            <div class="kpi-label">Avg Line Value</div>
+            <div class="kpi-value tertiary">S$ {{ "{:,.2f}".format(stats.avg_line_value) }}</div>
+        </div>
+    </div>
 
-        <!-- Add New Invoice Form -->
-        <div class="section-card">
-            <div class="section-header">
-                <h2 class="section-title">Create New Invoice</h2>
-            </div>
-
-            <form method="POST" action="{{ url_for('create_invoice') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <!-- Filters Section -->
+    <!-- Allows filtering invoices by search term and date range -->
+    <div class="filters-section">
+        <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">Filters</h3>
+        <form method="GET" action="{{ url_for('dashboard') }}">
+            <div class="filters-grid">
+                <!-- Search across invoice number, product name, and customer code -->
+                <div class="filter-group">
+                    <label>Search (Invoice/Product/Customer)</label>
+                    <input type="text" name="search" value="{{ search }}" placeholder="Search...">
+                </div>
                 
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Invoice No *</label>
-                        <input type="text" name="invoice_no" required placeholder="INV-2025-001">
-                    </div>
-                    <div class="form-group">
-                        <label>Invoice Date *</label>
-                        <input type="date" name="invoice_date" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Customer *</label>
-                        <select name="customer_id" required>
-                            <option value="">Select Customer</option>
-                            {% for customer in customers %}
-                            <option value="{{ customer.customer_id }}">{{ customer.customer_code }} (ID: {{ customer.customer_id }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Legend</label>
-                        <input type="text" name="legend_id" value="SGP" placeholder="SGP">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Product *</label>
-                        <select name="product_id" required>
-                            <option value="">Select Product</option>
-                            {% for product in products %}
-                            <option value="{{ product.product_id }}">{{ product.hem_name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Quantity *</label>
-                        <input type="number" name="qty" required min="1" value="1">
-                    </div>
-                    <div class="form-group">
-                        <label>Total Amount (S$) *</label>
-                        <input type="number" step="0.01" name="total_amt" required min="0" placeholder="100.00">
-                    </div>
-                    <div class="form-group">
-                        <label>GST Amount (S$) *</label>
-                        <input type="number" step="0.01" name="gst_amt" required min="0" placeholder="9.00">
-                    </div>
+                <!-- Start date for date range filter -->
+                <div class="filter-group">
+                    <label>Start Date</label>
+                    <input type="date" name="start_date" value="{{ start_date }}">
                 </div>
-                <button type="submit" class="btn btn-primary">Create Invoice</button>
-            </form>
-        </div>
-
-        <!-- Invoice List -->
-        <div class="section-card">
-            <div class="section-header">
-                <h2 class="section-title">Invoice List</h2>
+                
+                <!-- End date for date range filter -->
+                <div class="filter-group">
+                    <label>End Date</label>
+                    <input type="date" name="end_date" value="{{ end_date }}">
+                </div>
             </div>
+            
+            <!-- Filter action buttons -->
+            <div style="display: flex; gap: 1rem;">
+                <button type="submit" class="btn btn-primary">Apply Filters</button>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Clear Filters</a>
+            </div>
+        </form>
+    </div>
 
-            {% if invoices %}
-                {% for invoice_no, invoice_data in invoices.items() %}
-                <div class="invoice-group">
-                    <div class="invoice-header-row" onclick="toggleInvoice('{{ invoice_no }}')">
-                        <div>
-                            <strong>{{ invoice_no }}</strong>
-                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.55); margin-top: 0.25rem;">{{ invoice_data.header.invoice_date }}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Customer</div>
-                            <div>{{ invoice_data.header.customer_code }}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Legend</div>
-                            <div>{{ invoice_data.header.legend_id or 'N/A' }}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Lines</div>
-                            <div>{{ invoice_data.lines|length }}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Total</div>
-                            <div style="color: #34d399;">S$ {{ "{:,.2f}".format(invoice_data.totals.total_amt) }}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">GST</div>
-                            <div style="color: #fbbf24;">S$ {{ "{:,.2f}".format(invoice_data.totals.gst_amt) }}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Qty</div>
-                            <div>{{ invoice_data.totals.qty }}</div>
-                        </div>
-                        <div class="actions-cell" onclick="event.stopPropagation();">
-                            <button type="button" class="btn btn-danger" onclick="showDeleteModal('{{ invoice_no }}')">Delete</button>
-                        </div>
-                    </div>
-                    
-                    <div class="invoice-lines" id="lines-{{ invoice_no }}">
-                        {% for line in invoice_data.lines %}
-                        <div class="line-item">
-                            <div>
-                                <strong>{{ line.hem_name }}</strong>
-                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.55); margin-top: 0.25rem;">SKU: {{ line.sku_no or 'N/A' }} | Line: {{ line.line_no }}</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Qty</div>
-                                <div>{{ line.qty }}</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Amount</div>
-                                <div style="color: #34d399;">S$ {{ "{:,.2f}".format(line.total_amt) }}</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">GST</div>
-                                <div style="color: #fbbf24;">S$ {{ "{:,.2f}".format(line.gst_amt) }}</div>
-                            </div>
-                            <div></div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endfor %}
-
-                <!-- Pagination -->
-                {% if total_pages > 1 %}
-                <div class="pagination">
-                    {% if current_page > 1 %}
-                        <a href="{{ url_for('dashboard', page=current_page-1, search=search, start_date=start_date, end_date=end_date) }}">← Prev</a>
-                    {% endif %}
-                    
-                    {% for p in range(1, total_pages + 1) %}
-                        {% if p == current_page %}
-                            <span class="active">{{ p }}</span>
-                        {% elif p == 1 or p == total_pages or (p >= current_page - 2 and p <= current_page + 2) %}
-                            <a href="{{ url_for('dashboard', page=p, search=search, start_date=start_date, end_date=end_date) }}">{{ p }}</a>
-                        {% elif p == current_page - 3 or p == current_page + 3 %}
-                            <span>...</span>
-                        {% endif %}
-                    {% endfor %}
-                    
-                    {% if current_page < total_pages %}
-                        <a href="{{ url_for('dashboard', page=current_page+1, search=search, start_date=start_date, end_date=end_date) }}">Next →</a>
-                    {% endif %}
-                </div>
-                {% endif %}
-            {% else %}
-                <div class="empty-state">
-                    <p style="font-size: 1.1rem; color: rgba(255,255,255,0.85);">No invoices found</p>
-                    <p style="font-size: 0.9rem; color: rgba(255,255,255,0.6); margin-top: 0.5rem;">Create your first invoice using the form above</p>
-                </div>
-            {% endif %}
+    <!-- Create New Invoice Form Section -->
+    <div class="section-card">
+        <div class="section-header">
+            <h2 class="section-title">Create New Invoice</h2>
         </div>
 
+        <!-- Invoice creation form with all required fields -->
+        <form method="POST" action="{{ url_for('create_invoice') }}">
+            <!-- CSRF token for security -->
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div class="form-grid">
+                <!-- Invoice number field (required) -->
+                <div class="form-group">
+                    <label>Invoice No *</label>
+                    <input type="text" name="invoice_no" required placeholder="INV-2025-001">
+                </div>
+                
+                <!-- Invoice date field (required) -->
+                <div class="form-group">
+                    <label>Invoice Date *</label>
+                    <input type="date" name="invoice_date" required>
+                </div>
+                
+                <!-- Customer selection dropdown (required) -->
+                <div class="form-group">
+                    <label>Customer *</label>
+                    <select name="customer_id" required>
+                        <option value="">Select Customer</option>
+                        {% for customer in customers %}
+                        <option value="{{ customer.customer_id }}">{{ customer.customer_code }} (ID: {{ customer.customer_id }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Legend/region identifier (defaults to SGP) -->
+                <div class="form-group">
+                    <label>Legend</label>
+                    <input type="text" name="legend_id" value="SGP" placeholder="SGP">
+                </div>
+                
+                <!-- Product selection dropdown (required) -->
+                <div class="form-group">
+                    <label>Product *</label>
+                    <select name="product_id" required>
+                        <option value="">Select Product</option>
+                        {% for product in products %}
+                        <option value="{{ product.product_id }}">{{ product.hem_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Quantity field (required, minimum 1) -->
+                <div class="form-group">
+                    <label>Quantity *</label>
+                    <input type="number" name="qty" required min="1" value="1">
+                </div>
+                
+                <!-- Total amount field (required, with decimal support) -->
+                <div class="form-group">
+                    <label>Total Amount (S$) *</label>
+                    <input type="number" step="0.01" name="total_amt" required min="0" placeholder="100.00">
+                </div>
+                
+                <!-- GST amount field (required, with decimal support) -->
+                <div class="form-group">
+                    <label>GST Amount (S$) *</label>
+                    <input type="number" step="0.01" name="gst_amt" required min="0" placeholder="9.00">
+                </div>
+            </div>
+            
+            <!-- Submit button -->
+            <button type="submit" class="btn btn-primary">Create Invoice</button>
+        </form>
+    </div>
+
+    <!-- Invoice List Section -->
+    <div class="section-card">
+        <div class="section-header">
+            <h2 class="section-title">Invoice List</h2>
+        </div>
+
+        {% if invoices %}
+            <!-- Loop through each invoice -->
+            {% for invoice_no, invoice_data in invoices.items() %}
+            <div class="invoice-group">
+                <!-- Invoice Header Row (clickable to expand/collapse) -->
+                <div class="invoice-header-row" onclick="toggleInvoice('{{ invoice_no }}')">
+                    <!-- Invoice number and date -->
+                    <div>
+                        <strong>{{ invoice_no }}</strong>
+                        <div style="font-size: 0.75rem; color: #666; margin-top: 0.25rem;">{{ invoice_data.header.invoice_date }}</div>
+                    </div>
+                    
+                    <!-- Customer information -->
+                    <div>
+                        <div style="font-size: 0.75rem; color: #888;">Customer</div>
+                        <div>{{ invoice_data.header.customer_code }}</div>
+                    </div>
+                    
+                    <!-- Legend/region -->
+                    <div>
+                        <div style="font-size: 0.75rem; color: #888;">Legend</div>
+                        <div>{{ invoice_data.header.legend_id or 'N/A' }}</div>
+                    </div>
+                    
+                    <!-- Number of line items -->
+                    <div>
+                        <div style="font-size: 0.75rem; color: #888;">Lines</div>
+                        <div>{{ invoice_data.lines|length }}</div>
+                    </div>
+                    
+                    <!-- Total amount -->
+                    <div>
+                        <div style="font-size: 0.75rem; color: #888;">Total</div>
+                        <div style="color: #4ade80;">S$ {{ "{:,.2f}".format(invoice_data.totals.total_amt) }}</div>
+                    </div>
+                    
+                    <!-- GST amount -->
+                    <div>
+                        <div style="font-size: 0.75rem; color: #888;">GST</div>
+                        <div style="color: #f59e0b;">S$ {{ "{:,.2f}".format(invoice_data.totals.gst_amt) }}</div>
+                    </div>
+                    
+                    <!-- Total quantity -->
+                    <div>
+                        <div style="font-size: 0.75rem; color: #888;">Qty</div>
+                        <div>{{ invoice_data.totals.qty }}</div>
+                    </div>
+                    
+                    <!-- Delete button (stops propagation to prevent collapse when clicked) -->
+                    <div class="actions-cell" onclick="event.stopPropagation();">
+                        <button type="button" class="btn btn-danger" onclick="showDeleteModal('{{ invoice_no }}')">Delete</button>
+                    </div>
+                </div>
+                
+                <!-- Collapsible Line Items Section -->
+                <div class="invoice-lines" id="lines-{{ invoice_no }}">
+                    <!-- Loop through each line item in the invoice -->
+                    {% for line in invoice_data.lines %}
+                    <div class="line-item">
+                        <!-- Product name and SKU -->
+                        <div>
+                            <strong>{{ line.hem_name }}</strong>
+                            <div style="font-size: 0.75rem; color: #666; margin-top: 0.25rem;">SKU: {{ line.sku_no or 'N/A' }} | Line: {{ line.line_no }}</div>
+                        </div>
+                        
+                        <!-- Quantity -->
+                        <div>
+                            <div style="font-size: 0.75rem; color: #888;">Qty</div>
+                            <div>{{ line.qty }}</div>
+                        </div>
+                        
+                        <!-- Line amount -->
+                        <div>
+                            <div style="font-size: 0.75rem; color: #888;">Amount</div>
+                            <div style="color: #4ade80;">S$ {{ "{:,.2f}".format(line.total_amt) }}</div>
+                        </div>
+                        
+                        <!-- Line GST -->
+                        <div>
+                            <div style="font-size: 0.75rem; color: #888;">GST</div>
+                            <div style="color: #f59e0b;">S$ {{ "{:,.2f}".format(line.gst_amt) }}</div>
+                        </div>
+                        
+                        <!-- Empty column for alignment -->
+                        <div></div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Pagination Controls -->
+            {% if total_pages > 1 %}
+            <div class="pagination">
+                <!-- Previous page button -->
+                {% if current_page > 1 %}
+                    <a href="{{ url_for('dashboard', page=current_page-1, search=search, start_date=start_date, end_date=end_date) }}">← Prev</a>
+                {% endif %}
+                
+                <!-- Page numbers with ellipsis for large ranges -->
+                {% for p in range(1, total_pages + 1) %}
+                    {% if p == current_page %}
+                        <!-- Current page (highlighted) -->
+                        <span class="active">{{ p }}</span>
+                    {% elif p == 1 or p == total_pages or (p >= current_page - 2 and p <= current_page + 2) %}
+                        <!-- Show first, last, and pages near current -->
+                        <a href="{{ url_for('dashboard', page=p, search=search, start_date=start_date, end_date=end_date) }}">{{ p }}</a>
+                    {% elif p == current_page - 3 or p == current_page + 3 %}
+                        <!-- Ellipsis for skipped pages -->
+                        <span>...</span>
+                    {% endif %}
+                {% endfor %}
+                
+                <!-- Next page button -->
+                {% if current_page < total_pages %}
+                    <a href="{{ url_for('dashboard', page=current_page+1, search=search, start_date=start_date, end_date=end_date) }}">Next →</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        {% else %}
+            <!-- Empty State - shown when no invoices found -->
+            <div class="empty-state">
+                <p style="font-size: 3rem; margin-bottom: 1rem;">📋</p>
+                <p style="font-size: 1.1rem; color: #888;">No invoices found</p>
+                <p style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">Create your first invoice using the form above</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Sales Trend Chart Section -->
+    <div class="section-card">
+        <div class="section-header">
+            <h2 class="section-title">Sales Trend</h2>
+        </div>
+        <!-- Canvas element for Chart.js line chart -->
+        <canvas id="salesTrendChart" style="max-height: 300px;"></canvas>
     </div>
 </div>
 
 <!-- Delete Confirmation Modal -->
+<!-- Hidden by default, shown when user clicks delete button -->
 <div id="deleteModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
+            <span class="modal-icon">⚠️</span>
             <h2 class="modal-title">Confirm Deletion</h2>
         </div>
         <div class="modal-body">
+            <!-- Invoice number will be dynamically inserted here -->
             <p>Are you sure you want to delete invoice <strong id="deleteInvoiceNo"></strong>?</p>
             <p>This action cannot be undone and will permanently remove the invoice and all its line items.</p>
         </div>
@@ -810,36 +1062,47 @@ body {
     </div>
 </div>
 
+<!-- ==================== JAVASCRIPT ==================== -->
+
+<!-- Chart.js library for creating the sales trend chart -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
-// Toggle invoice lines
+// === INVOICE TOGGLE FUNCTION ===
+// Expands or collapses invoice line items when header is clicked
 function toggleInvoice(invoiceNo) {
     const linesDiv = document.getElementById('lines-' + invoiceNo);
     linesDiv.classList.toggle('show');
 }
 
-// Delete Modal Functions
+// === DELETE MODAL FUNCTIONS ===
+// Store the invoice number to be deleted
 let currentInvoiceToDelete = null;
 const csrfToken = '{{ csrf_token() }}';
 
+// Show the delete confirmation modal
 function showDeleteModal(invoiceNo) {
     currentInvoiceToDelete = invoiceNo;
     document.getElementById('deleteInvoiceNo').textContent = invoiceNo;
     document.getElementById('deleteModal').classList.add('show');
 }
 
+// Hide the delete confirmation modal
 function hideDeleteModal() {
     document.getElementById('deleteModal').classList.remove('show');
     currentInvoiceToDelete = null;
 }
 
+// Confirm deletion and submit form
 function confirmDelete() {
     if (!currentInvoiceToDelete) return;
     
+    // Create a form dynamically to submit the delete request
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = '/delete-invoice/' + currentInvoiceToDelete;
     
+    // Add CSRF token for security
     const csrfInput = document.createElement('input');
     csrfInput.type = 'hidden';
     csrfInput.name = 'csrf_token';
@@ -850,7 +1113,8 @@ function confirmDelete() {
     form.submit();
 }
 
-// Close modal when clicking outside
+// === MODAL OUTSIDE CLICK HANDLER ===
+// Close modal when user clicks outside the modal content
 window.onclick = function(event) {
     const modal = document.getElementById('deleteModal');
     if (event.target === modal) {
@@ -858,10 +1122,12 @@ window.onclick = function(event) {
     }
 }
 
-// Auto-hide flash messages after 5 seconds
+// === AUTO-HIDE FLASH MESSAGES ===
+// Automatically hide flash messages after 5 seconds
 setTimeout(() => {
     const flashMessage = document.getElementById('flash-message');
     if (flashMessage) {
+        // Reverse the slide-in animation
         flashMessage.style.animation = 'slideIn 0.3s ease-out reverse';
         setTimeout(() => {
             flashMessage.style.display = 'none';
@@ -869,37 +1135,67 @@ setTimeout(() => {
     }
 }, 5000);
 
-// Sales Trend Chart
-const ctx = document.getElementById('salesTrendChart')?.getContext('2d');
-if (ctx) {
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: {{ trend_labels|tojson|safe if trend_labels else "[]"|safe }},
-            datasets: [{
-                label: 'Revenue (S$)',
-                data: {{ trend_data|tojson|safe if trend_data else "[]"|safe }},
-                borderColor: 'rgba(255,255,255,0.92)',
-                backgroundColor: 'rgba(255, 255, 255, 0.10)',
-                borderWidth: 3,
-                tension: 0.4,
-                fill: true,
-                pointRadius: 4,
-                pointHoverRadius: 6,
-                pointBackgroundColor: 'rgba(255,255,255,0.92)',
-                pointBorderColor: 'rgba(0,0,0,0.55)',
-                pointBorderWidth: 2
-            }]
+// === SALES TREND CHART ===
+// Create a line chart showing monthly revenue trends using Chart.js
+const ctx = document.getElementById('salesTrendChart').getContext('2d');
+const salesTrendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        // Month labels from server (e.g., ["2024-01", "2024-02", ...])
+        labels: {{ trend_labels|tojson|safe if trend_labels else "[]"|safe }},
+        datasets: [{
+            label: 'Revenue (S$)',
+            // Revenue data corresponding to each month
+            data: {{ trend_data|tojson|safe if trend_data else "[]"|safe }},
+            borderColor: '#000000',
+            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            borderWidth: 3,
+            tension: 0.4,  // Creates smooth curves between points
+            fill: true,  // Fill area under the line
+            pointRadius: 5,  // Size of data points
+            pointHoverRadius: 7,  // Size when hovering
+            pointBackgroundColor: '#000000',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            // Legend configuration
+            legend: {
+                display: true,
+                labels: {
+                    color: '#fff',
+                    font: { size: 14 }
+                }
+            },
+            // Tooltip configuration (shown on hover)
+            tooltip: {
+                backgroundColor: '#1a1a1a',
+                titleColor: '#fff',
+                bodyColor: '#fff',
+                borderColor: '#333',
+                borderWidth: 1,
+                padding: 12,
+                callbacks: {
+                    // Format the tooltip label to show currency
+                    label: function(context) {
+                        return 'Revenue: S$ ' + context.parsed.y.toLocaleString('en-SG', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    }
+                }
+            }
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: {
-                    display: true,
-                    labels: {
-                        color: 'rgba(255,255,255,0.85)',
-                        font: { size: 13, weight: 'bold' }
+        scales: {
+            // Y-axis configuration (revenue values)
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    color: '#888',
+                    // Format tick labels as currency
+                    callback: function(value) {
+                        return 'S$ ' + value.toLocaleString('en-SG');
                     }
                 },
                 tooltip: {
@@ -916,26 +1212,12 @@ if (ctx) {
                     }
                 }
             },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        color: 'rgba(255,255,255,0.65)',
-                        callback: function(value) {
-                            return 'S$ ' + value.toLocaleString('en-SG');
-                        }
-                    },
-                    grid: {
-                        color: 'rgba(255,255,255,0.08)',
-                        drawBorder: false
-                    }
-                },
-                x: {
-                    ticks: { color: 'rgba(255,255,255,0.65)' },
-                    grid: {
-                        color: 'rgba(255,255,255,0.08)',
-                        drawBorder: false
-                    }
+            // X-axis configuration (month labels)
+            x: {
+                ticks: { color: '#888' },
+                grid: {
+                    color: '#222',
+                    drawBorder: false
                 }
             }
         }
