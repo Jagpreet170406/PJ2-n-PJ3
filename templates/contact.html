@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Contact Us{% endblock %}
+
+{% block content %}
+
+<style>
+    body {
+        background-color: #000;
+        color: #fff;
+    }
+
+    .contact-hero {
+        min-height: 80vh;
+        background:
+            linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.75)),
+            url("/static/preview2.jpg") center / cover no-repeat;
+        display: flex;
+        align-items: center;
+        padding: 60px 20px;
+    }
+
+    .contact-title {
+        font-size: clamp(2.6rem, 5vw, 4.2rem);
+        font-weight: 800;
+        margin-bottom: 1rem;
+        line-height: 1.1;
+    }
+
+    .contact-text {
+        font-size: 1.1rem;
+        color: rgba(255,255,255,0.8);
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    /* 🔽 TIGHTER GET IN TOUCH SECTION */
+    .contact-section {
+        padding: 45px 20px; /* reduced height */
+        background-color: #0a0a0a;
+    }
+
+    .section-title {
+        font-size: clamp(1.8rem, 3.5vw, 2.4rem);
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 2rem; /* less space */
+    }
+
+    .contact-info {
+        max-width: 700px;
+        margin: auto;
+    }
+
+    .info-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        margin-bottom: 1.3rem; /* tighter rows */
+        color: rgba(255,255,255,0.85);
+    }
+
+    .info-icon {
+        font-size: 1.6rem;
+        color: #ffd700;
+        margin-top: 3px;
+    }
+</style>
+
+<div class="contact-hero">
+    <div class="container">
+        <div class="row">
+            <div class="col text-center">
+                <h1 class="contact-title">Contact Us</h1>
+                <p class="contact-text">
+                    Have questions or need assistance? We’re here to help.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="contact-section">
+    <div class="container">
+        <h2 class="section-title">Get In Touch</h2>
+
+        <div class="contact-info">
+
+            <div class="info-item">
+                <i class="fas fa-map-marker-alt info-icon"></i>
+                <p>
+                    Chin Hon Motors<br>
+                    123 Auto Street<br>
+                    Car City
+                </p>
+            </div>
+
+            <div class="info-item">
+                <i class="fas fa-phone info-icon"></i>
+                <p>+65 9876 5432</p>
+            </div>
+
+            <div class="info-item">
+                <i class="fas fa-envelope info-icon"></i>
+                <p>info@chin-hon-motors.com</p>
+            </div>
+
+            <div class="info-item">
+                <i class="fas fa-clock info-icon"></i>
+                <p>
+                    Monday – Friday: 9am – 6pm<br>
+                    Saturday: 9am – 4pm<br>
+                    Sunday: Closed
+                </p>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}
