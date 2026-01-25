@@ -167,9 +167,8 @@ def home():
     return render_template("home.html", role=session.get("role"))
 
 @app.route('/about')
-@require_staff
 def about():
-    return render_template('about.html')
+    return render_template('about_us.html')
 
 
 @app.route("/inventory")
