@@ -1,43 +1,60 @@
-\{% extends "base.html" %}
+{% extends "base.html" %}
 {% block content %}
+
+<!-- Main container for order success page with centered layout -->
 <div class="container text-center" style="margin-top: 150px; margin-bottom: 100px;">
+    
+    <!-- Success checkmark icon -->
     <div class="mb-4">
         <div style="font-size: 80px; color: #28a745; display: inline-block; width: 120px; height: 120px; border: 5px solid #28a745; border-radius: 50%; line-height: 110px;">
             ✓
         </div>
     </div>
     
+    <!-- Success message heading -->
     <h1 class="font-weight-bold">ORDER PLACED!</h1>
-    <p class="lead text-muted">Huat Ah! Your order has been successfully received.</p>
+    <p class="lead text-muted">Your order has been successfully received.</p>
     
-    <!-- Fulfillment Details -->
+    <!-- Fulfillment Details Card (Delivery or Pickup) -->
     <div class="card mx-auto shadow-sm border-0 p-4 mb-4" style="max-width: 600px; background: #f9f9f9;">
+        <!-- Dynamic title will be populated by JavaScript based on fulfillment method -->
         <h5 id="fulfillment-title" class="font-weight-bold"></h5>
         <hr>
+        <!-- Dynamic details will be populated by JavaScript -->
         <p id="fulfillment-details" class="mb-0"></p>
     </div>
 
-    <!-- Order Receipt -->
+    <!-- Order Receipt Card -->
     <div class="card mx-auto shadow-sm border-0 p-4 mb-4" style="max-width: 600px; background: #ffffff;">
         <h5 class="font-weight-bold mb-3">📝 Order Receipt</h5>
         <hr>
+        <!-- Container for individual order items, populated by JavaScript -->
         <div id="receipt-items" class="text-left"></div>
         <hr>
+        
+        <!-- Subtotal row -->
         <div class="d-flex justify-content-between mb-2">
             <span>Subtotal:</span>
             <span id="receipt-subtotal">S$0.00</span>
         </div>
+        
+        <!-- Delivery fee row -->
         <div class="d-flex justify-content-between mb-2">
             <span>Delivery Fee:</span>
             <span id="receipt-shipping">S$0.00</span>
         </div>
+        
+        <!-- Total amount row -->
         <div class="d-flex justify-content-between mb-3">
             <strong>Total Paid:</strong>
             <strong class="text-success" id="receipt-total">S$0.00</strong>
         </div>
+        
+        <!-- Payment method information -->
         <small class="text-muted">Payment Method: <span id="receipt-payment-method">-</span></small>
     </div>
 
+    <!-- Back to shop button -->
     <div class="mt-5">
         <a href="{{ url_for('cart') }}" class="btn btn-dark btn-lg px-5">Back to Shop</a>
     </div>
@@ -45,24 +62,28 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Retrieve order details from URL parameters
+        // === RETRIEVE ORDER DETAILS FROM URL PARAMETERS ===
+        // Get fulfillment method and date/address from URL query string
         const params = new URLSearchParams(window.location.search);
-        const method = params.get('method');
-        const dateOrAddress = params.get('date');
+        const method = params.get('method');  // 'delivery' or 'pickup'
+        const dateOrAddress = params.get('date');  // Delivery address or pickup date
 
+        // Get DOM elements for fulfillment section
         const title = document.getElementById('fulfillment-title');
         const details = document.getElementById('fulfillment-details');
 
-        // Retrieve order data from sessionStorage (saved during checkout)
+        // === RETRIEVE ORDER DATA FROM SESSION STORAGE ===
+        // Order data was saved during checkout process
         const orderData = JSON.parse(sessionStorage.getItem('last_order') || '{}');
-        const cart = orderData.cart || [];
-        const subtotal = orderData.subtotal || 0;
-        const shipping = orderData.shipping || 0;
-        const total = orderData.total || 0;
-        const paymentMethod = orderData.payment_method || 'Not specified';
+        const cart = orderData.cart || [];  // Array of cart items
+        const subtotal = orderData.subtotal || 0;  // Subtotal amount
+        const shipping = orderData.shipping || 0;  // Shipping fee
+        const total = orderData.total || 0;  // Total amount
+        const paymentMethod = orderData.payment_method || 'Not specified';  // Payment method used
 
-        // Display fulfillment details
+        // === DISPLAY FULFILLMENT DETAILS BASED ON METHOD ===
         if (method === 'delivery') {
+            // Show delivery information
             title.innerText = "🚚 Local Delivery Schedule";
             details.innerHTML = `
                 <strong>Estimated Arrival:</strong> 1-3 Working Days<br>
@@ -70,6 +91,7 @@
                 <small class="text-muted">Our driver will contact you via WhatsApp.</small>
             `;
         } else {
+            // Show self-pickup information
             title.innerText = "🏪 Self-Pickup Confirmed";
             details.innerHTML = `
                 <strong>Pickup Date:</strong> ${dateOrAddress || 'Not selected'}<br>
@@ -78,11 +100,13 @@
             `;
         }
 
-        // Display receipt items
+        // === DISPLAY RECEIPT ITEMS ===
         const receiptContainer = document.getElementById('receipt-items');
         if (cart.length > 0) {
+            // Loop through cart items and create HTML for each
             receiptContainer.innerHTML = cart.map(item => `
                 <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                    <!-- Item image and details -->
                     <div class="d-flex align-items-center">
                         <img src="${item.image}" style="width:40px;height:40px;object-fit:contain;margin-right:10px;">
                         <div class="text-left">
@@ -90,20 +114,24 @@
                             <small class="text-muted">Qty: ${item.quantity} × S$${item.price.toFixed(2)}</small>
                         </div>
                     </div>
+                    <!-- Item total price -->
                     <span class="font-weight-bold">S$${(item.price * item.quantity).toFixed(2)}</span>
                 </div>
             `).join('');
         } else {
+            // Show message if no items found
             receiptContainer.innerHTML = '<p class="text-muted">No items found</p>';
         }
 
-        // Display totals
+        // === DISPLAY TOTALS ===
         document.getElementById('receipt-subtotal').innerText = `S$${subtotal.toFixed(2)}`;
+        // Show 'FREE' if shipping is 0, otherwise show the amount
         document.getElementById('receipt-shipping').innerText = shipping === 0 ? 'FREE' : `S$${shipping.toFixed(2)}`;
         document.getElementById('receipt-total').innerText = `S$${total.toFixed(2)}`;
         document.getElementById('receipt-payment-method').innerText = paymentMethod;
 
-        // Clear sessionStorage after displaying
+        // === CLEANUP ===
+        // Clear the order data from sessionStorage after displaying to prevent reuse
         sessionStorage.removeItem('last_order');
     });
 </script>

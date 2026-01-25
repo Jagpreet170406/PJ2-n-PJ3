@@ -15,16 +15,17 @@
       <ul class="navbar-nav ml-auto mb-2 mb-lg-0 align-items-center">
         
         <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('about') }}">About Us</a>
+          <a class="nav-link {% if request.endpoint == 'cart' %}active{% endif %}" href="{{ url_for('cart') }}">Shop</a>
         </li>
 
         <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'cart' %}active{% endif %}" href="{{ url_for('cart') }}">Shop</a>
+          <a class="nav-link" href="{{ url_for('about') }}">About Us</a>
         </li>
 
         <li class="nav-item">
           <a class="nav-link" href="{{ url_for('contact') }}">Contact Us</a>
         </li>
+
 
         <li class="nav-item">
           <a class="nav-link" href="{{ url_for('staff_login') }}">Staff Login</a>
