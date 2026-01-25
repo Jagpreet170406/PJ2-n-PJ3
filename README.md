@@ -17,3 +17,5 @@ admin: basically has same rights as superowner JUST THAT they can add new employ
 employee: Limited access. Only to Home & Inventory (Updation of Inventory Only) - On the Ground Employees
 3. images in cart.html and inventory.html - placeholder images will be replaced with actual product images. Just need to ensure images are manually searched. (May or May Not Use AI Image Generation)
 4. Inventory (Changed to a Dropdown Menu consisting of Inventory & Stock Take [Currently as inventory.html] and Inventory Analysis [currently real_time_analytics.html] - real_time_analytics.html NOT functional yet)
+5. Contact Us Page - (fill in credentials - sync w database and see it on staff side)
+6. Orders Page in Staff Side (NOT FUNCTIONAL YET - Not created yet and must be sync w database and cart)
