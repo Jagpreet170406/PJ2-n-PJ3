@@ -397,14 +397,55 @@ def dashboard():
 @app.route("/create-invoice", methods=["POST"])
 @require_staff
 def create_invoice():
-    invoice_no = request.form.get("invoice_no")
-    invoice_date = request.form.get("invoice_date")
-    customer_id = request.form.get("customer_id")
-    legend_id = request.form.get("legend_id", "SGP")
-    product_id = request.form.get("product_id")
-    qty = int(request.form.get("qty", 1))
-    total_amt = float(request.form.get("total_amt", 0))
-    gst_amt = float(request.form.get("gst_amt", 0))
+    invoice_no = request.form.get("invoice_no", "").strip()
+    invoice_date = request.form.get("invoice_date", "").strip()
+    customer_id = request.form.get("customer_id", "").strip()
+    legend_id = request.form.get("legend_id", "SGP").strip()
+    product_id = request.form.get("product_id", "").strip()
+    
+    # SERVER-SIDE VALIDATION - AT LEAST 2 FIELDS
+    if not invoice_no or len(invoice_no) < 3:
+        flash("Invoice number is required and must be at least 3 characters!", "danger")
+        return redirect(url_for("dashboard"))
+    
+    if not invoice_date:
+        flash("Invoice date is required!", "danger")
+        return redirect(url_for("dashboard"))
+    
+    if not customer_id:
+        flash("Customer selection is required!", "danger")
+        return redirect(url_for("dashboard"))
+    
+    if not product_id:
+        flash("Product selection is required!", "danger")
+        return redirect(url_for("dashboard"))
+    
+    try:
+        qty = int(request.form.get("qty", 0))
+        if qty <= 0:
+            flash("Quantity must be greater than 0!", "danger")
+            return redirect(url_for("dashboard"))
+    except ValueError:
+        flash("Invalid quantity value!", "danger")
+        return redirect(url_for("dashboard"))
+    
+    try:
+        total_amt = float(request.form.get("total_amt", 0))
+        if total_amt < 0:
+            flash("Total amount cannot be negative!", "danger")
+            return redirect(url_for("dashboard"))
+    except ValueError:
+        flash("Invalid total amount value!", "danger")
+        return redirect(url_for("dashboard"))
+    
+    try:
+        gst_amt = float(request.form.get("gst_amt", 0))
+        if gst_amt < 0:
+            flash("GST amount cannot be negative!", "danger")
+            return redirect(url_for("dashboard"))
+    except ValueError:
+        flash("Invalid GST amount value!", "danger")
+        return redirect(url_for("dashboard"))
     
     try:
         with get_db() as conn:
