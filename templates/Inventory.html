@@ -5,284 +5,516 @@
 {% block content %}
 
 <style>
+/* ====== Base / Background (match Dashboard) ====== */
+html, body {
+    background: #000000;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
 body {
-    font-family: Arial, sans-serif;
-    background: #000;
+    font-family: 'Inter', -apple-system, sans-serif;
     color: #fff;
-    padding: 20px;
 }
 
-h1 {
-    font-size: 28px;
-    margin-bottom: 10px;
+/* Page wrapper */
+.page-wrap {
+    min-height: 100vh;
+    padding-top: 100px;
+    padding-bottom: 60px;
+    position: relative;
+    background: #000000;
 }
 
-.controls {
+.page-wrap::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: #000000;
+    z-index: 0;
+}
+
+.page-wrap > * { position: relative; z-index: 1; }
+
+/* Glass hero */
+.hero {
+    max-width: 1200px;
+    margin: 0 auto 30px;
+    padding: 30px 20px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.30);
+    position: relative;
+    overflow: hidden;
+}
+
+/* (kept but NOT used in markup; safe to leave) */
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(0,0,0,0.60) 0%,
+      rgba(0,0,0,0.40) 45%,
+      rgba(0,0,0,0.75) 100%
+    ),
+    url("{{ url_for('static', filename='preview.jpg') }}");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.hero h1 {
+    margin: 0 0 10px;
+    font-weight: 900;
+    font-size: 3.5rem;
+    letter-spacing: -0.03em;
+    text-shadow: 0 2px 20px rgba(0,0,0,0.3);
+    background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero p {
+    margin: 0;
+    color: rgba(255,255,255,0.85);
+    font-size: 1.2rem;
+}
+
+/* Main container */
+.card-shell {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* ====== PANELS (Dashboard-style dark glass) ====== */
+.panel {
+    background: rgba(255, 255, 255, 0.08);          /* was white */
+    backdrop-filter: blur(18px);
+    border-radius: 24px;
+    box-shadow: 0 18px 60px rgba(0,0,0,0.35);
+    padding: 30px;
+    border: 1px solid rgba(255,255,255,0.14);
+    margin-bottom: 24px;
+    color: rgba(255,255,255,0.92);                  /* was dark text */
+}
+
+/* Section title style */
+.section-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: rgba(255,255,255,0.92);                  /* was black */
+    margin: 0 0 16px;
     display: flex;
+    align-items: center;
     gap: 10px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
 }
 
-.controls input, .controls select, .controls button {
-    padding: 8px 12px;
-    border-radius: 10px;
-    border: 1px solid #333;
-    background: #111;
-    color: #fff;
+.section-title::before {
+    content: "";
+    width: 4px;
+    height: 24px;
+    background: rgba(255,255,255,0.85);             /* was black */
+    border-radius: 2px;
+}
+
+/* ====== Controls (filters) - keep structure, invert black/white ====== */
+.controls {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr auto;
+    gap: 14px;
+    align-items: end;
+    margin-bottom: 0;
+    flex-wrap: initial;
+}
+
+@media (max-width: 1000px) {
+    .controls { grid-template-columns: 1fr 1fr; }
+}
+
+.controls input,
+.controls select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.18);       /* was light border */
+    background: rgba(0,0,0,0.35);                   /* was white */
+    color: rgba(255,255,255,0.92);                  /* was dark */
+    font-size: 1rem;
+    transition: all 0.25s ease;
+}
+
+.controls input:focus,
+.controls select:focus {
+    border-color: rgba(255,255,255,0.35);
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.08);
+    outline: none;
 }
 
 .controls button {
-    background: #0066ff;
+    padding: 12px 22px;
+    border-radius: 12px;
     border: none;
     cursor: pointer;
-    font-weight: bold;
+    font-weight: 800;
+    background: rgba(255,255,255,0.92);             /* was black */
+    color: #111827;                                  /* was white */
+    font-size: 1rem;
+    transition: all 0.25s ease;
+    box-shadow: 0 10px 26px rgba(0,0,0,0.28);
 }
 
 .controls button:hover {
-    background: #0052cc;
+    transform: translateY(-2px);
+    box-shadow: 0 16px 45px rgba(0,0,0,0.35);
+    background: #ffffff;
 }
 
+/* ====== Stats Bar -> make cards LIGHT like Dashboard KPIs ====== */
+.stats-bar {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin-bottom: 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    flex-wrap: initial;
+}
+
+@media (max-width: 1000px) {
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+}
+
+.stat-item {
+    background: rgba(255,255,255,0.92);             /* was black */
+    color: #111827;                                  /* was white */
+    border-radius: 20px;
+    padding: 22px 24px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.25);
+    transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    min-width: 0;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+.stat-item::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(0,0,0,0.08) 0%, transparent 70%); /* inverted */
+    opacity: 0;
+    transition: opacity 0.35s ease;
+}
+
+.stat-item:hover::before { opacity: 1; }
+.stat-item:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 16px 45px rgba(0,0,0,0.35);
+    border-color: rgba(255,255,255,0.35);
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    color: rgba(17,24,39,0.65);                      /* was light on black */
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.stat-value {
+    margin-top: 8px;
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: #111827;                                   /* ensure readable */
+    background: none;                                 /* remove white gradient */
+    -webkit-text-fill-color: initial;
+}
+
+/* KEEP red/yellow/green exactly (you asked) */
+.stat-value[style*="#f59e0b"] { color: #f59e0b !important; -webkit-text-fill-color: #f59e0b !important; }
+.stat-value[style*="#dc3545"] { color: #ef4444 !important; -webkit-text-fill-color: #ef4444 !important; }
+
+/* ====== Product grid/cards (invert: make cards DARK) ====== */
 .grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+}
+
+@media (max-width: 1100px) {
+    .grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+    .grid { grid-template-columns: 1fr; }
 }
 
 .card {
-    background: #111;
-    padding: 10px;
-    border-radius: 10px;
-    border: 1px solid #222;
-    transition: 0.2s;
+    background: rgba(0,0,0,0.22);                     /* was white */
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.14);         /* was gray border */
+    transition: all 0.25s ease;
     position: relative;
+    color: rgba(255,255,255,0.92);                    /* was dark text */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);         /* slightly stronger on dark */
+    min-width: 0;
 }
 
 .card:hover {
-    background: #1f1f1f;
+    transform: translateY(-4px);
+    box-shadow: 0 16px 45px rgba(0,0,0,0.35);
+    border-color: rgba(255,255,255,0.28);
 }
 
+/* image placeholder: invert */
 .img-placeholder {
-    background: #1a1a1a;
-    height: 150px;
-    border-radius: 5px;
+    background: rgba(255,255,255,0.06);               /* was light gray */
+    height: 160px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #777;
-    margin-bottom: 8px;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.14);
 }
 
+/* stock label base text (keep status colors) */
 .stock {
     font-size: 13px;
-    margin-top: 5px;
+    margin-top: 8px;
+    color: rgba(255,255,255,0.75);
 }
 
-.low {
-    color: orange;
-}
-
-.critical {
-    color: red;
-}
+/* keep red/yellow classes untouched */
+.low { color: #f59e0b; font-weight: 800; }
+.critical { color: #ef4444; font-weight: 900; }
 
 .card-actions {
     display: flex;
-    gap: 8px;
-    margin-top: 10px;
+    gap: 10px;
+    margin-top: 12px;
 }
 
 .card-actions button {
     flex: 1;
-    padding: 6px 10px;
-    border-radius: 5px;
+    padding: 10px 12px;
+    border-radius: 12px;
     border: none;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.9rem;
+    font-weight: 800;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.card-actions button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(0,0,0,0.15);
 }
 
 .edit-btn {
-    background: #28a745;
-    color: white;
-}
-
-.edit-btn:hover {
-    background: #218838;
+    background: rgba(255,255,255,0.92);               /* was black */
+    color: #111827;                                    /* was white */
 }
 
 .delete-btn {
-    background: #dc3545;
+    background: #ef4444;                               /* keep red */
     color: white;
 }
 
-.delete-btn:hover {
-    background: #c82333;
-}
-
-/* Modal Styles */
-.modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal.active {
-    display: flex;
-}
-
-.modal-content {
-    background: #1a1a1a;
-    padding: 25px;
-    border-radius: 15px;
-    border: 1px solid #333;
-    width: 90%;
-    max-width: 500px;
-    max-height: 90vh;
-    overflow-y: auto;
-}
-
-.modal-content h2 {
-    margin-top: 0;
-    margin-bottom: 20px;
-}
-
-.modal-content label {
-    display: block;
-    margin-bottom: 5px;
-    font-size: 14px;
-    color: #aaa;
-}
-
-.modal-content input, .modal-content select {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 15px;
-    border-radius: 8px;
-    border: 1px solid #333;
-    background: #111;
-    color: #fff;
-    box-sizing: border-box;
-}
-
-.modal-content input.error, .modal-content select.error {
-    border-color: #dc3545;
-}
-
-.error-message {
-    color: #dc3545;
-    font-size: 12px;
-    margin-top: -10px;
-    margin-bottom: 10px;
-    display: none;
-}
-
-.error-message.show {
-    display: block;
-}
-
-.modal-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 20px;
-}
-
-.modal-actions button {
-    flex: 1;
-    padding: 10px;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-.save-btn {
-    background: #0066ff;
-    color: white;
-}
-
-.save-btn:hover {
-    background: #0052cc;
-}
-
-.save-btn:disabled {
-    background: #555;
-    cursor: not-allowed;
-}
-
-.cancel-btn {
-    background: #555;
-    color: white;
-}
-
-.cancel-btn:hover {
-    background: #666;
-}
-
+/* Loading / empty state */
 .loading {
     text-align: center;
     padding: 50px;
     font-size: 18px;
-    color: #777;
+    color: rgba(255,255,255,0.65);                     /* was gray on white */
 }
 
-/* Pagination Styles */
+/* ====== Pagination (invert) ====== */
 .pagination {
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 10px;
-    margin-top: 30px;
-    padding: 20px;
+    margin-top: 22px;
+    padding: 0;
 }
 
 .pagination button {
-    padding: 8px 16px;
-    background: #111;
-    border: 1px solid #333;
-    border-radius: 8px;
-    color: #fff;
+    padding: 0.55rem 1rem;
+    background: rgba(255,255,255,0.10);                /* was white */
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 12px;
+    color: rgba(255,255,255,0.92);                     /* was dark */
     cursor: pointer;
-    font-weight: bold;
+    font-weight: 800;
+    transition: all 0.2s;
 }
 
 .pagination button:hover:not(:disabled) {
-    background: #0066ff;
-    border-color: #0066ff;
+    border-color: rgba(255,255,255,0.28);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+    background: rgba(255,255,255,0.16);
 }
 
 .pagination button:disabled {
-    opacity: 0.3;
+    opacity: 0.35;
     cursor: not-allowed;
 }
 
 .pagination .page-info {
-    color: #888;
+    color: rgba(255,255,255,0.65);
     font-size: 14px;
+    font-weight: 700;
 }
 
 .pagination .page-number {
-    padding: 8px 16px;
-    background: #0066ff;
-    border: 1px solid #0066ff;
-    border-radius: 8px;
-    color: #fff;
-    font-weight: bold;
+    padding: 0.55rem 1rem;
+    background: rgba(255,255,255,0.92);               /* was black */
+    border: 1px solid rgba(255,255,255,0.92);
+    border-radius: 12px;
+    color: #111827;                                    /* was white */
+    font-weight: 900;
 }
 
-/* BIG ASS NOTIFICATION */
+/* ====== Modal Styles (invert only black/white; keep red/yellow/green) ====== */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active { display: flex; }
+
+.modal-content {
+    background: rgba(15, 15, 15, 0.92);                /* was white */
+    padding: 25px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.14);
+    width: 90%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 80px rgba(0,0,0,0.35);
+    color: rgba(255,255,255,0.92);                      /* was dark */
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 18px;
+    font-weight: 900;
+}
+
+.modal-content label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(255,255,255,0.75);                      /* was gray */
+}
+
+.modal-content input,
+.modal-content select {
+    width: 100%;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(0,0,0,0.35);
+    color: rgba(255,255,255,0.92);
+    box-sizing: border-box;
+    transition: all 0.25s ease;
+}
+
+.modal-content input:focus,
+.modal-content select:focus {
+    border-color: rgba(255,255,255,0.35);
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.08);
+    outline: none;
+}
+
+.modal-content input.error,
+.modal-content select.error {
+    border-color: #ef4444; /* keep red */
+}
+
+.error-message {
+    color: #ef4444; /* keep red */
+    font-size: 12px;
+    margin-top: -10px;
+    margin-bottom: 10px;
+    display: none;
+    font-weight: 700;
+}
+.error-message.show { display: block; }
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.modal-actions button {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-weight: 900;
+    transition: all 0.2s;
+}
+
+.save-btn {
+    background: rgba(255,255,255,0.92);               /* was black */
+    color: #111827;                                    /* was white */
+    box-shadow: 0 10px 26px rgba(0,0,0,0.28);
+}
+
+.save-btn:hover { transform: translateY(-1px); box-shadow: 0 16px 45px rgba(0,0,0,0.35); }
+.save-btn:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.cancel-btn {
+    background: rgba(255,255,255,0.18);               /* was dark */
+    color: rgba(255,255,255,0.92);                     /* was white */
+    border: 1px solid rgba(255,255,255,0.22);
+    opacity: 1;
+}
+
+.cancel-btn:hover { background: rgba(255,255,255,0.24); transform: translateY(-1px); }
+
+/* ====== BIG ASS NOTIFICATION (keep red/green as-is) ====== */
 .big-notification {
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) scale(0);
-    background: linear-gradient(135deg, #dc3545 0%, #ff6b6b 100%);
+    background: linear-gradient(135deg, #ef4444 0%, #ff6b6b 100%);
     color: white;
     padding: 50px 70px;
     border-radius: 25px;
@@ -290,15 +522,15 @@ h1 {
     font-weight: 900;
     text-align: center;
     z-index: 10000;
-    box-shadow: 0 20px 60px rgba(220, 53, 69, 0.5);
+    box-shadow: 0 20px 60px rgba(239, 68, 68, 0.45);
     border: 4px solid #fff;
     opacity: 0;
     pointer-events: none;
 }
 
 .big-notification.success {
-    background: linear-gradient(135deg, #28a745 0%, #5cb85c 100%);
-    box-shadow: 0 20px 60px rgba(40, 167, 69, 0.5);
+    background: linear-gradient(135deg, #10b981 0%, #5cb85c 100%);
+    box-shadow: 0 20px 60px rgba(16, 185, 129, 0.45);
 }
 
 .big-notification.show {
@@ -310,28 +542,14 @@ h1 {
 }
 
 @keyframes bigPopIn {
-    0% {
-        transform: translate(-50%, -50%) scale(0);
-        opacity: 0;
-    }
-    50% {
-        transform: translate(-50%, -50%) scale(1.1);
-    }
-    100% {
-        transform: translate(-50%, -50%) scale(1);
-        opacity: 1;
-    }
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+    50% { transform: translate(-50%, -50%) scale(1.1); }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
 }
 
 @keyframes bigPopOut {
-    0% {
-        transform: translate(-50%, -50%) scale(1);
-        opacity: 1;
-    }
-    100% {
-        transform: translate(-50%, -50%) scale(0);
-        opacity: 0;
-    }
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
 }
 
 .notification-icon {
@@ -340,142 +558,135 @@ h1 {
     margin-bottom: 20px;
 }
 
-/* Delete Confirmation Modal */
+/* ====== Delete Confirmation Modal (invert only black/white) ====== */
 .delete-modal {
     display: none;
     position: fixed;
-    top: 0;
-    left: 0;
+    top: 0; left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.9);
+    background: rgba(0, 0, 0, 0.80);
     z-index: 2000;
     align-items: center;
     justify-content: center;
 }
 
-.delete-modal.active {
-    display: flex;
-}
+.delete-modal.active { display: flex; }
 
 .delete-modal-content {
-    background: #1a1a1a;
-    padding: 30px;
-    border-radius: 15px;
-    border: 2px solid #dc3545;
-    max-width: 450px;
+    background: rgba(15, 15, 15, 0.92);               /* was white */
+    padding: 26px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.14);
+    max-width: 480px;
+    width: 92%;
     text-align: center;
+    box-shadow: 0 20px 80px rgba(0,0,0,0.35);
+    color: rgba(255,255,255,0.92);                     /* was dark */
 }
 
 .delete-modal-content h3 {
-    color: #dc3545;
-    font-size: 24px;
-    margin-bottom: 15px;
+    color: #ef4444; /* keep red */
+    font-size: 1.35rem;
+    margin-bottom: 10px;
+    font-weight: 900;
 }
 
 .delete-modal-content p {
-    color: #aaa;
-    margin-bottom: 25px;
+    color: rgba(255,255,255,0.75);                     /* was gray */
+    margin-bottom: 18px;
     line-height: 1.6;
 }
 
 .delete-modal-actions {
     display: flex;
-    gap: 15px;
+    gap: 12px;
 }
 
 .delete-modal-actions button {
     flex: 1;
     padding: 12px;
-    border-radius: 8px;
+    border-radius: 12px;
     border: none;
     cursor: pointer;
-    font-weight: bold;
+    font-weight: 900;
     font-size: 14px;
 }
 
-.stats-bar {
-    background: #111;
-    border: 1px solid #222;
-    border-radius: 10px;
-    padding: 15px;
-    margin-bottom: 20px;
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-}
-
-.stat-item {
-    flex: 1;
-    min-width: 150px;
-}
-
-.stat-label {
-    font-size: 12px;
-    color: #888;
-    text-transform: uppercase;
-}
-
-.stat-value {
-    font-size: 24px;
-    font-weight: bold;
-    color: #4ade80;
-    margin-top: 5px;
-}
+/* IMPORTANT: keep delete button red, cancel button inherits .cancel-btn */
 </style>
 
-<div>
-    <h1>Inventory Management</h1>
-    
-    <!-- Stats Bar -->
-    <div class="stats-bar">
-        <div class="stat-item">
-            <div class="stat-label">Total Products</div>
-            <div class="stat-value" id="totalProducts">0</div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-label">Total Stock</div>
-            <div class="stat-value" id="totalStock">0</div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-label">Low Stock Items</div>
-            <div class="stat-value" style="color: #f59e0b;" id="lowStockItems">0</div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-label">Critical Stock</div>
-            <div class="stat-value" style="color: #dc3545;" id="criticalStockItems">0</div>
-        </div>
+<div class="page-wrap">
+    <!-- Hero Header -->
+    <div class="hero">
+        <h1>Inventory</h1>
+        <p>Stock overview, product management, and low-stock visibility</p>
     </div>
-    
-    <div class="controls">
-        <input type="text" id="searchInput" placeholder="Search products...">
-        <select id="sortSelect">
-            <option value="">Sort by</option>
-            <option value="name">Name (A–Z)</option>
-            <option value="stock">Stock (High → Low)</option>
-            <option value="price">Price (Low → High)</option>
-        </select>
-        <select id="perPageSelect">
-            <option value="12">12 per page</option>
-            <option value="24" selected>24 per page</option>
-            <option value="48">48 per page</option>
-            <option value="96">96 per page</option>
-        </select>
-        <button id="addProductBtn">+ Add Product</button>
-    </div>
-    
-    <div class="grid" id="productGrid">
-        <div class="loading">Loading inventory...</div>
-    </div>
-    
-    <!-- Pagination -->
-    <div class="pagination" id="paginationControls" style="display: none;">
-        <button id="firstPageBtn">⏮️ First</button>
-        <button id="prevPageBtn">◀️ Prev</button>
-        <span class="page-number" id="currentPageDisplay">1</span>
-        <span class="page-info" id="pageInfo">of 1</span>
-        <button id="nextPageBtn">Next ▶️</button>
-        <button id="lastPageBtn">Last ⏭️</button>
+
+    <div class="card-shell">
+        <!-- KPI / Stats -->
+        <div class="panel">
+            <h2 class="section-title">Inventory Overview</h2>
+
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <div class="stat-label">Total Products</div>
+                    <div class="stat-value" id="totalProducts">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Total Stock</div>
+                    <div class="stat-value" id="totalStock">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Low Stock Items</div>
+                    <div class="stat-value" style="color: #f59e0b;" id="lowStockItems">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Critical Stock</div>
+                    <div class="stat-value" style="color: #dc3545;" id="criticalStockItems">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="panel">
+            <h2 class="section-title">Controls</h2>
+
+            <div class="controls">
+                <input type="text" id="searchInput" placeholder="Search products...">
+                <select id="sortSelect">
+                    <option value="">Sort by</option>
+                    <option value="name">Name (A–Z)</option>
+                    <option value="stock">Stock (High → Low)</option>
+                    <option value="price">Price (Low → High)</option>
+                </select>
+                <select id="perPageSelect">
+                    <option value="12">12 per page</option>
+                    <option value="24" selected>24 per page</option>
+                    <option value="48">48 per page</option>
+                    <option value="96">96 per page</option>
+                </select>
+                <button id="addProductBtn">+ Add Product</button>
+            </div>
+        </div>
+
+        <!-- Product Grid -->
+        <div class="panel">
+            <h2 class="section-title">Products</h2>
+
+            <div class="grid" id="productGrid">
+                <div class="loading">Loading inventory...</div>
+            </div>
+
+            <div class="pagination" id="paginationControls" style="display: none; margin-top: 22px;">
+                <button id="firstPageBtn">First</button>
+                <button id="prevPageBtn">Prev</button>
+                <span class="page-number" id="currentPageDisplay">1</span>
+                <span class="page-info" id="pageInfo">of 1</span>
+                <button id="nextPageBtn">Next</button>
+                <button id="lastPageBtn">Last/button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -487,11 +698,11 @@ h1 {
             <label for="productPartNo">Supplier Part Number</label>
             <input type="text" id="productPartNo" placeholder="e.g., SP-12345">
             <div class="error-message" id="errorPartNo"></div>
-            
+
             <label for="productName">Product Name * (Min 3 chars)</label>
             <input type="text" id="productName" required minlength="3">
             <div class="error-message" id="errorName"></div>
-            
+
             <label for="productCategory">Category *</label>
             <select id="productCategory" required>
                 <option value="Lubricants">Lubricants</option>
@@ -504,19 +715,19 @@ h1 {
                 <option value="Other">Other</option>
             </select>
             <div class="error-message" id="errorCategory"></div>
-            
+
             <label for="productStock">Stock Quantity * (Min 0)</label>
             <input type="number" id="productStock" required min="0" value="0">
             <div class="error-message" id="errorStock"></div>
-            
+
             <label for="productPrice">Selling Price (SGD) * (Min 0.01)</label>
             <input type="number" id="productPrice" required min="0.01" step="0.01" value="0.00">
             <div class="error-message" id="errorPrice"></div>
-            
+
             <label for="productImage">Image URL (optional)</label>
             <input type="text" id="productImage" placeholder="https://...">
             <div class="error-message" id="errorImage"></div>
-            
+
             <div class="modal-actions">
                 <button type="submit" class="save-btn" id="saveBtn">Save</button>
                 <button type="button" class="cancel-btn" id="cancelBtn">Cancel</button>
@@ -530,7 +741,7 @@ h1 {
     <div class="delete-modal-content">
         <h3>⚠️ Confirm Deletion</h3>
         <p>Are you sure you want to delete <strong id="deleteProductName"></strong>?</p>
-        <p style="font-size: 14px; color: #666;">This action cannot be undone.</p>
+        <p style="font-size: 14px; color: rgba(255,255,255,0.65); margin-top: -8px;">This action cannot be undone.</p>
         <div class="delete-modal-actions">
             <button class="cancel-btn" id="cancelDeleteBtn">Cancel</button>
             <button class="delete-btn" id="confirmDeleteBtn">Delete Product</button>
@@ -578,7 +789,7 @@ function validateField(fieldId, errorId, validationFn, errorMsg) {
     const field = document.getElementById(fieldId);
     const error = document.getElementById(errorId);
     const isValid = validationFn(field.value);
-    
+
     if (!isValid) {
         field.classList.add('error');
         error.textContent = errorMsg;
@@ -587,49 +798,40 @@ function validateField(fieldId, errorId, validationFn, errorMsg) {
         field.classList.remove('error');
         error.classList.remove('show');
     }
-    
+
     return isValid;
 }
 
 function validateForm() {
-    const name = document.getElementById("productName").value.trim();
-    const stock = parseInt(document.getElementById("productStock").value);
-    const price = parseFloat(document.getElementById("productPrice").value);
-    
     let isValid = true;
-    
-    // Validate Product Name (required, min 3 characters)
-    if (!validateField('productName', 'errorName', 
-        val => val.trim().length >= 3, 
+
+    if (!validateField('productName', 'errorName',
+        val => val.trim().length >= 3,
         'Product name must be at least 3 characters')) {
         isValid = false;
     }
-    
-    // Validate Stock (required, >= 0)
-    if (!validateField('productStock', 'errorStock', 
-        val => !isNaN(val) && parseInt(val) >= 0, 
+
+    if (!validateField('productStock', 'errorStock',
+        val => !isNaN(val) && parseInt(val) >= 0,
         'Stock must be 0 or greater')) {
         isValid = false;
     }
-    
-    // Validate Price (required, > 0)
-    if (!validateField('productPrice', 'errorPrice', 
-        val => !isNaN(val) && parseFloat(val) >= 0.01, 
+
+    if (!validateField('productPrice', 'errorPrice',
+        val => !isNaN(val) && parseFloat(val) >= 0.01,
         'Price must be at least 0.01')) {
         isValid = false;
     }
-    
-    // Validate Category (required)
-    if (!validateField('productCategory', 'errorCategory', 
-        val => val.trim().length > 0, 
+
+    if (!validateField('productCategory', 'errorCategory',
+        val => val.trim().length > 0,
         'Category is required')) {
         isValid = false;
     }
-    
+
     return isValid;
 }
 
-// Clear validation errors
 function clearValidationErrors() {
     document.querySelectorAll('.error-message').forEach(el => el.classList.remove('show'));
     document.querySelectorAll('input, select').forEach(el => el.classList.remove('error'));
@@ -640,11 +842,11 @@ function showBigNotification(message, isSuccess = false) {
     const icon = isSuccess ? '✓' : '✖';
     bigNotification.innerHTML = `<span class="notification-icon">${icon}</span>${message}`;
     bigNotification.className = `big-notification ${isSuccess ? 'success' : ''}`;
-    
+
     void bigNotification.offsetWidth;
-    
+
     bigNotification.classList.add('show');
-    
+
     setTimeout(() => {
         bigNotification.classList.remove('show');
         bigNotification.classList.add('hide');
@@ -661,7 +863,7 @@ function updateStats() {
     const totalStock = allProducts.reduce((sum, p) => sum + p.qty, 0);
     const lowStockItems = allProducts.filter(p => p.qty > 60 && p.qty <= 80).length;
     const criticalStockItems = allProducts.filter(p => p.qty <= 60).length;
-    
+
     document.getElementById('totalProducts').textContent = totalProducts;
     document.getElementById('totalStock').textContent = totalStock.toLocaleString();
     document.getElementById('lowStockItems').textContent = lowStockItems;
@@ -672,18 +874,18 @@ function updateStats() {
 async function loadProducts() {
     try {
         const response = await fetch('/api/inventory');
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         allProducts = data;
         updateStats();
         filterAndSortProducts();
     } catch (error) {
         console.error('Error loading products:', error);
-        productGrid.innerHTML = '<div class="loading" style="color: red;">Error loading inventory. Please refresh.</div>';
+        productGrid.innerHTML = '<div class="loading" style="color: #ef4444;">Error loading inventory. Please refresh.</div>';
         showBigNotification('FAILED TO LOAD INVENTORY');
     }
 }
@@ -692,14 +894,12 @@ async function loadProducts() {
 function filterAndSortProducts() {
     const searchText = searchInput.value.toLowerCase();
     const sortType = sortSelect.value;
-    
-    // Filter products
-    filteredProducts = allProducts.filter(p => 
+
+    filteredProducts = allProducts.filter(p =>
         p.hem_name.toLowerCase().includes(searchText) ||
         (p.sup_part_no && p.sup_part_no.toLowerCase().includes(searchText))
     );
-    
-    // Sort products
+
     if (sortType === "name") {
         filteredProducts.sort((a, b) => a.hem_name.localeCompare(b.hem_name));
     } else if (sortType === "stock") {
@@ -707,7 +907,7 @@ function filterAndSortProducts() {
     } else if (sortType === "price") {
         filteredProducts.sort((a, b) => a.sell_price - b.sell_price);
     }
-    
+
     currentPage = 1;
     renderProducts();
 }
@@ -718,13 +918,12 @@ function renderProducts() {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     const pageProducts = filteredProducts.slice(startIndex, endIndex);
-    
-    // Update pagination controls
+
     if (filteredProducts.length > itemsPerPage) {
         paginationControls.style.display = 'flex';
         currentPageDisplay.textContent = currentPage;
         pageInfo.textContent = `of ${totalPages} (${filteredProducts.length} items)`;
-        
+
         firstPageBtn.disabled = currentPage === 1;
         prevPageBtn.disabled = currentPage === 1;
         nextPageBtn.disabled = currentPage === totalPages;
@@ -732,17 +931,16 @@ function renderProducts() {
     } else {
         paginationControls.style.display = 'none';
     }
-    
-    // Render products
+
     if (pageProducts.length === 0) {
         productGrid.innerHTML = '<div class="loading">No products found.</div>';
         return;
     }
-    
+
     productGrid.innerHTML = pageProducts.map(product => {
         let stockClass = "";
         let stockLabel = "";
-        
+
         if (product.qty <= 60) {
             stockClass = "critical";
             stockLabel = "🔴 Critical";
@@ -750,15 +948,15 @@ function renderProducts() {
             stockClass = "low";
             stockLabel = "⚠ Low";
         }
-        
+
         return `
             <div class="card">
                 <div class="img-placeholder">${product.image_url ? `<img src="${product.image_url}" style="max-width:100%; max-height:100%; object-fit:contain;">` : 'No Image'}</div>
                 <div><strong>${product.hem_name}</strong></div>
-                ${product.sup_part_no ? `<small style="color: #666;">SKU: ${product.sup_part_no}</small><br>` : ''}
-                ${product.category ? `<small style="color: #888;">${product.category}</small>` : ''}
+                ${product.sup_part_no ? `<small style="color: rgba(255,255,255,0.65);">SKU: ${product.sup_part_no}</small><br>` : ''}
+                ${product.category ? `<small style="color: rgba(255,255,255,0.65);">${product.category}</small>` : ''}
                 <div class="stock ${stockClass}">Stock: ${product.qty} ${stockLabel}</div>
-                <div style="margin-top: 5px; font-size: 14px; color: #4ade80;">SGD ${parseFloat(product.sell_price).toFixed(2)}</div>
+                <div style="margin-top: 8px; font-size: 14px; font-weight: 900; color: #10b981;">SGD ${parseFloat(product.sell_price).toFixed(2)}</div>
                 <div class="card-actions">
                     <button class="edit-btn" onclick="editProduct(${product.inventory_id})">Edit</button>
                     <button class="delete-btn" onclick="showDeleteModal(${product.inventory_id})">Delete</button>
@@ -817,7 +1015,7 @@ addProductBtn.addEventListener("click", () => {
 function editProduct(id) {
     editingId = id;
     const product = allProducts.find(p => p.inventory_id === id);
-    
+
     modalTitle.textContent = "Edit Product";
     clearValidationErrors();
     document.getElementById("productPartNo").value = product.sup_part_no || '';
@@ -826,7 +1024,7 @@ function editProduct(id) {
     document.getElementById("productStock").value = product.qty;
     document.getElementById("productPrice").value = parseFloat(product.sell_price).toFixed(2);
     document.getElementById("productImage").value = product.image_url || '';
-    
+
     productModal.classList.add("active");
 }
 
@@ -847,20 +1045,20 @@ cancelDeleteBtn.addEventListener('click', () => {
 // Confirm delete
 confirmDeleteBtn.addEventListener('click', async () => {
     if (!deleteProductId) return;
-    
+
     deleteModal.classList.remove('active');
-    
+
     try {
         const response = await fetch(`/api/inventory/${deleteProductId}`, {
             method: 'DELETE'
         });
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             await loadProducts();
             showBigNotification('PRODUCT DELETED!', false);
@@ -871,27 +1069,26 @@ confirmDeleteBtn.addEventListener('click', async () => {
         console.error('Error deleting product:', error);
         showBigNotification('FAILED TO DELETE PRODUCT');
     }
-    
+
     deleteProductId = null;
 });
 
 // Save product (Create or Update)
 productForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    
-    // Validate form
+
     if (!validateForm()) {
         showBigNotification('PLEASE FIX ERRORS');
         return;
     }
-    
+
     const partNo = document.getElementById("productPartNo").value.trim();
     const name = document.getElementById("productName").value.trim();
     const category = document.getElementById("productCategory").value;
     const stock = parseInt(document.getElementById("productStock").value);
     const price = parseFloat(document.getElementById("productPrice").value);
     const imageUrl = document.getElementById("productImage").value.trim();
-    
+
     const payload = {
         sup_part_no: partNo,
         hem_name: name,
@@ -900,15 +1097,14 @@ productForm.addEventListener("submit", async (e) => {
         sell_price: price,
         image_url: imageUrl
     };
-    
-    // Disable save button during request
+
     const saveBtn = document.getElementById('saveBtn');
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving...';
-    
+
     try {
         let response;
-        
+
         if (editingId) {
             response = await fetch(`/api/inventory/${editingId}`, {
                 method: 'PUT',
@@ -922,13 +1118,13 @@ productForm.addEventListener("submit", async (e) => {
                 body: JSON.stringify(payload)
             });
         }
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             productModal.classList.remove("active");
             await loadProducts();
@@ -969,21 +1165,21 @@ deleteModal.addEventListener("click", (e) => {
 // Real-time validation on input
 document.getElementById('productName').addEventListener('input', () => {
     if (document.getElementById('productName').value.trim().length > 0) {
-        validateField('productName', 'errorName', 
-            val => val.trim().length >= 3, 
+        validateField('productName', 'errorName',
+            val => val.trim().length >= 3,
             'Product name must be at least 3 characters');
     }
 });
 
 document.getElementById('productStock').addEventListener('input', () => {
-    validateField('productStock', 'errorStock', 
-        val => !isNaN(val) && parseInt(val) >= 0, 
+    validateField('productStock', 'errorStock',
+        val => !isNaN(val) && parseInt(val) >= 0,
         'Stock must be 0 or greater');
 });
 
 document.getElementById('productPrice').addEventListener('input', () => {
-    validateField('productPrice', 'errorPrice', 
-        val => !isNaN(val) && parseFloat(val) >= 0.01, 
+    validateField('productPrice', 'errorPrice',
+        val => !isNaN(val) && parseFloat(val) >= 0.01,
         'Price must be at least 0.01');
 });
 

@@ -5,266 +5,348 @@
 {% block content %}
 
 <style>
-body {
+/* PAGE BASE */
+html, body {
     background: #000000;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+body {
     color: #fff;
     font-family: 'Inter', -apple-system, sans-serif;
 }
 
-.dashboard-container {
-    max-width: 1600px;
+/* WRAPPER (like market_analysis) */
+.page-wrap {
+    min-height: 100vh;
+    padding-top: 100px;
+    padding-bottom: 60px;
+    position: relative;
+    background: #000000;
+}
+
+.page-wrap::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: #000000;
+    z-index: 0;
+}
+
+.page-wrap > * { position: relative; z-index: 1; }
+
+/* HERO (same vibe as market_analysis hero) */
+.hero {
+    max-width: 1200px;
+    margin: 0 auto 30px;
+    padding: 30px 20px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.hero h1 {
+    font-weight: 900;
+    font-size: 3.2rem;
+    letter-spacing: -0.03em;
+    margin: 0 0 10px;
+    background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero p {
+    color: rgba(255,255,255,0.85);
+    font-size: 1.15rem;
+    margin: 0;
+}
+
+/* MAIN SHELL */
+.card-shell {
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 0 20px;
 }
 
-.page-header {
-    margin-bottom: 2rem;
-}
-
-.page-header h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-}
-
-.page-header p {
-    color: #888;
-    font-size: 0.95rem;
-}
-
-/* KPI Cards */
-.kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.kpi-card {
-    background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
-    border: 1px solid #222;
-    border-radius: 16px;
-    padding: 1.5rem;
-    transition: transform 0.2s, border-color 0.2s;
-}
-
-.kpi-card:hover {
-    transform: translateY(-2px);
-    border-color: #444;
-}
-
-.kpi-label {
-    font-size: 0.8rem;
-    color: #888;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 0.5rem;
-}
-
-.kpi-value {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: #4ade80;
-}
-
-.kpi-value.secondary {
-    color: #60a5fa;
-}
-
-.kpi-value.tertiary {
-    color: #f59e0b;
-}
-
-/* Filters Section */
+/* --- INVERTED THEME BELOW HERO --- */
+.section-card,
 .filters-section {
-    background: #111;
-    border: 1px solid #222;
-    border-radius: 16px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.filters-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-.filter-group {
-    display: flex;
-    flex-direction: column;
-}
-
-.filter-group label {
-    font-size: 0.85rem;
-    color: #aaa;
-    margin-bottom: 0.5rem;
-}
-
-.filter-group input, .filter-group select {
-    background: #0a0a0a;
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 0.75rem;
-    color: #fff;
-    font-size: 0.9rem;
-}
-
-.filter-group input:focus, .filter-group select:focus {
-    outline: none;
-    border-color: #000000;
-}
-
-/* Section Cards */
-.section-card {
-    background: #111;
-    border: 1px solid #222;
-    border-radius: 16px;
-    padding: 2rem;
-    margin-bottom: 2rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 24px;
+    padding: 24px;
+    margin-bottom: 24px;
+    backdrop-filter: blur(18px);
+    box-shadow: 0 18px 60px rgba(0,0,0,0.35);
 }
 
 .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
 }
 
 .section-title {
-    font-size: 1.25rem;
-    font-weight: 600;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: rgba(255,255,255,0.92);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-/* Form Styling */
+.section-title::before {
+    content: "";
+    width: 4px;
+    height: 22px;
+    background: rgba(255,255,255,0.85);
+    border-radius: 2px;
+}
+
+/* KPI GRID */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.kpi-card {
+    background: rgba(255,255,255,0.92);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 20px;
+    padding: 18px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+.kpi-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 16px 45px rgba(0,0,0,0.35);
+}
+
+.kpi-label {
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(17,24,39,0.65);
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.kpi-value {
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: #000000;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+.kpi-value.secondary { color: #000000; }
+.kpi-value.tertiary  { color: #000000; }
+
+/* -----------------------------
+   FIX #1: FILTERS SPACING
+   - Force the 3 filter fields to sit wider apart (1 row on desktop)
+   - Avoid big empty right space
+-------------------------------- */
+.filters-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr; /* Search wider, dates equal */
+    gap: 18px;
+    align-items: end;
+    margin-bottom: 14px;
+}
+
+@media (max-width: 900px) {
+    .filters-grid {
+        grid-template-columns: 1fr; /* stack on smaller screens */
+    }
+}
+
+/* FILTERS */
+.filter-group label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 8px;
+}
+
+.filter-group input,
+.filter-group select {
+    width: 100%;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: rgba(255,255,255,0.92);
+    font-size: 0.95rem;
+    box-sizing: border-box;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+    outline: none;
+    border-color: rgba(255,255,255,0.35);
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.08);
+}
+
+/* -----------------------------
+   FIX #2: "Select Product" + "Quantity" overlap
+   Root cause: grid items can overflow if select/input don't have width + min-width rules.
+   Fix considered safe:
+   - Use 4 columns desktop
+   - Ensure form controls are width:100% and grid items can shrink (min-width:0)
+-------------------------------- */
 .form-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr)); /* 4 clean columns */
+    gap: 16px;
+    margin-bottom: 16px;
+    align-items: end;
+}
+
+@media (max-width: 1100px) {
+    .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+    .form-grid { grid-template-columns: 1fr; }
 }
 
 .form-group {
-    display: flex;
-    flex-direction: column;
+    min-width: 0; /* IMPORTANT: allows grid children to shrink instead of overlapping */
 }
 
 .form-group label {
-    font-size: 0.85rem;
-    color: #aaa;
-    margin-bottom: 0.5rem;
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 8px;
 }
 
-.form-group input, .form-group select {
-    background: #0a0a0a;
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 0.75rem;
-    color: #fff;
-    font-size: 0.9rem;
+.form-group input,
+.form-group select {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: rgba(255,255,255,0.92);
+    font-size: 0.95rem;
 }
 
-.form-group input:focus, .form-group select:focus {
+.form-group input:focus,
+.form-group select:focus {
     outline: none;
-    border-color: #000000;
+    border-color: rgba(255,255,255,0.35);
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.08);
 }
 
+/* BUTTONS */
 .btn {
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
+    padding: 12px 18px;
+    border-radius: 12px;
     border: none;
-    font-weight: 600;
+    font-weight: 800;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 .btn-primary {
-    background: #000000;
-    color: #fff;
+    background: rgba(255,255,255,0.92);
+    color: #111827;
+    box-shadow: 0 10px 26px rgba(0,0,0,0.28);
 }
 
 .btn-primary:hover {
-    background: #1a1a1a;
-}
-
-.btn-success {
-    background: #000000;
-    color: #fff;
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
-}
-
-.btn-success:hover {
-    background: #1a1a1a;
-}
-
-.btn-danger {
-    background: #dc2626;
-    color: #fff;
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
-}
-
-.btn-danger:hover {
-    background: #b91c1c;
+    transform: translateY(-2px);
+    background: #ffffff;
 }
 
 .btn-secondary {
-    background: #374151;
-    color: #fff;
-    padding: 0.75rem 1.5rem;
+    background: rgba(255,255,255,0.18);
+    color: rgba(255,255,255,0.92);
+    border: 1px solid rgba(255,255,255,0.22);
 }
 
 .btn-secondary:hover {
-    background: #4b5563;
+    transform: translateY(-2px);
+    background: rgba(255,255,255,0.24);
 }
 
-/* Table Styling */
+.btn-danger {
+    background: #ef4444;
+    color: #fff;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    border-radius: 10px;
+}
+
+.btn-danger:hover { background: #dc2626; }
+
+.btn-cancel {
+    background: rgba(255,255,255,0.18);
+    color: rgba(255,255,255,0.92);
+    border: 1px solid rgba(255,255,255,0.22);
+}
+
+.btn-cancel:hover { background: rgba(255,255,255,0.24); }
+
+/* TABLE */
 .data-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 1rem;
-    font-size: 0.9rem;
+    margin-top: 12px;
+    font-size: 0.92rem;
+    overflow: hidden;
+    border-radius: 16px;
 }
 
 .data-table thead {
-    background: #0a0a0a;
-    border-bottom: 2px solid #333;
+    background: rgba(255,255,255,0.10);
+    border-bottom: 1px solid rgba(255,255,255,0.18);
 }
 
 .data-table th {
-    padding: 0.75rem;
+    padding: 14px 14px;
     text-align: left;
     font-size: 0.75rem;
-    font-weight: 600;
-    color: #aaa;
+    font-weight: 800;
+    color: rgba(255,255,255,0.75);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.1em;
 }
 
 .data-table td {
-    padding: 0.75rem;
-    border-bottom: 1px solid #222;
+    padding: 14px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+    color: rgba(255,255,255,0.88);
 }
 
 .data-table tbody tr:hover {
-    background: #0f0f0f;
-}
-
-.data-table input {
-    background: #0a0a0a;
-    border: 1px solid #333;
-    border-radius: 6px;
-    padding: 0.5rem;
-    color: #fff;
-    width: 100%;
-    font-size: 0.85rem;
-}
-
-.data-table input:focus {
-    outline: none;
-    border-color: #000000;
+    background: rgba(255,255,255,0.06);
 }
 
 .actions-cell {
@@ -272,45 +354,73 @@ body {
     gap: 0.5rem;
 }
 
-.empty-state {
-    text-align: center;
-    padding: 3rem;
-    color: #666;
+/* INVOICE GROUP */
+.invoice-group {
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 16px;
+    margin-bottom: 14px;
+    overflow: hidden;
+    background: rgba(0,0,0,0.22);
 }
 
-/* Alert Messages */
+.invoice-header-row {
+    background: rgba(255,255,255,0.06);
+    padding: 16px;
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1.5fr 1fr 1fr 1fr 1fr 100px;
+    gap: 12px;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.invoice-header-row:hover {
+    background: rgba(255,255,255,0.10);
+}
+
+.invoice-lines {
+    display: none;
+    background: rgba(0,0,0,0.24);
+}
+
+.invoice-lines.show { display: block; }
+
+.line-item {
+    padding: 12px 16px;
+    border-top: 1px solid rgba(255,255,255,0.10);
+    display: grid;
+    grid-template-columns: 3fr 1fr 1fr 1fr 100px;
+    gap: 12px;
+    align-items: center;
+    font-size: 0.88rem;
+}
+
+/* ALERTS */
 .alert {
-    padding: 1rem 1.5rem;
-    border-radius: 8px;
-    margin-bottom: 1.5rem;
-    border-left: 4px solid;
+    padding: 14px 16px;
+    border-radius: 14px;
+    margin-bottom: 16px;
+    border: 1px solid rgba(255,255,255,0.14);
     display: flex;
     align-items: center;
     justify-content: space-between;
     animation: slideIn 0.3s ease-out;
+    backdrop-filter: blur(14px);
 }
 
 @keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 .alert-success {
-    background: rgba(74, 222, 128, 0.1);
-    border-color: #4ade80;
-    color: #4ade80;
+    background: rgba(16, 185, 129, 0.12);
+    color: #34d399;
 }
 
 .alert-danger {
-    background: rgba(220, 38, 38, 0.1);
-    border-color: #dc2626;
-    color: #dc2626;
+    background: rgba(239, 68, 68, 0.12);
+    color: #fca5a5;
 }
 
 .alert-close {
@@ -325,99 +435,45 @@ body {
     transition: opacity 0.2s;
 }
 
-.alert-close:hover {
-    opacity: 1;
-}
+.alert-close:hover { opacity: 1; }
 
-/* Pagination */
+/* PAGINATION */
 .pagination {
     display: flex;
     justify-content: center;
     gap: 0.5rem;
-    margin-top: 2rem;
+    margin-top: 18px;
+    flex-wrap: wrap;
 }
 
 .pagination a, .pagination span {
-    padding: 0.5rem 1rem;
-    background: #1a1a1a;
-    border: 1px solid #333;
-    border-radius: 8px;
-    color: #fff;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 12px;
+    color: rgba(255,255,255,0.92);
     text-decoration: none;
     transition: all 0.2s;
 }
 
 .pagination a:hover {
-    background: #2a2a2a;
-    border-color: #000000;
+    background: rgba(255,255,255,0.16);
 }
 
 .pagination .active {
-    background: #000000;
-    color: #fff;
-    border-color: #000000;
+    background: rgba(255,255,255,0.92);
+    color: #111827;
+    border-color: rgba(255,255,255,0.92);
 }
 
-/* Invoice Group Styling */
-.invoice-group {
-    border: 1px solid #333;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-    overflow: hidden;
+/* EMPTY STATE */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: rgba(255,255,255,0.7);
 }
 
-.invoice-header-row {
-    background: #1a1a1a;
-    padding: 1rem;
-    display: grid;
-    grid-template-columns: 2fr 1.5fr 1.5fr 1fr 1fr 1fr 1fr 100px;
-    gap: 1rem;
-    align-items: center;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.invoice-header-row:hover {
-    background: #222;
-}
-
-.invoice-lines {
-    display: none;
-    background: #0f0f0f;
-}
-
-.invoice-lines.show {
-    display: block;
-}
-
-.line-item {
-    padding: 0.75rem 1rem;
-    border-top: 1px solid #222;
-    display: grid;
-    grid-template-columns: 3fr 1fr 1fr 1fr 100px;
-    gap: 1rem;
-    align-items: center;
-    font-size: 0.85rem;
-}
-
-.line-item:first-child {
-    border-top: none;
-}
-
-.badge {
-    display: inline-block;
-    padding: 0.25rem 0.75rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-
-.badge-success {
-    background: rgba(74, 222, 128, 0.2);
-    color: #4ade80;
-}
-
-/* Delete Confirmation Modal */
+/* MODAL */
 .modal {
     display: none;
     position: fixed;
@@ -426,13 +482,13 @@ body {
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.8);
+    background-color: rgba(0, 0, 0, 0.80);
     animation: fadeIn 0.2s ease-out;
 }
 
 @keyframes fadeIn {
     from { opacity: 0; }
-    to { opacity: 1; }
+    to   { opacity: 1; }
 }
 
 .modal.show {
@@ -442,298 +498,298 @@ body {
 }
 
 .modal-content {
-    background: #1a1a1a;
-    border: 1px solid #333;
-    border-radius: 16px;
-    padding: 2rem;
-    max-width: 500px;
-    width: 90%;
+    background: rgba(15, 15, 15, 0.92);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 18px;
+    padding: 24px;
+    max-width: 520px;
+    width: 92%;
     animation: slideUp 0.3s ease-out;
+    backdrop-filter: blur(18px);
 }
 
 @keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 .modal-header {
     display: flex;
     align-items: center;
-    margin-bottom: 1rem;
-}
-
-.modal-icon {
-    font-size: 2rem;
-    margin-right: 1rem;
+    margin-bottom: 10px;
 }
 
 .modal-title {
-    font-size: 1.25rem;
-    font-weight: 600;
+    font-size: 1.2rem;
+    font-weight: 900;
+    margin: 0;
 }
 
 .modal-body {
-    margin-bottom: 1.5rem;
-    color: #aaa;
+    margin-bottom: 16px;
+    color: rgba(255,255,255,0.75);
     line-height: 1.6;
 }
 
 .modal-footer {
     display: flex;
-    gap: 1rem;
+    gap: 12px;
     justify-content: flex-end;
 }
 
-.btn-cancel {
-    background: #374151;
-    color: #fff;
-}
-
-.btn-cancel:hover {
-    background: #4b5563;
+/* CHART */
+.chart-wrap {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 18px;
+    padding: 16px;
 }
 </style>
 
-<div class="dashboard-container">
-    <!-- Page Header -->
-    <div class="page-header">
+<div class="page-wrap">
+    <!-- HERO HEADER -->
+    <div class="hero">
         <h1>Enterprise Sales Dashboard</h1>
+        <p>Invoice management, revenue tracking, and operational insights</p>
     </div>
 
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }}" id="flash-message">
-                    <span>{{ message }}</span>
-                    <button class="alert-close" onclick="this.parentElement.style.display='none'">&times;</button>
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    <div class="card-shell">
 
-    <!-- KPI Cards -->
-    <div class="kpi-grid">
-        <div class="kpi-card">
-            <div class="kpi-label">Total Invoices</div>
-            <div class="kpi-value">{{ "{:,}".format(stats.total_invoices) }}</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-label">Total Revenue</div>
-            <div class="kpi-value secondary">S$ {{ "{:,.2f}".format(stats.total_revenue) }}</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-label">Total GST</div>
-            <div class="kpi-value tertiary">S$ {{ "{:,.2f}".format(stats.total_gst) }}</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-label">Units Sold</div>
-            <div class="kpi-value">{{ "{:,}".format(stats.total_units) }}</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-label">Unique Customers</div>
-            <div class="kpi-value secondary">{{ "{:,}".format(stats.total_customers) }}</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-label">Avg Line Value</div>
-            <div class="kpi-value tertiary">S$ {{ "{:,.2f}".format(stats.avg_line_value) }}</div>
-        </div>
-    </div>
-
-    <!-- Filters Section -->
-    <div class="filters-section">
-        <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">Filters</h3>
-        <form method="GET" action="{{ url_for('dashboard') }}">
-            <div class="filters-grid">
-                <div class="filter-group">
-                    <label>Search (Invoice/Product/Customer)</label>
-                    <input type="text" name="search" value="{{ search }}" placeholder="Search...">
-                </div>
-                <div class="filter-group">
-                    <label>Start Date</label>
-                    <input type="date" name="start_date" value="{{ start_date }}">
-                </div>
-                <div class="filter-group">
-                    <label>End Date</label>
-                    <input type="date" name="end_date" value="{{ end_date }}">
-                </div>
-            </div>
-            <div style="display: flex; gap: 1rem;">
-                <button type="submit" class="btn btn-primary">Apply Filters</button>
-                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Clear Filters</a>
-            </div>
-        </form>
-    </div>
-
-    <!-- Add New Invoice Form -->
-    <div class="section-card">
-        <div class="section-header">
-            <h2 class="section-title">Create New Invoice</h2>
-        </div>
-
-        <form method="POST" action="{{ url_for('create_invoice') }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Invoice No *</label>
-                    <input type="text" name="invoice_no" required placeholder="INV-2025-001">
-                </div>
-                <div class="form-group">
-                    <label>Invoice Date *</label>
-                    <input type="date" name="invoice_date" required>
-                </div>
-                <div class="form-group">
-                    <label>Customer *</label>
-                    <select name="customer_id" required>
-                        <option value="">Select Customer</option>
-                        {% for customer in customers %}
-                        <option value="{{ customer.customer_id }}">{{ customer.customer_code }} (ID: {{ customer.customer_id }})</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Legend</label>
-                    <input type="text" name="legend_id" value="SGP" placeholder="SGP">
-                </div>
-                <div class="form-group">
-                    <label>Product *</label>
-                    <select name="product_id" required>
-                        <option value="">Select Product</option>
-                        {% for product in products %}
-                        <option value="{{ product.product_id }}">{{ product.hem_name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Quantity *</label>
-                    <input type="number" name="qty" required min="1" value="1">
-                </div>
-                <div class="form-group">
-                    <label>Total Amount (S$) *</label>
-                    <input type="number" step="0.01" name="total_amt" required min="0" placeholder="100.00">
-                </div>
-                <div class="form-group">
-                    <label>GST Amount (S$) *</label>
-                    <input type="number" step="0.01" name="gst_amt" required min="0" placeholder="9.00">
-                </div>
-            </div>
-            <button type="submit" class="btn btn-primary">Create Invoice</button>
-        </form>
-    </div>
-
-    <!-- Invoice List -->
-    <div class="section-card">
-        <div class="section-header">
-            <h2 class="section-title">Invoice List</h2>
-        </div>
-
-        {% if invoices %}
-            {% for invoice_no, invoice_data in invoices.items() %}
-            <div class="invoice-group">
-                <div class="invoice-header-row" onclick="toggleInvoice('{{ invoice_no }}')">
-                    <div>
-                        <strong>{{ invoice_no }}</strong>
-                        <div style="font-size: 0.75rem; color: #666; margin-top: 0.25rem;">{{ invoice_data.header.invoice_date }}</div>
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" id="flash-message">
+                        <span>{{ message }}</span>
+                        <button class="alert-close" onclick="this.parentElement.style.display='none'">&times;</button>
                     </div>
-                    <div>
-                        <div style="font-size: 0.75rem; color: #888;">Customer</div>
-                        <div>{{ invoice_data.header.customer_code }}</div>
-                    </div>
-                    <div>
-                        <div style="font-size: 0.75rem; color: #888;">Legend</div>
-                        <div>{{ invoice_data.header.legend_id or 'N/A' }}</div>
-                    </div>
-                    <div>
-                        <div style="font-size: 0.75rem; color: #888;">Lines</div>
-                        <div>{{ invoice_data.lines|length }}</div>
-                    </div>
-                    <div>
-                        <div style="font-size: 0.75rem; color: #888;">Total</div>
-                        <div style="color: #4ade80;">S$ {{ "{:,.2f}".format(invoice_data.totals.total_amt) }}</div>
-                    </div>
-                    <div>
-                        <div style="font-size: 0.75rem; color: #888;">GST</div>
-                        <div style="color: #f59e0b;">S$ {{ "{:,.2f}".format(invoice_data.totals.gst_amt) }}</div>
-                    </div>
-                    <div>
-                        <div style="font-size: 0.75rem; color: #888;">Qty</div>
-                        <div>{{ invoice_data.totals.qty }}</div>
-                    </div>
-                    <div class="actions-cell" onclick="event.stopPropagation();">
-                        <button type="button" class="btn btn-danger" onclick="showDeleteModal('{{ invoice_no }}')">Delete</button>
-                    </div>
-                </div>
-                
-                <div class="invoice-lines" id="lines-{{ invoice_no }}">
-                    {% for line in invoice_data.lines %}
-                    <div class="line-item">
-                        <div>
-                            <strong>{{ line.hem_name }}</strong>
-                            <div style="font-size: 0.75rem; color: #666; margin-top: 0.25rem;">SKU: {{ line.sku_no or 'N/A' }} | Line: {{ line.line_no }}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; color: #888;">Qty</div>
-                            <div>{{ line.qty }}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; color: #888;">Amount</div>
-                            <div style="color: #4ade80;">S$ {{ "{:,.2f}".format(line.total_amt) }}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; color: #888;">GST</div>
-                            <div style="color: #f59e0b;">S$ {{ "{:,.2f}".format(line.gst_amt) }}</div>
-                        </div>
-                        <div></div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endfor %}
-
-            <!-- Pagination -->
-            {% if total_pages > 1 %}
-            <div class="pagination">
-                {% if current_page > 1 %}
-                    <a href="{{ url_for('dashboard', page=current_page-1, search=search, start_date=start_date, end_date=end_date) }}">← Prev</a>
-                {% endif %}
-                
-                {% for p in range(1, total_pages + 1) %}
-                    {% if p == current_page %}
-                        <span class="active">{{ p }}</span>
-                    {% elif p == 1 or p == total_pages or (p >= current_page - 2 and p <= current_page + 2) %}
-                        <a href="{{ url_for('dashboard', page=p, search=search, start_date=start_date, end_date=end_date) }}">{{ p }}</a>
-                    {% elif p == current_page - 3 or p == current_page + 3 %}
-                        <span>...</span>
-                    {% endif %}
                 {% endfor %}
-                
-                {% if current_page < total_pages %}
-                    <a href="{{ url_for('dashboard', page=current_page+1, search=search, start_date=start_date, end_date=end_date) }}">Next →</a>
-                {% endif %}
-            </div>
             {% endif %}
-        {% else %}
-            <div class="empty-state">
-                <p style="font-size: 3rem; margin-bottom: 1rem;"></p>
-                <p style="font-size: 1.1rem; color: #888;">No invoices found</p>
-                <p style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">Create your first invoice using the form above</p>
-            </div>
-        {% endif %}
-    </div>
+        {% endwith %}
 
-    <!-- Sales Trend Chart -->
-    <div class="section-card">
-        <div class="section-header">
-            <h2 class="section-title">Sales Trend</h2>
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-label">Total Invoices</div>
+                <div class="kpi-value">{{ "{:,}".format(stats.total_invoices) }}</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Total Revenue</div>
+                <div class="kpi-value secondary">S$ {{ "{:,.2f}".format(stats.total_revenue) }}</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Total GST</div>
+                <div class="kpi-value tertiary">S$ {{ "{:,.2f}".format(stats.total_gst) }}</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Units Sold</div>
+                <div class="kpi-value">{{ "{:,}".format(stats.total_units) }}</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Unique Customers</div>
+                <div class="kpi-value secondary">{{ "{:,}".format(stats.total_customers) }}</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Avg Line Value</div>
+                <div class="kpi-value tertiary">S$ {{ "{:,.2f}".format(stats.avg_line_value) }}</div>
+            </div>
         </div>
-        <canvas id="salesTrendChart" style="max-height: 300px;"></canvas>
+
+        <!-- Sales Trend -->
+        <div class="section-card">
+            <div class="section-header">
+                <h2 class="section-title">Sales Trend</h2>
+            </div>
+            <div class="chart-wrap">
+                <canvas id="salesTrendChart" style="max-height: 320px;"></canvas>
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="filters-section">
+            <div class="section-header" style="margin-bottom: 12px;">
+                <h2 class="section-title">Filters</h2>
+            </div>
+
+            <form method="GET" action="{{ url_for('dashboard') }}">
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <label>Search (Invoice/Product/Customer)</label>
+                        <input type="text" name="search" value="{{ search }}" placeholder="Search...">
+                    </div>
+                    <div class="filter-group">
+                        <label>Start Date</label>
+                        <input type="date" name="start_date" value="{{ start_date }}">
+                    </div>
+                    <div class="filter-group">
+                        <label>End Date</label>
+                        <input type="date" name="end_date" value="{{ end_date }}">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Clear Filters</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Add New Invoice Form -->
+        <div class="section-card">
+            <div class="section-header">
+                <h2 class="section-title">Create New Invoice</h2>
+            </div>
+
+            <form method="POST" action="{{ url_for('create_invoice') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Invoice No *</label>
+                        <input type="text" name="invoice_no" required placeholder="INV-2025-001">
+                    </div>
+                    <div class="form-group">
+                        <label>Invoice Date *</label>
+                        <input type="date" name="invoice_date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Customer *</label>
+                        <select name="customer_id" required>
+                            <option value="">Select Customer</option>
+                            {% for customer in customers %}
+                            <option value="{{ customer.customer_id }}">{{ customer.customer_code }} (ID: {{ customer.customer_id }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Legend</label>
+                        <input type="text" name="legend_id" value="SGP" placeholder="SGP">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Product *</label>
+                        <select name="product_id" required>
+                            <option value="">Select Product</option>
+                            {% for product in products %}
+                            <option value="{{ product.product_id }}">{{ product.hem_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantity *</label>
+                        <input type="number" name="qty" required min="1" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Total Amount (S$) *</label>
+                        <input type="number" step="0.01" name="total_amt" required min="0" placeholder="100.00">
+                    </div>
+                    <div class="form-group">
+                        <label>GST Amount (S$) *</label>
+                        <input type="number" step="0.01" name="gst_amt" required min="0" placeholder="9.00">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Invoice</button>
+            </form>
+        </div>
+
+        <!-- Invoice List -->
+        <div class="section-card">
+            <div class="section-header">
+                <h2 class="section-title">Invoice List</h2>
+            </div>
+
+            {% if invoices %}
+                {% for invoice_no, invoice_data in invoices.items() %}
+                <div class="invoice-group">
+                    <div class="invoice-header-row" onclick="toggleInvoice('{{ invoice_no }}')">
+                        <div>
+                            <strong>{{ invoice_no }}</strong>
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.55); margin-top: 0.25rem;">{{ invoice_data.header.invoice_date }}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Customer</div>
+                            <div>{{ invoice_data.header.customer_code }}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Legend</div>
+                            <div>{{ invoice_data.header.legend_id or 'N/A' }}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Lines</div>
+                            <div>{{ invoice_data.lines|length }}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Total</div>
+                            <div style="color: #34d399;">S$ {{ "{:,.2f}".format(invoice_data.totals.total_amt) }}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">GST</div>
+                            <div style="color: #fbbf24;">S$ {{ "{:,.2f}".format(invoice_data.totals.gst_amt) }}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Qty</div>
+                            <div>{{ invoice_data.totals.qty }}</div>
+                        </div>
+                        <div class="actions-cell" onclick="event.stopPropagation();">
+                            <button type="button" class="btn btn-danger" onclick="showDeleteModal('{{ invoice_no }}')">Delete</button>
+                        </div>
+                    </div>
+                    
+                    <div class="invoice-lines" id="lines-{{ invoice_no }}">
+                        {% for line in invoice_data.lines %}
+                        <div class="line-item">
+                            <div>
+                                <strong>{{ line.hem_name }}</strong>
+                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.55); margin-top: 0.25rem;">SKU: {{ line.sku_no or 'N/A' }} | Line: {{ line.line_no }}</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Qty</div>
+                                <div>{{ line.qty }}</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Amount</div>
+                                <div style="color: #34d399;">S$ {{ "{:,.2f}".format(line.total_amt) }}</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">GST</div>
+                                <div style="color: #fbbf24;">S$ {{ "{:,.2f}".format(line.gst_amt) }}</div>
+                            </div>
+                            <div></div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+
+                <!-- Pagination -->
+                {% if total_pages > 1 %}
+                <div class="pagination">
+                    {% if current_page > 1 %}
+                        <a href="{{ url_for('dashboard', page=current_page-1, search=search, start_date=start_date, end_date=end_date) }}">← Prev</a>
+                    {% endif %}
+                    
+                    {% for p in range(1, total_pages + 1) %}
+                        {% if p == current_page %}
+                            <span class="active">{{ p }}</span>
+                        {% elif p == 1 or p == total_pages or (p >= current_page - 2 and p <= current_page + 2) %}
+                            <a href="{{ url_for('dashboard', page=p, search=search, start_date=start_date, end_date=end_date) }}">{{ p }}</a>
+                        {% elif p == current_page - 3 or p == current_page + 3 %}
+                            <span>...</span>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if current_page < total_pages %}
+                        <a href="{{ url_for('dashboard', page=current_page+1, search=search, start_date=start_date, end_date=end_date) }}">Next →</a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            {% else %}
+                <div class="empty-state">
+                    <p style="font-size: 1.1rem; color: rgba(255,255,255,0.85);">No invoices found</p>
+                    <p style="font-size: 0.9rem; color: rgba(255,255,255,0.6); margin-top: 0.5rem;">Create your first invoice using the form above</p>
+                </div>
+            {% endif %}
+        </div>
+
     </div>
 </div>
 
@@ -741,7 +797,6 @@ body {
 <div id="deleteModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <span class="modal-icon"></span>
             <h2 class="modal-title">Confirm Deletion</h2>
         </div>
         <div class="modal-body">
@@ -815,75 +870,77 @@ setTimeout(() => {
 }, 5000);
 
 // Sales Trend Chart
-const ctx = document.getElementById('salesTrendChart').getContext('2d');
-const salesTrendChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: {{ trend_labels|tojson|safe if trend_labels else "[]"|safe }},
-        datasets: [{
-            label: 'Revenue (S$)',
-            data: {{ trend_data|tojson|safe if trend_data else "[]"|safe }},
-            borderColor: '#000000',
-            backgroundColor: 'rgba(0, 0, 0, 0.1)',
-            borderWidth: 3,
-            tension: 0.4,
-            fill: true,
-            pointRadius: 5,
-            pointHoverRadius: 7,
-            pointBackgroundColor: '#000000',
-            pointBorderColor: '#fff',
-            pointBorderWidth: 2
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-            legend: {
-                display: true,
-                labels: {
-                    color: '#fff',
-                    font: { size: 14 }
-                }
-            },
-            tooltip: {
-                backgroundColor: '#1a1a1a',
-                titleColor: '#fff',
-                bodyColor: '#fff',
-                borderColor: '#333',
-                borderWidth: 1,
-                padding: 12,
-                callbacks: {
-                    label: function(context) {
-                        return 'Revenue: S$ ' + context.parsed.y.toLocaleString('en-SG', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                    }
-                }
-            }
+const ctx = document.getElementById('salesTrendChart')?.getContext('2d');
+if (ctx) {
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ trend_labels|tojson|safe if trend_labels else "[]"|safe }},
+            datasets: [{
+                label: 'Revenue (S$)',
+                data: {{ trend_data|tojson|safe if trend_data else "[]"|safe }},
+                borderColor: 'rgba(255,255,255,0.92)',
+                backgroundColor: 'rgba(255, 255, 255, 0.10)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: 'rgba(255,255,255,0.92)',
+                pointBorderColor: 'rgba(0,0,0,0.55)',
+                pointBorderWidth: 2
+            }]
         },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    color: '#888',
-                    callback: function(value) {
-                        return 'S$ ' + value.toLocaleString('en-SG');
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    labels: {
+                        color: 'rgba(255,255,255,0.85)',
+                        font: { size: 13, weight: 'bold' }
                     }
                 },
-                grid: {
-                    color: '#222',
-                    drawBorder: false
+                tooltip: {
+                    backgroundColor: 'rgba(15, 15, 15, 0.92)',
+                    titleColor: 'rgba(255,255,255,0.95)',
+                    bodyColor: 'rgba(255,255,255,0.9)',
+                    borderColor: 'rgba(255,255,255,0.14)',
+                    borderWidth: 1,
+                    padding: 12,
+                    callbacks: {
+                        label: function(context) {
+                            return 'Revenue: S$ ' + context.parsed.y.toLocaleString('en-SG', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                        }
+                    }
                 }
             },
-            x: {
-                ticks: { color: '#888' },
-                grid: {
-                    color: '#222',
-                    drawBorder: false
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: 'rgba(255,255,255,0.65)',
+                        callback: function(value) {
+                            return 'S$ ' + value.toLocaleString('en-SG');
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(255,255,255,0.08)',
+                        drawBorder: false
+                    }
+                },
+                x: {
+                    ticks: { color: 'rgba(255,255,255,0.65)' },
+                    grid: {
+                        color: 'rgba(255,255,255,0.08)',
+                        drawBorder: false
+                    }
                 }
             }
         }
-    }
-});
+    });
+}
 </script>
 
 {% endblock %}
