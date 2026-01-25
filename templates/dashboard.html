@@ -503,7 +503,7 @@ body {
 <div class="dashboard-container">
     <!-- Page Header -->
     <div class="page-header">
-        <h1>📊 Enterprise Sales Dashboard</h1>
+        <h1>Enterprise Sales Dashboard</h1>
     </div>
 
     <!-- Flash Messages -->
@@ -548,7 +548,7 @@ body {
 
     <!-- Filters Section -->
     <div class="filters-section">
-        <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">🔍 Filters</h3>
+        <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">Filters</h3>
         <form method="GET" action="{{ url_for('dashboard') }}">
             <div class="filters-grid">
                 <div class="filter-group">
@@ -574,7 +574,7 @@ body {
     <!-- Add New Invoice Form -->
     <div class="section-card">
         <div class="section-header">
-            <h2 class="section-title">➕ Create New Invoice</h2>
+            <h2 class="section-title">Create New Invoice</h2>
         </div>
 
         <form method="POST" action="{{ url_for('create_invoice') }}">
@@ -631,7 +631,7 @@ body {
     <!-- Invoice List -->
     <div class="section-card">
         <div class="section-header">
-            <h2 class="section-title">📋 Invoice List</h2>
+            <h2 class="section-title">Invoice List</h2>
         </div>
 
         {% if invoices %}
@@ -731,7 +731,7 @@ body {
     <!-- Sales Trend Chart -->
     <div class="section-card">
         <div class="section-header">
-            <h2 class="section-title">📈 Sales Trend</h2>
+            <h2 class="section-title">Sales Trend</h2>
         </div>
         <canvas id="salesTrendChart" style="max-height: 300px;"></canvas>
     </div>
