@@ -4,61 +4,33 @@
 {% block content %}
 <style>
   html, body { 
-    background: #0a0a0a; 
+    background: #000000; 
     margin: 0;
     padding: 0;
     overflow-x: hidden;
   }
 
-  /* ANIMATED BACKGROUND */
+  /* BLACK BACKGROUND */
   .page-wrap {
     min-height: 100vh;
     padding-top: 100px;
     padding-bottom: 60px;
     position: relative;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #000000;
   }
 
-  /* Animated gradient overlay */
+  /* Removed animated gradient overlay */
   .page-wrap::before {
     content: "";
     position: fixed;
     inset: 0;
-    background: linear-gradient(
-      -45deg,
-      rgba(102, 126, 234, 0.3),
-      rgba(118, 75, 162, 0.3),
-      rgba(239, 68, 68, 0.3),
-      rgba(59, 130, 246, 0.3)
-    );
-    background-size: 400% 400%;
-    animation: gradientShift 15s ease infinite;
+    background: #000000;
     z-index: 0;
   }
 
-  @keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-
-  /* Floating particles */
+  /* Removed floating particles */
   .page-wrap::after {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background-image: 
-      radial-gradient(circle at 20% 30%, rgba(255,255,255,0.1) 1px, transparent 1px),
-      radial-gradient(circle at 80% 70%, rgba(255,255,255,0.1) 1px, transparent 1px),
-      radial-gradient(circle at 40% 80%, rgba(255,255,255,0.08) 2px, transparent 2px);
-    background-size: 200px 200px, 300px 300px, 250px 250px;
-    animation: float 20s linear infinite;
-    z-index: 0;
-  }
-
-  @keyframes float {
-    from { background-position: 0 0, 0 0, 0 0; }
-    to { background-position: 200px 200px, -300px 300px, 250px -250px; }
+    display: none;
   }
 
   .page-wrap > * { position: relative; z-index: 1; }
@@ -145,13 +117,13 @@
   }
 
   .form-control:focus, .form-select:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    border-color: #000000;
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.1);
     outline: none;
   }
 
   .btn-apply {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #000000;
     color: white;
     border: none;
     border-radius: 12px;
@@ -160,12 +132,12 @@
     font-size: 1rem;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
   }
 
   .btn-apply:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.6);
   }
 
   /* DYNAMIC KPI CARDS */
@@ -181,7 +153,7 @@
   }
 
   .kpi {
-    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    background: #000000;
     color: #fff;
     border-radius: 20px;
     padding: 24px;
@@ -198,7 +170,7 @@
     right: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle, rgba(102, 126, 234, 0.3) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
     opacity: 0;
     transition: opacity 0.4s ease;
   }
@@ -209,8 +181,8 @@
 
   .kpi:hover {
     transform: translateY(-8px) scale(1.02);
-    box-shadow: 0 20px 40px rgba(102, 126, 234, 0.4);
-    border-color: rgba(102, 126, 234, 0.5);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.3);
   }
 
   .kpi .label {
@@ -247,7 +219,7 @@
     content: "";
     width: 4px;
     height: 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #000000;
     border-radius: 2px;
   }
 
@@ -298,7 +270,7 @@
   }
 
   thead {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #000000;
   }
 
   th {
@@ -336,7 +308,7 @@
   }
 
   .error {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(220, 38, 38, 0.9));
+    background: rgba(239, 68, 68, 0.9);
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: #fff;
     border-radius: 16px;
@@ -419,7 +391,7 @@
   .insight-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
-    border-color: #667eea;
+    border-color: #000000;
   }
 
   .insight-header {
@@ -437,7 +409,7 @@
     align-items: center;
     justify-content: center;
     font-size: 1.5rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #000000;
   }
 
   .insight-title {
@@ -456,7 +428,7 @@
   .insight-stat {
     font-size: 1.8rem;
     font-weight: 900;
-    color: #667eea;
+    color: #000000;
     margin: 12px 0;
   }
 
@@ -479,11 +451,11 @@
 
 <div class="page-wrap">
   {% if error_message %}
-    <div class="error">⚠️ {{ error_message }}</div>
+    <div class="error">{{ error_message }}</div>
   {% endif %}
 
   <div class="hero">
-    <h1>Market Intelligence</h1>
+    <h1>Market Analysis</h1>
     <p>Comprehensive sales analytics with insights and recommendations</p>
   </div>
 
@@ -545,23 +517,23 @@
 
     <!-- SMART ALERTS (based on real data) -->
     <div class="panel">
-      <h3 class="section-title">🚨 Smart Alerts</h3>
+      <h3 class="section-title">Smart Alerts</h3>
       <div class="grid-3">
         {% if kpis.orders == 0 %}
         <div class="alert-card critical">
-          <div class="alert-title">⚠️ No Data Found</div>
+          <div class="alert-title">No Data Found</div>
           <p class="alert-message">No orders found for the selected date range. Try adjusting your filters.</p>
         </div>
         {% endif %}
 
         {% if kpis.aov > 0 and kpis.aov < 100 %}
         <div class="alert-card warning">
-          <div class="alert-title">📊 Low Average Order Value</div>
+          <div class="alert-title">Low Average Order Value</div>
           <p class="alert-message">Average order value is SGD {{ "%.2f"|format(kpis.aov) }}. Consider upselling strategies to increase this metric.</p>
         </div>
         {% elif kpis.aov >= 500 %}
         <div class="alert-card success">
-          <div class="alert-title">✅ High Value Orders</div>
+          <div class="alert-title">High Value Orders</div>
           <p class="alert-message">Excellent! Average order value of SGD {{ "%.2f"|format(kpis.aov) }} shows strong customer spending.</p>
         </div>
         {% endif %}
@@ -571,7 +543,7 @@
         {% set revenue_concentration = (top_customer_revenue / kpis.revenue * 100)|round(1) if kpis.revenue > 0 else 0 %}
         {% if revenue_concentration > 30 %}
         <div class="alert-card warning">
-          <div class="alert-title">🎯 Revenue Concentration Risk</div>
+          <div class="alert-title">Revenue Concentration Risk</div>
           <p class="alert-message">Top customer accounts for {{ revenue_concentration }}% of revenue. Diversify your customer base to reduce risk.</p>
         </div>
         {% endif %}
@@ -579,7 +551,7 @@
 
         {% if top_products|length >= 3 %}
         <div class="alert-card info">
-          <div class="alert-title">🏆 Top Performers Identified</div>
+          <div class="alert-title">Top Performers Identified</div>
           <p class="alert-message">{{ top_products|length }} top products identified. Focus inventory and marketing on these winners.</p>
         </div>
         {% endif %}
@@ -591,16 +563,16 @@
       <div class="grid-2">
         <!-- REVENUE CHART -->
         <div>
-          <h3 class="section-title">📊 Revenue Trend Analysis</h3>
+          <h3 class="section-title">Revenue Trend Analysis</h3>
           <div class="chart-container">
             <canvas id="revChart" height="100"></canvas>
           </div>
-          <p class="hint">💡 Track your revenue patterns to identify seasonal trends and growth opportunities</p>
+          <p class="hint">Track your revenue patterns to identify seasonal trends and growth opportunities</p>
         </div>
 
         <!-- DATA TABLES -->
         <div>
-          <h3 class="section-title">🏆 Top Products</h3>
+          <h3 class="section-title">Top Products</h3>
           <div class="table-container">
             <table>
               <thead>
@@ -627,7 +599,7 @@
             </table>
           </div>
 
-          <h3 class="section-title">👥 Top Customers</h3>
+          <h3 class="section-title">Top Customers</h3>
           <div class="table-container">
             <table>
               <thead>
@@ -657,11 +629,11 @@
 
     <!-- INSIGHTS (based on real data) -->
     <div class="panel">
-      <h3 class="section-title">💡 Key Insights</h3>
+      <h3 class="section-title">Key Insights</h3>
       <div class="grid-3">
         <div class="insight-card">
           <div class="insight-header">
-            <div class="insight-icon">📈</div>
+            <div class="insight-icon"></div>
             <h4 class="insight-title">Revenue Performance</h4>
           </div>
           <div class="insight-body">
@@ -678,7 +650,7 @@
 
         <div class="insight-card">
           <div class="insight-header">
-            <div class="insight-icon">💰</div>
+            <div class="insight-icon"></div>
             <h4 class="insight-title">Order Value Analysis</h4>
           </div>
           <div class="insight-body">
@@ -693,7 +665,7 @@
 
         <div class="insight-card">
           <div class="insight-header">
-            <div class="insight-icon">📦</div>
+            <div class="insight-icon"></div>
             <h4 class="insight-title">Sales Volume</h4>
           </div>
           <div class="insight-body">
@@ -712,31 +684,31 @@
 
     <!-- RECOMMENDATIONS (data-driven) -->
     <div class="panel">
-      <h3 class="section-title">🎯 Recommendations</h3>
+      <h3 class="section-title">Recommendations</h3>
       <div style="background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);">
         {% if top_products|length > 0 %}
         <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #f3f4f6;">
-          <h4 style="font-weight: 700; color: #111827; margin-bottom: 8px;">1️⃣ Focus on Top Performers</h4>
+          <h4 style="font-weight: 700; color: #111827; margin-bottom: 8px;">1. Focus on Top Performers</h4>
           <p style="color: #6b7280; margin: 0; line-height: 1.6;">Your top product "{{ top_products[0].hem_name }}" generated SGD {{ "%.2f"|format(top_products[0].revenue) }}. Ensure adequate stock levels and consider expanding this product line.</p>
         </div>
         {% endif %}
 
         {% if top_customers|length > 0 %}
         <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #f3f4f6;">
-          <h4 style="font-weight: 700; color: #111827; margin-bottom: 8px;">2️⃣ Strengthen Customer Relationships</h4>
+          <h4 style="font-weight: 700; color: #111827; margin-bottom: 8px;">2. Strengthen Customer Relationships</h4>
           <p style="color: #6b7280; margin: 0; line-height: 1.6;">Customer {{ top_customers[0].customer_code }} placed {{ top_customers[0].orders }} orders worth SGD {{ "%.2f"|format(top_customers[0].revenue) }}. Implement a VIP program to retain your best customers.</p>
         </div>
         {% endif %}
 
         {% if kpis.aov < 300 %}
         <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #f3f4f6;">
-          <h4 style="font-weight: 700; color: #111827; margin-bottom: 8px;">3️⃣ Increase Average Order Value</h4>
+          <h4 style="font-weight: 700; color: #111827; margin-bottom: 8px;">3. Increase Average Order Value</h4>
           <p style="color: #6b7280; margin: 0; line-height: 1.6;">Current AOV is SGD {{ "%.2f"|format(kpis.aov) }}. Introduce product bundles or minimum order incentives to increase this to SGD {{ "%.2f"|format(kpis.aov * 1.3) }}+.</p>
         </div>
         {% endif %}
 
         <div>
-          <h4 style="font-weight: 700; color: #111827; margin-bottom: 8px;">4️⃣ Analyze Seasonal Patterns</h4>
+          <h4 style="font-weight: 700; color: #111827; margin-bottom: 8px;">4. Analyze Seasonal Patterns</h4>
           <p style="color: #6b7280; margin: 0; line-height: 1.6;">Review the revenue trend chart to identify peak periods. Prepare inventory and marketing campaigns 2-3 months before seasonal spikes.</p>
         </div>
       </div>
@@ -760,15 +732,15 @@
         datasets: [{
           label: "Revenue (SGD)",
           data: revenue,
-          borderColor: "rgba(102, 126, 234, 1)",
-          backgroundColor: "rgba(102, 126, 234, 0.1)",
+          borderColor: "#000000",
+          backgroundColor: "rgba(0, 0, 0, 0.1)",
           borderWidth: 3,
           fill: true,
           tension: 0.4,
           pointRadius: 6,
           pointHoverRadius: 8,
           pointBackgroundColor: "#fff",
-          pointBorderColor: "rgba(102, 126, 234, 1)",
+          pointBorderColor: "#000000",
           pointBorderWidth: 3
         }]
       },
@@ -779,8 +751,7 @@
           legend: { 
             display: true,
             labels: {
-              font: { size:
-  14, weight: 'bold' },
+              font: { size: 14, weight: 'bold' },
               color: '#374151'
             }
           },

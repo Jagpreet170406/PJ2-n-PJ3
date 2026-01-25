@@ -2,15 +2,24 @@
 
 {% block content %}
 <style>
+    /* Background image */
+    body {
+        background-color: white;
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        background-repeat: no-repeat;
+    }
+    
     .shop-container { max-width: 1400px; margin: 2rem auto; padding: 0 1rem; display: grid; grid-template-columns: 250px 1fr; gap: 2rem; }
     @media (max-width: 992px) { .shop-container { grid-template-columns: 1fr; } }
     
-    .sidebar { background: #f8f9fa; padding: 1.5rem; border-radius: 12px; border: 1px solid #eee; height: fit-content; position: sticky; top: 100px; }
+    .sidebar { background: rgba(248, 249, 250, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid #eee; height: fit-content; position: sticky; top: 100px; backdrop-filter: blur(10px); }
     .category-link { display: block; padding: .6rem; text-decoration: none; color: #333; border-radius: 8px; transition: 0.2s; }
     .category-link:hover, .category-link.active { background: #e5edff; font-weight: bold; color: #2563eb; padding-left: 1rem; }
     
     .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem; }
-    .product-card { background: white; border: 1px solid #eee; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; transition: 0.3s; height: 100%; }
+    .product-card { background: rgba(255, 255, 255, 0.95); border: 1px solid #eee; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; transition: 0.3s; height: 100%; backdrop-filter: blur(10px); }
     .product-card:hover { transform: translateY(-5px); box-shadow: 0 12px 24px rgba(0,0,0,0.08); }
     
     .item-image { width: 100%; height: 200px; object-fit: contain; background: #f9f9f9; padding: 10px; }
@@ -29,7 +38,7 @@
 
     /* SMART PAGINATION */
     .pagination-wrapper { margin-top: 3rem; display: flex; flex-direction: column; align-items: center; }
-    .pagination { background: white; padding: 5px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .pagination { background: rgba(255, 255, 255, 0.95); padding: 5px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); backdrop-filter: blur(10px); }
     .page-link { color: #2563eb; font-weight: bold; border: none; margin: 0 2px; border-radius: 8px !important; }
     .page-item.active .page-link { background-color: #2563eb; color: white; }
     .page-item.disabled .page-link { color: #ccc; }
@@ -39,11 +48,28 @@
     .delivery-car { position: fixed; z-index: 10000; font-size: 100px; pointer-events: none; left: -350px; bottom: 30%; transition: left 5s linear; display: flex; flex-direction: column; align-items: center; }
     .huat-bubble { background: #ffdf00; color: #000; padding: 12px 24px; border-radius: 30px; font-size: 20px; font-weight: 900; margin-bottom: 15px; opacity: 0; transition: opacity 0.5s; border: 3px solid #000; white-space: nowrap; }
     .van-body { transform: scaleX(-1); }
+    
+    /* Search form alignment */
+    .search-form { 
+        display: flex; 
+        gap: 0.5rem; 
+        align-items: stretch;
+        margin-bottom: 1.5rem;
+    }
+    .search-form input[type="text"] { 
+        flex: 1;
+        height: 48px;
+    }
+    .search-form button { 
+        height: 48px;
+        padding: 0 1.5rem;
+        white-space: nowrap;
+    }
 </style>
 
 <div class="shop-container">
     <aside class="sidebar">
-        <h5 class="font-weight-bold">📦 Categories</h5>
+        <h5 class="font-weight-bold">Categories</h5>
         <hr>
         <a href="{{ url_for('cart', search=search_query) }}" class="category-link {{ 'active' if not category_filter }}">All Products</a>
         {% for c in categories %}
@@ -58,12 +84,12 @@
     </aside>
 
     <main>
-        <form action="{{ url_for('cart') }}" method="GET" class="mb-4 d-flex gap-2">
-            <input type="text" name="search" class="form-control form-control-lg" placeholder="Search by name or part number..." value="{{ search_query }}">
+        <form action="{{ url_for('cart') }}" method="GET" class="search-form">
+            <input type="text" name="search" class="form-control" placeholder="Search by name or part number..." value="{{ search_query }}">
             {% if category_filter %}
                 <input type="hidden" name="category" value="{{ category_filter }}">
             {% endif %}
-            <button type="submit" class="btn btn-primary px-4">🔍 Search</button>
+            <button type="submit" class="btn btn-primary">Search</button>
         </form>
 
         <div class="product-grid">

@@ -6,7 +6,7 @@
 
 <style>
 body {
-    background: #0a0a0a;
+    background: #000000;
     color: #fff;
     font-family: 'Inter', -apple-system, sans-serif;
 }
@@ -113,7 +113,7 @@ body {
 
 .filter-group input:focus, .filter-group select:focus {
     outline: none;
-    border-color: #4ade80;
+    border-color: #000000;
 }
 
 /* Section Cards */
@@ -167,7 +167,7 @@ body {
 
 .form-group input:focus, .form-group select:focus {
     outline: none;
-    border-color: #4ade80;
+    border-color: #000000;
 }
 
 .btn {
@@ -180,23 +180,23 @@ body {
 }
 
 .btn-primary {
-    background: #4ade80;
-    color: #000;
+    background: #000000;
+    color: #fff;
 }
 
 .btn-primary:hover {
-    background: #22c55e;
+    background: #1a1a1a;
 }
 
 .btn-success {
-    background: #0066ff;
+    background: #000000;
     color: #fff;
     padding: 0.5rem 1rem;
     font-size: 0.85rem;
 }
 
 .btn-success:hover {
-    background: #0052cc;
+    background: #1a1a1a;
 }
 
 .btn-danger {
@@ -264,7 +264,7 @@ body {
 
 .data-table input:focus {
     outline: none;
-    border-color: #4ade80;
+    border-color: #000000;
 }
 
 .actions-cell {
@@ -349,13 +349,13 @@ body {
 
 .pagination a:hover {
     background: #2a2a2a;
-    border-color: #4ade80;
+    border-color: #000000;
 }
 
 .pagination .active {
-    background: #4ade80;
-    color: #000;
-    border-color: #4ade80;
+    background: #000000;
+    color: #fff;
+    border-color: #000000;
 }
 
 /* Invoice Group Styling */
@@ -721,7 +721,7 @@ body {
             {% endif %}
         {% else %}
             <div class="empty-state">
-                <p style="font-size: 3rem; margin-bottom: 1rem;">📄</p>
+                <p style="font-size: 3rem; margin-bottom: 1rem;"></p>
                 <p style="font-size: 1.1rem; color: #888;">No invoices found</p>
                 <p style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">Create your first invoice using the form above</p>
             </div>
@@ -741,7 +741,7 @@ body {
 <div id="deleteModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <span class="modal-icon">⚠️</span>
+            <span class="modal-icon"></span>
             <h2 class="modal-title">Confirm Deletion</h2>
         </div>
         <div class="modal-body">
@@ -823,15 +823,15 @@ const salesTrendChart = new Chart(ctx, {
         datasets: [{
             label: 'Revenue (S$)',
             data: {{ trend_data|tojson|safe if trend_data else "[]"|safe }},
-            borderColor: '#4ade80',
-            backgroundColor: 'rgba(74, 222, 128, 0.1)',
+            borderColor: '#000000',
+            backgroundColor: 'rgba(0, 0, 0, 0.1)',
             borderWidth: 3,
             tension: 0.4,
             fill: true,
             pointRadius: 5,
             pointHoverRadius: 7,
-            pointBackgroundColor: '#4ade80',
-            pointBorderColor: '#0a0a0a',
+            pointBackgroundColor: '#000000',
+            pointBorderColor: '#fff',
             pointBorderWidth: 2
         }]
     },
@@ -848,7 +848,7 @@ const salesTrendChart = new Chart(ctx, {
             },
             tooltip: {
                 backgroundColor: '#1a1a1a',
-                titleColor: '#4ade80',
+                titleColor: '#fff',
                 bodyColor: '#fff',
                 borderColor: '#333',
                 borderWidth: 1,
