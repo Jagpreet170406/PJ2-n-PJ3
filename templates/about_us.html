@@ -9,30 +9,55 @@
         background-color: #000;
         color: #fff;
     }
-    
+
+    .about-section {
+        min-height: 80vh;
+        background:
+            linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.75)),
+            url("/static/preview2.jpg") center / cover no-repeat;
+        display: flex;
+        align-items: center;
+        padding: 60px 20px;
+    }
+
     .about-title {
         font-size: clamp(2.6rem, 5vw, 4.2rem);
         font-weight: 800;
-        margin: 0 0 0.8rem;
+        margin-bottom: 1rem;
         line-height: 1.1;
     }
-    
+
     .about-text {
         font-size: 1.1rem;
         font-weight: 400;
-        color: rgba(255,255,255,0.75);
+        color: rgba(255, 255, 255, 0.8);
         max-width: 800px;
         margin: 0 auto 1.5rem;
     }
 </style>
 
-<div class="container mt-5">
-    <div class="row">
-        <div class="col text-center">
-            <h1 class="about-title">About Us</h1>
-            <p class="about-text">Welcome to Chin Hon Motors, your trusted partner in automotive excellence. With decades of experience in the industry, we pride ourselves on delivering top-notch vehicles and exceptional customer service.</p>
-            <p class="about-text">Our mission is to provide quality vehicles that meet the diverse needs of our customers while ensuring a seamless buying experience. Whether you're looking for a family car, a sporty ride, or a reliable work vehicle, Chin Hon Motors has something for everyone.</p>
-            <p class="about-text">Thank you for choosing Chin Hon Motors. We look forward to serving you and helping you find the perfect vehicle for your lifestyle.</p>
+<div class="about-section">
+    <div class="container">
+        <div class="row">
+            <div class="col text-center">
+                <h1 class="about-title">About Us</h1>
+
+                <p class="about-text">
+                    Welcome to Chin Hon Motors, your trusted partner in automotive excellence.
+                    With decades of experience, we pride ourselves on delivering top-quality
+                    vehicles and exceptional customer service.
+                </p>
+
+                <p class="about-text">
+                    Our mission is to provide reliable vehicles that meet diverse needs while
+                    ensuring a smooth and enjoyable buying experience.
+                </p>
+
+                <p class="about-text">
+                    Thank you for choosing Chin Hon Motors. We look forward to helping you find
+                    the perfect vehicle for your lifestyle.
+                </p>
+            </div>
         </div>
     </div>
 </div>
