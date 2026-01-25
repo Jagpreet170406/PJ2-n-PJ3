@@ -284,6 +284,21 @@ body {
     border-radius: 8px;
     margin-bottom: 1.5rem;
     border-left: 4px solid;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .alert-success {
@@ -296,6 +311,22 @@ body {
     background: rgba(220, 38, 38, 0.1);
     border-color: #dc2626;
     color: #dc2626;
+}
+
+.alert-close {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    font-size: 1.5rem;
+    padding: 0;
+    margin-left: 1rem;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.alert-close:hover {
+    opacity: 1;
 }
 
 /* Pagination */
@@ -327,26 +358,162 @@ body {
     border-color: #4ade80;
 }
 
-/* Collapsible Invoice Lines */
-.invoice-line-group {
-    background: #0a0a0a;
-    border-left: 3px solid #4ade80;
-    padding-left: 1rem;
-    margin-top: 0.5rem;
+/* Invoice Group Styling */
+.invoice-group {
+    border: 1px solid #333;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.invoice-header-row {
+    background: #1a1a1a;
+    padding: 1rem;
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1.5fr 1fr 1fr 1fr 1fr 100px;
+    gap: 1rem;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.invoice-header-row:hover {
+    background: #222;
+}
+
+.invoice-lines {
+    display: none;
+    background: #0f0f0f;
+}
+
+.invoice-lines.show {
+    display: block;
+}
+
+.line-item {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid #222;
+    display: grid;
+    grid-template-columns: 3fr 1fr 1fr 1fr 100px;
+    gap: 1rem;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.line-item:first-child {
+    border-top: none;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-success {
+    background: rgba(74, 222, 128, 0.2);
+    color: #4ade80;
+}
+
+/* Delete Confirmation Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.modal-icon {
+    font-size: 2rem;
+    margin-right: 1rem;
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.modal-body {
+    margin-bottom: 1.5rem;
+    color: #aaa;
+    line-height: 1.6;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.btn-cancel {
+    background: #374151;
+    color: #fff;
+}
+
+.btn-cancel:hover {
+    background: #4b5563;
 }
 </style>
 
 <div class="dashboard-container">
     <!-- Page Header -->
     <div class="page-header">
-        <h1> Enterprise Sales Dashboard</h1>
+        <h1>📊 Enterprise Sales Dashboard</h1>
     </div>
 
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            {% for category, msg in messages %}
-                <div class="alert alert-{{ category }}">{{ msg }}</div>
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}" id="flash-message">
+                    <span>{{ message }}</span>
+                    <button class="alert-close" onclick="this.parentElement.style.display='none'">&times;</button>
+                </div>
             {% endfor %}
         {% endif %}
     {% endwith %}
@@ -381,7 +548,7 @@ body {
 
     <!-- Filters Section -->
     <div class="filters-section">
-        <h3 style="margin-bottom: 1rem; font-size: 1.1rem;"> Filters</h3>
+        <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">🔍 Filters</h3>
         <form method="GET" action="{{ url_for('dashboard') }}">
             <div class="filters-grid">
                 <div class="filter-group">
@@ -407,7 +574,7 @@ body {
     <!-- Add New Invoice Form -->
     <div class="section-card">
         <div class="section-header">
-            <h2 class="section-title">Create New Invoice</h2>
+            <h2 class="section-title">➕ Create New Invoice</h2>
         </div>
 
         <form method="POST" action="{{ url_for('create_invoice') }}">
@@ -439,7 +606,7 @@ body {
                     <label>Product *</label>
                     <select name="product_id" required>
                         <option value="">Select Product</option>
-                        {% for product in products[:100] %}
+                        {% for product in products %}
                         <option value="{{ product.product_id }}">{{ product.hem_name }}</option>
                         {% endfor %}
                     </select>
@@ -461,48 +628,192 @@ body {
         </form>
     </div>
 
+    <!-- Invoice List -->
+    <div class="section-card">
+        <div class="section-header">
+            <h2 class="section-title">📋 Invoice List</h2>
+        </div>
+
+        {% if invoices %}
+            {% for invoice_no, invoice_data in invoices.items() %}
+            <div class="invoice-group">
+                <div class="invoice-header-row" onclick="toggleInvoice('{{ invoice_no }}')">
+                    <div>
+                        <strong>{{ invoice_no }}</strong>
+                        <div style="font-size: 0.75rem; color: #666; margin-top: 0.25rem;">{{ invoice_data.header.invoice_date }}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.75rem; color: #888;">Customer</div>
+                        <div>{{ invoice_data.header.customer_code }}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.75rem; color: #888;">Legend</div>
+                        <div>{{ invoice_data.header.legend_id or 'N/A' }}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.75rem; color: #888;">Lines</div>
+                        <div>{{ invoice_data.lines|length }}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.75rem; color: #888;">Total</div>
+                        <div style="color: #4ade80;">S$ {{ "{:,.2f}".format(invoice_data.totals.total_amt) }}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.75rem; color: #888;">GST</div>
+                        <div style="color: #f59e0b;">S$ {{ "{:,.2f}".format(invoice_data.totals.gst_amt) }}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.75rem; color: #888;">Qty</div>
+                        <div>{{ invoice_data.totals.qty }}</div>
+                    </div>
+                    <div class="actions-cell" onclick="event.stopPropagation();">
+                        <button type="button" class="btn btn-danger" onclick="showDeleteModal('{{ invoice_no }}')">Delete</button>
+                    </div>
+                </div>
+                
+                <div class="invoice-lines" id="lines-{{ invoice_no }}">
+                    {% for line in invoice_data.lines %}
+                    <div class="line-item">
+                        <div>
+                            <strong>{{ line.hem_name }}</strong>
+                            <div style="font-size: 0.75rem; color: #666; margin-top: 0.25rem;">SKU: {{ line.sku_no or 'N/A' }} | Line: {{ line.line_no }}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: #888;">Qty</div>
+                            <div>{{ line.qty }}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: #888;">Amount</div>
+                            <div style="color: #4ade80;">S$ {{ "{:,.2f}".format(line.total_amt) }}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: #888;">GST</div>
+                            <div style="color: #f59e0b;">S$ {{ "{:,.2f}".format(line.gst_amt) }}</div>
+                        </div>
+                        <div></div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Pagination -->
+            {% if total_pages > 1 %}
+            <div class="pagination">
+                {% if current_page > 1 %}
+                    <a href="{{ url_for('dashboard', page=current_page-1, search=search, start_date=start_date, end_date=end_date) }}">← Prev</a>
+                {% endif %}
+                
+                {% for p in range(1, total_pages + 1) %}
+                    {% if p == current_page %}
+                        <span class="active">{{ p }}</span>
+                    {% elif p == 1 or p == total_pages or (p >= current_page - 2 and p <= current_page + 2) %}
+                        <a href="{{ url_for('dashboard', page=p, search=search, start_date=start_date, end_date=end_date) }}">{{ p }}</a>
+                    {% elif p == current_page - 3 or p == current_page + 3 %}
+                        <span>...</span>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if current_page < total_pages %}
+                    <a href="{{ url_for('dashboard', page=current_page+1, search=search, start_date=start_date, end_date=end_date) }}">Next →</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="empty-state">
+                <p style="font-size: 3rem; margin-bottom: 1rem;">📄</p>
+                <p style="font-size: 1.1rem; color: #888;">No invoices found</p>
+                <p style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">Create your first invoice using the form above</p>
+            </div>
+        {% endif %}
+    </div>
+
     <!-- Sales Trend Chart -->
     <div class="section-card">
         <div class="section-header">
-            <h2 class="section-title"> Sales Trend</h2>
+            <h2 class="section-title">📈 Sales Trend</h2>
         </div>
         <canvas id="salesTrendChart" style="max-height: 300px;"></canvas>
     </div>
+</div>
 
-    <!-- Quick Stats Cards -->
-    <div class="section-card">
-        <div class="section-header">
-            <h2 class="section-title"> Recent Activity</h2>
-            <a href="{{ url_for('dashboard') }}?view=all" class="btn btn-primary">Manage Invoices</a>
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span class="modal-icon">⚠️</span>
+            <h2 class="modal-title">Confirm Deletion</h2>
         </div>
-        
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
-            <!-- Top Customer -->
-            <div style="background: #0a0a0a; border: 1px solid #333; border-radius: 12px; padding: 1.5rem;">
-                <div style="color: #888; font-size: 0.85rem; margin-bottom: 0.5rem;"> TOP CUSTOMER</div>
-                <div style="color: #4ade80; font-size: 1.3rem; font-weight: 600;">Customer {{ stats.total_customers }}</div>
-                <div style="color: #666; font-size: 0.9rem; margin-top: 0.5rem;">{{ stats.total_invoices }} total orders</div>
-            </div>
-            
-            <!-- Most Sold Product -->
-            <div style="background: #0a0a0a; border: 1px solid #333; border-radius: 12px; padding: 1.5rem;">
-                <div style="color: #888; font-size: 0.85rem; margin-bottom: 0.5rem;"> BEST SELLER</div>
-                <div style="color: #60a5fa; font-size: 1.3rem; font-weight: 600;">Auto Parts</div>
-                <div style="color: #666; font-size: 0.9rem; margin-top: 0.5rem;">{{ stats.total_units }} units sold</div>
-            </div>
-            
-            <!-- Average Order -->
-            <div style="background: #0a0a0a; border: 1px solid #333; border-radius: 12px; padding: 1.5rem;">
-                <div style="color: #888; font-size: 0.85rem; margin-bottom: 0.5rem;"> AVG ORDER VALUE</div>
-                <div style="color: #f59e0b; font-size: 1.3rem; font-weight: 600;">S$ {{ "{:,.2f}".format(stats.avg_line_value) }}</div>
-                <div style="color: #666; font-size: 0.9rem; margin-top: 0.5rem;">Per transaction</div>
-            </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete invoice <strong id="deleteInvoiceNo"></strong>?</p>
+            <p>This action cannot be undone and will permanently remove the invoice and all its line items.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-cancel" onclick="hideDeleteModal()">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmDelete()">Delete Invoice</button>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+// Toggle invoice lines
+function toggleInvoice(invoiceNo) {
+    const linesDiv = document.getElementById('lines-' + invoiceNo);
+    linesDiv.classList.toggle('show');
+}
+
+// Delete Modal Functions
+let currentInvoiceToDelete = null;
+const csrfToken = '{{ csrf_token() }}';
+
+function showDeleteModal(invoiceNo) {
+    currentInvoiceToDelete = invoiceNo;
+    document.getElementById('deleteInvoiceNo').textContent = invoiceNo;
+    document.getElementById('deleteModal').classList.add('show');
+}
+
+function hideDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('show');
+    currentInvoiceToDelete = null;
+}
+
+function confirmDelete() {
+    if (!currentInvoiceToDelete) return;
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/delete-invoice/' + currentInvoiceToDelete;
+    
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrf_token';
+    csrfInput.value = csrfToken;
+    
+    form.appendChild(csrfInput);
+    document.body.appendChild(form);
+    form.submit();
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('deleteModal');
+    if (event.target === modal) {
+        hideDeleteModal();
+    }
+}
+
+// Auto-hide flash messages after 5 seconds
+setTimeout(() => {
+    const flashMessage = document.getElementById('flash-message');
+    if (flashMessage) {
+        flashMessage.style.animation = 'slideIn 0.3s ease-out reverse';
+        setTimeout(() => {
+            flashMessage.style.display = 'none';
+        }, 300);
+    }
+}, 5000);
+
 // Sales Trend Chart
 const ctx = document.getElementById('salesTrendChart').getContext('2d');
 const salesTrendChart = new Chart(ctx, {

@@ -171,6 +171,22 @@ h1 {
     box-sizing: border-box;
 }
 
+.modal-content input.error, .modal-content select.error {
+    border-color: #dc3545;
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 12px;
+    margin-top: -10px;
+    margin-bottom: 10px;
+    display: none;
+}
+
+.error-message.show {
+    display: block;
+}
+
 .modal-actions {
     display: flex;
     gap: 10px;
@@ -195,6 +211,11 @@ h1 {
     background: #0052cc;
 }
 
+.save-btn:disabled {
+    background: #555;
+    cursor: not-allowed;
+}
+
 .cancel-btn {
     background: #555;
     color: white;
@@ -209,6 +230,50 @@ h1 {
     padding: 50px;
     font-size: 18px;
     color: #777;
+}
+
+/* Pagination Styles */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 30px;
+    padding: 20px;
+}
+
+.pagination button {
+    padding: 8px 16px;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 8px;
+    color: #fff;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.pagination button:hover:not(:disabled) {
+    background: #0066ff;
+    border-color: #0066ff;
+}
+
+.pagination button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.pagination .page-info {
+    color: #888;
+    font-size: 14px;
+}
+
+.pagination .page-number {
+    padding: 8px 16px;
+    background: #0066ff;
+    border: 1px solid #0066ff;
+    border-radius: 8px;
+    color: #fff;
+    font-weight: bold;
 }
 
 /* BIG ASS NOTIFICATION */
@@ -274,10 +339,113 @@ h1 {
     display: block;
     margin-bottom: 20px;
 }
+
+/* Delete Confirmation Modal */
+.delete-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-modal.active {
+    display: flex;
+}
+
+.delete-modal-content {
+    background: #1a1a1a;
+    padding: 30px;
+    border-radius: 15px;
+    border: 2px solid #dc3545;
+    max-width: 450px;
+    text-align: center;
+}
+
+.delete-modal-content h3 {
+    color: #dc3545;
+    font-size: 24px;
+    margin-bottom: 15px;
+}
+
+.delete-modal-content p {
+    color: #aaa;
+    margin-bottom: 25px;
+    line-height: 1.6;
+}
+
+.delete-modal-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.delete-modal-actions button {
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.stats-bar {
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    flex: 1;
+    min-width: 150px;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #4ade80;
+    margin-top: 5px;
+}
 </style>
 
 <div>
     <h1>Inventory Management</h1>
+    
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+        <div class="stat-item">
+            <div class="stat-label">Total Products</div>
+            <div class="stat-value" id="totalProducts">0</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Total Stock</div>
+            <div class="stat-value" id="totalStock">0</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Low Stock Items</div>
+            <div class="stat-value" style="color: #f59e0b;" id="lowStockItems">0</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Critical Stock</div>
+            <div class="stat-value" style="color: #dc3545;" id="criticalStockItems">0</div>
+        </div>
+    </div>
     
     <div class="controls">
         <input type="text" id="searchInput" placeholder="Search products...">
@@ -285,12 +453,29 @@ h1 {
             <option value="">Sort by</option>
             <option value="name">Name (A–Z)</option>
             <option value="stock">Stock (High → Low)</option>
+            <option value="price">Price (Low → High)</option>
+        </select>
+        <select id="perPageSelect">
+            <option value="12">12 per page</option>
+            <option value="24" selected>24 per page</option>
+            <option value="48">48 per page</option>
+            <option value="96">96 per page</option>
         </select>
         <button id="addProductBtn">+ Add Product</button>
     </div>
     
     <div class="grid" id="productGrid">
         <div class="loading">Loading inventory...</div>
+    </div>
+    
+    <!-- Pagination -->
+    <div class="pagination" id="paginationControls" style="display: none;">
+        <button id="firstPageBtn">⏮️ First</button>
+        <button id="prevPageBtn">◀️ Prev</button>
+        <span class="page-number" id="currentPageDisplay">1</span>
+        <span class="page-info" id="pageInfo">of 1</span>
+        <button id="nextPageBtn">Next ▶️</button>
+        <button id="lastPageBtn">Last ⏭️</button>
     </div>
 </div>
 
@@ -301,12 +486,14 @@ h1 {
         <form id="productForm">
             <label for="productPartNo">Supplier Part Number</label>
             <input type="text" id="productPartNo" placeholder="e.g., SP-12345">
+            <div class="error-message" id="errorPartNo"></div>
             
-            <label for="productName">Product Name *</label>
-            <input type="text" id="productName" required>
+            <label for="productName">Product Name * (Min 3 chars)</label>
+            <input type="text" id="productName" required minlength="3">
+            <div class="error-message" id="errorName"></div>
             
-            <label for="productCategory">Category</label>
-            <select id="productCategory">
+            <label for="productCategory">Category *</label>
+            <select id="productCategory" required>
                 <option value="Lubricants">Lubricants</option>
                 <option value="Engine Oil">Engine Oil</option>
                 <option value="Transmission Oil">Transmission Oil</option>
@@ -316,21 +503,38 @@ h1 {
                 <option value="Accessories">Accessories</option>
                 <option value="Other">Other</option>
             </select>
+            <div class="error-message" id="errorCategory"></div>
             
-            <label for="productStock">Stock Quantity *</label>
+            <label for="productStock">Stock Quantity * (Min 0)</label>
             <input type="number" id="productStock" required min="0" value="0">
+            <div class="error-message" id="errorStock"></div>
             
-            <label for="productPrice">Selling Price (SGD) *</label>
-            <input type="number" id="productPrice" required min="0" step="0.01" value="0.00">
+            <label for="productPrice">Selling Price (SGD) * (Min 0.01)</label>
+            <input type="number" id="productPrice" required min="0.01" step="0.01" value="0.00">
+            <div class="error-message" id="errorPrice"></div>
             
             <label for="productImage">Image URL (optional)</label>
             <input type="text" id="productImage" placeholder="https://...">
+            <div class="error-message" id="errorImage"></div>
             
             <div class="modal-actions">
-                <button type="submit" class="save-btn">Save</button>
+                <button type="submit" class="save-btn" id="saveBtn">Save</button>
                 <button type="button" class="cancel-btn" id="cancelBtn">Cancel</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="delete-modal" id="deleteModal">
+    <div class="delete-modal-content">
+        <h3>⚠️ Confirm Deletion</h3>
+        <p>Are you sure you want to delete <strong id="deleteProductName"></strong>?</p>
+        <p style="font-size: 14px; color: #666;">This action cannot be undone.</p>
+        <div class="delete-modal-actions">
+            <button class="cancel-btn" id="cancelDeleteBtn">Cancel</button>
+            <button class="delete-btn" id="confirmDeleteBtn">Delete Product</button>
+        </div>
     </div>
 </div>
 
@@ -338,12 +542,17 @@ h1 {
 <div id="bigNotification" class="big-notification"></div>
 
 <script>
-let products = [];
+let allProducts = [];
+let filteredProducts = [];
+let currentPage = 1;
+let itemsPerPage = 24;
 let editingId = null;
+let deleteProductId = null;
 
 // Grab elements
 const searchInput = document.getElementById("searchInput");
 const sortSelect = document.getElementById("sortSelect");
+const perPageSelect = document.getElementById("perPageSelect");
 const productGrid = document.getElementById("productGrid");
 const addProductBtn = document.getElementById("addProductBtn");
 const productModal = document.getElementById("productModal");
@@ -351,6 +560,80 @@ const productForm = document.getElementById("productForm");
 const modalTitle = document.getElementById("modalTitle");
 const cancelBtn = document.getElementById("cancelBtn");
 const bigNotification = document.getElementById("bigNotification");
+const deleteModal = document.getElementById("deleteModal");
+const cancelDeleteBtn = document.getElementById("cancelDeleteBtn");
+const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
+
+// Pagination elements
+const paginationControls = document.getElementById("paginationControls");
+const firstPageBtn = document.getElementById("firstPageBtn");
+const prevPageBtn = document.getElementById("prevPageBtn");
+const nextPageBtn = document.getElementById("nextPageBtn");
+const lastPageBtn = document.getElementById("lastPageBtn");
+const currentPageDisplay = document.getElementById("currentPageDisplay");
+const pageInfo = document.getElementById("pageInfo");
+
+// Validation functions
+function validateField(fieldId, errorId, validationFn, errorMsg) {
+    const field = document.getElementById(fieldId);
+    const error = document.getElementById(errorId);
+    const isValid = validationFn(field.value);
+    
+    if (!isValid) {
+        field.classList.add('error');
+        error.textContent = errorMsg;
+        error.classList.add('show');
+    } else {
+        field.classList.remove('error');
+        error.classList.remove('show');
+    }
+    
+    return isValid;
+}
+
+function validateForm() {
+    const name = document.getElementById("productName").value.trim();
+    const stock = parseInt(document.getElementById("productStock").value);
+    const price = parseFloat(document.getElementById("productPrice").value);
+    
+    let isValid = true;
+    
+    // Validate Product Name (required, min 3 characters)
+    if (!validateField('productName', 'errorName', 
+        val => val.trim().length >= 3, 
+        'Product name must be at least 3 characters')) {
+        isValid = false;
+    }
+    
+    // Validate Stock (required, >= 0)
+    if (!validateField('productStock', 'errorStock', 
+        val => !isNaN(val) && parseInt(val) >= 0, 
+        'Stock must be 0 or greater')) {
+        isValid = false;
+    }
+    
+    // Validate Price (required, > 0)
+    if (!validateField('productPrice', 'errorPrice', 
+        val => !isNaN(val) && parseFloat(val) >= 0.01, 
+        'Price must be at least 0.01')) {
+        isValid = false;
+    }
+    
+    // Validate Category (required)
+    if (!validateField('productCategory', 'errorCategory', 
+        val => val.trim().length > 0, 
+        'Category is required')) {
+        isValid = false;
+    }
+    
+    return isValid;
+}
+
+// Clear validation errors
+function clearValidationErrors() {
+    document.querySelectorAll('.error-message').forEach(el => el.classList.remove('show'));
+    document.querySelectorAll('input, select').forEach(el => el.classList.remove('error'));
+}
 
 // Show BIG ASS notification
 function showBigNotification(message, isSuccess = false) {
@@ -358,7 +641,6 @@ function showBigNotification(message, isSuccess = false) {
     bigNotification.innerHTML = `<span class="notification-icon">${icon}</span>${message}`;
     bigNotification.className = `big-notification ${isSuccess ? 'success' : ''}`;
     
-    // Force reflow to restart animation
     void bigNotification.offsetWidth;
     
     bigNotification.classList.add('show');
@@ -373,6 +655,19 @@ function showBigNotification(message, isSuccess = false) {
     }, 2500);
 }
 
+// Update statistics
+function updateStats() {
+    const totalProducts = allProducts.length;
+    const totalStock = allProducts.reduce((sum, p) => sum + p.qty, 0);
+    const lowStockItems = allProducts.filter(p => p.qty > 60 && p.qty <= 80).length;
+    const criticalStockItems = allProducts.filter(p => p.qty <= 60).length;
+    
+    document.getElementById('totalProducts').textContent = totalProducts;
+    document.getElementById('totalStock').textContent = totalStock.toLocaleString();
+    document.getElementById('lowStockItems').textContent = lowStockItems;
+    document.getElementById('criticalStockItems').textContent = criticalStockItems;
+}
+
 // Load products from database
 async function loadProducts() {
     try {
@@ -383,8 +678,9 @@ async function loadProducts() {
         }
         
         const data = await response.json();
-        products = data;
-        renderProducts();
+        allProducts = data;
+        updateStats();
+        filterAndSortProducts();
     } catch (error) {
         console.error('Error loading products:', error);
         productGrid.innerHTML = '<div class="loading" style="color: red;">Error loading inventory. Please refresh.</div>';
@@ -392,13 +688,13 @@ async function loadProducts() {
     }
 }
 
-// Render products
-function renderProducts() {
+// Filter and sort products
+function filterAndSortProducts() {
     const searchText = searchInput.value.toLowerCase();
     const sortType = sortSelect.value;
     
     // Filter products
-    let filteredProducts = products.filter(p => 
+    filteredProducts = allProducts.filter(p => 
         p.hem_name.toLowerCase().includes(searchText) ||
         (p.sup_part_no && p.sup_part_no.toLowerCase().includes(searchText))
     );
@@ -408,15 +704,42 @@ function renderProducts() {
         filteredProducts.sort((a, b) => a.hem_name.localeCompare(b.hem_name));
     } else if (sortType === "stock") {
         filteredProducts.sort((a, b) => b.qty - a.qty);
+    } else if (sortType === "price") {
+        filteredProducts.sort((a, b) => a.sell_price - b.sell_price);
     }
     
-    // Render
-    if (filteredProducts.length === 0) {
+    currentPage = 1;
+    renderProducts();
+}
+
+// Render products with pagination
+function renderProducts() {
+    const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const pageProducts = filteredProducts.slice(startIndex, endIndex);
+    
+    // Update pagination controls
+    if (filteredProducts.length > itemsPerPage) {
+        paginationControls.style.display = 'flex';
+        currentPageDisplay.textContent = currentPage;
+        pageInfo.textContent = `of ${totalPages} (${filteredProducts.length} items)`;
+        
+        firstPageBtn.disabled = currentPage === 1;
+        prevPageBtn.disabled = currentPage === 1;
+        nextPageBtn.disabled = currentPage === totalPages;
+        lastPageBtn.disabled = currentPage === totalPages;
+    } else {
+        paginationControls.style.display = 'none';
+    }
+    
+    // Render products
+    if (pageProducts.length === 0) {
         productGrid.innerHTML = '<div class="loading">No products found.</div>';
         return;
     }
     
-    productGrid.innerHTML = filteredProducts.map(product => {
+    productGrid.innerHTML = pageProducts.map(product => {
         let stockClass = "";
         let stockLabel = "";
         
@@ -432,34 +755,71 @@ function renderProducts() {
             <div class="card">
                 <div class="img-placeholder">${product.image_url ? `<img src="${product.image_url}" style="max-width:100%; max-height:100%; object-fit:contain;">` : 'No Image'}</div>
                 <div><strong>${product.hem_name}</strong></div>
+                ${product.sup_part_no ? `<small style="color: #666;">SKU: ${product.sup_part_no}</small><br>` : ''}
                 ${product.category ? `<small style="color: #888;">${product.category}</small>` : ''}
                 <div class="stock ${stockClass}">Stock: ${product.qty} ${stockLabel}</div>
                 <div style="margin-top: 5px; font-size: 14px; color: #4ade80;">SGD ${parseFloat(product.sell_price).toFixed(2)}</div>
                 <div class="card-actions">
                     <button class="edit-btn" onclick="editProduct(${product.inventory_id})">Edit</button>
-                    <button class="delete-btn" onclick="deleteProduct(${product.inventory_id})">Delete</button>
+                    <button class="delete-btn" onclick="showDeleteModal(${product.inventory_id})">Delete</button>
                 </div>
             </div>
         `;
     }).join("");
 }
 
+// Pagination controls
+firstPageBtn.addEventListener('click', () => {
+    currentPage = 1;
+    renderProducts();
+});
+
+prevPageBtn.addEventListener('click', () => {
+    if (currentPage > 1) {
+        currentPage--;
+        renderProducts();
+    }
+});
+
+nextPageBtn.addEventListener('click', () => {
+    const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+    if (currentPage < totalPages) {
+        currentPage++;
+        renderProducts();
+    }
+});
+
+lastPageBtn.addEventListener('click', () => {
+    const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+    currentPage = totalPages;
+    renderProducts();
+});
+
+perPageSelect.addEventListener('change', (e) => {
+    itemsPerPage = parseInt(e.target.value);
+    currentPage = 1;
+    renderProducts();
+});
+
 // Open modal for adding product
 addProductBtn.addEventListener("click", () => {
     editingId = null;
     modalTitle.textContent = "Add Product";
     productForm.reset();
+    clearValidationErrors();
     document.getElementById("productStock").value = "0";
     document.getElementById("productPrice").value = "0.00";
+    document.getElementById("productCategory").value = "Lubricants";
     productModal.classList.add("active");
 });
 
 // Open modal for editing product
 function editProduct(id) {
     editingId = id;
-    const product = products.find(p => p.inventory_id === id);
+    const product = allProducts.find(p => p.inventory_id === id);
     
     modalTitle.textContent = "Edit Product";
+    clearValidationErrors();
     document.getElementById("productPartNo").value = product.sup_part_no || '';
     document.getElementById("productName").value = product.hem_name;
     document.getElementById("productCategory").value = product.category || 'Lubricants';
@@ -470,12 +830,28 @@ function editProduct(id) {
     productModal.classList.add("active");
 }
 
-// Delete product
-async function deleteProduct(id) {
-    if (!confirm("Are you sure you want to delete this product?")) return;
+// Show delete confirmation modal
+function showDeleteModal(id) {
+    deleteProductId = id;
+    const product = allProducts.find(p => p.inventory_id === id);
+    document.getElementById('deleteProductName').textContent = product.hem_name;
+    deleteModal.classList.add('active');
+}
+
+// Cancel delete
+cancelDeleteBtn.addEventListener('click', () => {
+    deleteModal.classList.remove('active');
+    deleteProductId = null;
+});
+
+// Confirm delete
+confirmDeleteBtn.addEventListener('click', async () => {
+    if (!deleteProductId) return;
+    
+    deleteModal.classList.remove('active');
     
     try {
-        const response = await fetch(`/api/inventory/${id}`, {
+        const response = await fetch(`/api/inventory/${deleteProductId}`, {
             method: 'DELETE'
         });
         
@@ -495,11 +871,19 @@ async function deleteProduct(id) {
         console.error('Error deleting product:', error);
         showBigNotification('FAILED TO DELETE PRODUCT');
     }
-}
+    
+    deleteProductId = null;
+});
 
 // Save product (Create or Update)
 productForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+    
+    // Validate form
+    if (!validateForm()) {
+        showBigNotification('PLEASE FIX ERRORS');
+        return;
+    }
     
     const partNo = document.getElementById("productPartNo").value.trim();
     const name = document.getElementById("productName").value.trim();
@@ -517,18 +901,21 @@ productForm.addEventListener("submit", async (e) => {
         image_url: imageUrl
     };
     
+    // Disable save button during request
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+    
     try {
         let response;
         
         if (editingId) {
-            // Update existing product
             response = await fetch(`/api/inventory/${editingId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
         } else {
-            // Create new product
             response = await fetch('/api/inventory', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -552,24 +939,57 @@ productForm.addEventListener("submit", async (e) => {
     } catch (error) {
         console.error('Error saving product:', error);
         showBigNotification('FAILED TO SAVE PRODUCT');
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save';
     }
 });
 
 // Cancel button
 cancelBtn.addEventListener("click", () => {
     productModal.classList.remove("active");
+    clearValidationErrors();
 });
 
 // Close modal when clicking outside
 productModal.addEventListener("click", (e) => {
     if (e.target === productModal) {
         productModal.classList.remove("active");
+        clearValidationErrors();
     }
 });
 
+deleteModal.addEventListener("click", (e) => {
+    if (e.target === deleteModal) {
+        deleteModal.classList.remove("active");
+        deleteProductId = null;
+    }
+});
+
+// Real-time validation on input
+document.getElementById('productName').addEventListener('input', () => {
+    if (document.getElementById('productName').value.trim().length > 0) {
+        validateField('productName', 'errorName', 
+            val => val.trim().length >= 3, 
+            'Product name must be at least 3 characters');
+    }
+});
+
+document.getElementById('productStock').addEventListener('input', () => {
+    validateField('productStock', 'errorStock', 
+        val => !isNaN(val) && parseInt(val) >= 0, 
+        'Stock must be 0 or greater');
+});
+
+document.getElementById('productPrice').addEventListener('input', () => {
+    validateField('productPrice', 'errorPrice', 
+        val => !isNaN(val) && parseFloat(val) >= 0.01, 
+        'Price must be at least 0.01');
+});
+
 // Search and sort
-searchInput.addEventListener("keyup", renderProducts);
-sortSelect.addEventListener("change", renderProducts);
+searchInput.addEventListener("keyup", filterAndSortProducts);
+sortSelect.addEventListener("change", filterAndSortProducts);
 
 // Initial load
 loadProducts();
