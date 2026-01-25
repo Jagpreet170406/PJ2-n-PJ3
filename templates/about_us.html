@@ -10,7 +10,7 @@
         color: #fff;
     }
 
-    .about-section {
+    .about-hero {
         min-height: 80vh;
         background:
             linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.75)),
@@ -34,9 +34,84 @@
         max-width: 800px;
         margin: 0 auto 1.5rem;
     }
+
+    .journey-section {
+        padding: 80px 20px;
+        background-color: #0a0a0a;
+    }
+
+    .section-title {
+        font-size: clamp(2rem, 4vw, 3rem);
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .journey-timeline {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .journey-item {
+        display: flex;
+        gap: 30px;
+        margin-bottom: 60px;
+        align-items: center;
+    }
+
+    .journey-item:nth-child(even) {
+        flex-direction: row-reverse;
+    }
+
+    .journey-image {
+        flex: 1;
+        min-width: 280px;
+    }
+
+    .journey-image img {
+        width: 100%;
+        height: 300px;
+        object-fit: cover;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(255, 255, 255, 0.1);
+    }
+
+    .journey-content {
+        flex: 1;
+    }
+
+    .journey-year {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #ffd700;
+        margin-bottom: 0.5rem;
+    }
+
+    .journey-title {
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+
+    .journey-description {
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.75);
+        line-height: 1.6;
+    }
+
+    @media (max-width: 768px) {
+        .journey-item,
+        .journey-item:nth-child(even) {
+            flex-direction: column;
+        }
+
+        .journey-image {
+            min-width: 100%;
+        }
+    }
 </style>
 
-<div class="about-section">
+<div class="about-hero">
     <div class="container">
         <div class="row">
             <div class="col text-center">
@@ -57,6 +132,78 @@
                     Thank you for choosing Chin Hon Motors. We look forward to helping you find
                     the perfect vehicle for your lifestyle.
                 </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="journey-section">
+    <div class="container">
+        <h2 class="section-title">Our Journey</h2>
+        
+        <div class="journey-timeline">
+            <div class="journey-item">
+                <div class="journey-image">
+                    <img src="/static/preview4.jpg" alt="The Beginning">
+                </div>
+                <div class="journey-content">
+                    <div class="journey-year">1985</div>
+                    <h3 class="journey-title">The Beginning</h3>
+                    <p class="journey-description">
+                        Chin Hon Motors opened its doors with a simple vision: to provide quality 
+                        vehicles and honest service to our community. Starting with a small showroom 
+                        and a passionate team, we laid the foundation for what would become a trusted 
+                        automotive destination.
+                    </p>
+                </div>
+            </div>
+
+            <div class="journey-item">
+                <div class="journey-image">
+                    <img src="/static/preview5.jpg" alt="Expansion & Growth">
+                </div>
+                <div class="journey-content">
+                    <div class="journey-year">2000</div>
+                    <h3 class="journey-title">Expansion & Growth</h3>
+                    <p class="journey-description">
+                        As our reputation grew, so did our ambitions. We expanded our facility to 
+                        accommodate a wider selection of vehicles and upgraded our service center 
+                        with state-of-the-art equipment. Our commitment to excellence earned us 
+                        recognition as a leading automotive dealer in the region.
+                    </p>
+                </div>
+            </div>
+
+            <div class="journey-item">
+                <div class="journey-image">
+                    <img src="/static/preview6.jpg" alt="Innovation & Modernization">
+                </div>
+                <div class="journey-content">
+                    <div class="journey-year">2015</div>
+                    <h3 class="journey-title">Innovation & Modernization</h3>
+                    <p class="journey-description">
+                        Embracing the digital age, we revolutionized our customer experience with 
+                        online browsing, virtual tours, and streamlined financing options. We also 
+                        expanded our inventory to include eco-friendly and hybrid vehicles, staying 
+                        ahead of automotive trends.
+                    </p>
+                </div>
+            </div>
+
+            <div class="journey-item">
+                <div class="journey-image">
+                    <img src="/static/preview7.jpg" alt="Today & Beyond">
+                </div>
+                <div class="journey-content">
+                    <div class="journey-year">2025</div>
+                    <h3 class="journey-title">Today & Beyond</h3>
+                    <p class="journey-description">
+                        Today, Chin Hon Motors stands as a testament to decades of dedication and 
+                        customer trust. We continue to evolve, offering premium vehicles, exceptional 
+                        service, and personalized care. As we look to the future, our commitment 
+                        remains unchanged: putting our customers first, every single day.
+                    </p>
+                </div>
             </div>
         </div>
     </div>
