@@ -1,7 +1,12 @@
 Installing VENV Instructions:
 1. Open Command Prompt
 2. Type: python -m venv venv
-3. Type: venv\Scripts\activate
+3. Type the following:
+ cd venv 
+ cd Scripts
+ .\activate
+ cd.. 
+ cd..
 4. Install the Required Dependencies: pip install blinker==1.9.0 certifi==2026.1.4 charset-normalizer==3.4.4 click==8.3.1 colorama==0.4.6 et_xmlfile==2.0.0 Flask==3.1.2 Flask-WTF==1.2.2 greenlet==3.3.0 idna==3.11 itsdangerous==2.2.0 Jinja2==3.1.6 MarkupSafe==3.0.3 numpy==2.4.1 openpyxl==3.1.5 pandas==2.3.3 python-dateutil==2.9.0.post0 pytz==2025.2 requests==2.32.5 six==1.17.0 SQLAlchemy==2.0.45 typing_extensions==4.15.0 tzdata==2025.3 urllib3==2.6.3 Werkzeug==3.1.5 WTForms==3.2.1 xlrd==2.0.2
 5. Once Installed, DO NOT COMMIT CHANGES!
 6. Proceed with the following:
