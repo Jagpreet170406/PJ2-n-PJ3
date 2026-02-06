@@ -1021,7 +1021,7 @@ function editProduct(id) {
     document.getElementById("productPartNo").value = product.sup_part_no || '';
     document.getElementById("productName").value = product.hem_name;
     document.getElementById("productCategory").value = product.category || 'Lubricants';
-    document.getElementById("productStock").value = product.qty;
+    document.getElementById("productStock").value = product.qty
     document.getElementById("productPrice").value = parseFloat(product.sell_price).toFixed(2);
     document.getElementById("productImage").value = product.image_url || '';
 
