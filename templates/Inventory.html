@@ -164,17 +164,17 @@ body {
     border: none;
     cursor: pointer;
     font-weight: 800;
-    background: rgba(255,255,255,0.92);             /* was black */
-    color: #111827;                                  /* was white */
+    background: #10b981;                                 /* GREEN for CREATE/ADD */
+    color: white;
     font-size: 1rem;
     transition: all 0.25s ease;
-    box-shadow: 0 10px 26px rgba(0,0,0,0.28);
+    box-shadow: 0 10px 26px rgba(16,185,129,0.25);
 }
 
 .controls button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 16px 45px rgba(0,0,0,0.35);
-    background: #ffffff;
+    box-shadow: 0 16px 45px rgba(16,185,129,0.35);
+    background: #059669;
 }
 
 /* ====== Stats Bar -> make cards LIGHT like Dashboard KPIs ====== */
@@ -326,13 +326,25 @@ body {
 }
 
 .edit-btn {
-    background: rgba(255,255,255,0.92);               /* was black */
-    color: #111827;                                    /* was white */
+    background: #f59e0b;                                  /* ORANGE for UPDATE */
+    color: white;
+    box-shadow: 0 4px 12px rgba(245,158,11,0.25);
+}
+
+.edit-btn:hover {
+    background: #d97706;
+    box-shadow: 0 8px 20px rgba(245,158,11,0.35);
 }
 
 .delete-btn {
-    background: #ef4444;                               /* keep red */
+    background: #ef4444;                                  /* RED for DELETE */
     color: white;
+    box-shadow: 0 4px 12px rgba(239,68,68,0.25);
+}
+
+.delete-btn:hover {
+    background: #dc2626;
+    box-shadow: 0 8px 20px rgba(239,68,68,0.35);
 }
 
 /* Loading / empty state */
@@ -487,12 +499,27 @@ body {
 }
 
 .save-btn {
-    background: rgba(255,255,255,0.92);               /* was black */
-    color: #111827;                                    /* was white */
-    box-shadow: 0 10px 26px rgba(0,0,0,0.28);
+    background: #10b981;                                  /* GREEN for CREATE */
+    color: white;
+    box-shadow: 0 10px 26px rgba(16,185,129,0.25);
 }
 
-.save-btn:hover { transform: translateY(-1px); box-shadow: 0 16px 45px rgba(0,0,0,0.35); }
+.save-btn:hover { 
+    transform: translateY(-1px); 
+    box-shadow: 0 16px 45px rgba(16,185,129,0.35);
+    background: #059669;
+}
+
+.save-btn.editing {
+    background: #f59e0b;                                  /* ORANGE when EDITING */
+    box-shadow: 0 10px 26px rgba(245,158,11,0.25);
+}
+
+.save-btn.editing:hover {
+    background: #d97706;
+    box-shadow: 0 16px 45px rgba(245,158,11,0.35);
+}
+
 .save-btn:disabled {
     background: #9ca3af;
     cursor: not-allowed;
@@ -508,37 +535,44 @@ body {
 
 .cancel-btn:hover { background: rgba(255,255,255,0.24); transform: translateY(-1px); }
 
-/* ====== BIG ASS NOTIFICATION (keep red/green as-is) ====== */
+/* ====== BIG NOTIFICATION - TRAFFIC LIGHT SYSTEM ====== */
 .big-notification {
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) scale(0);
-    background: linear-gradient(135deg, #ef4444 0%, #ff6b6b 100%);
-    color: white;
+    background: rgba(15, 15, 15, 0.96);
+    border: 2px solid rgba(255,255,255,0.20);
+    color: #ef4444;                                       /* RED for errors */
     padding: 50px 70px;
-    border-radius: 25px;
-    font-size: 48px;
+    border-radius: 24px;
+    font-size: 32px;
     font-weight: 900;
     text-align: center;
-    z-index: 10000;
-    box-shadow: 0 20px 60px rgba(239, 68, 68, 0.45);
-    border: 4px solid #fff;
+    z-index: 9999;
+    box-shadow: 0 30px 90px rgba(0,0,0,0.60);
+    backdrop-filter: blur(20px);
     opacity: 0;
     pointer-events: none;
+    min-width: 400px;
 }
 
 .big-notification.success {
-    background: linear-gradient(135deg, #10b981 0%, #5cb85c 100%);
-    box-shadow: 0 20px 60px rgba(16, 185, 129, 0.45);
+    color: #10b981;                                       /* GREEN for success/create */
+    border-color: rgba(16,185,129,0.35);
+}
+
+.big-notification.warning {
+    color: #f59e0b;                                       /* ORANGE for updates */
+    border-color: rgba(245,158,11,0.35);
 }
 
 .big-notification.show {
-    animation: bigPopIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+    animation: bigPopIn 0.45s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
 }
 
 .big-notification.hide {
-    animation: bigPopOut 0.4s ease-in forwards;
+    animation: bigPopOut 0.35s ease-in forwards;
 }
 
 @keyframes bigPopIn {
@@ -837,11 +871,22 @@ function clearValidationErrors() {
     document.querySelectorAll('input, select').forEach(el => el.classList.remove('error'));
 }
 
-// Show BIG ASS notification
-function showBigNotification(message, isSuccess = false) {
-    const icon = isSuccess ? '✓' : '✖';
+// Show BIG NOTIFICATION - TRAFFIC LIGHT SYSTEM
+// 🟢 GREEN = Create/Success, 🟠 ORANGE = Update, 🔴 RED = Delete/Error
+function showBigNotification(message, type = 'error') {
+    let icon = '✖';
+    let className = 'big-notification';
+    
+    if (type === 'success' || type === true) {
+        icon = '✓';
+        className = 'big-notification success';
+    } else if (type === 'warning' || type === 'update') {
+        icon = '✎';
+        className = 'big-notification warning';
+    }
+    
     bigNotification.innerHTML = `<span class="notification-icon">${icon}</span>${message}`;
-    bigNotification.className = `big-notification ${isSuccess ? 'success' : ''}`;
+    bigNotification.className = className;
 
     void bigNotification.offsetWidth;
 
@@ -1008,6 +1053,12 @@ addProductBtn.addEventListener("click", () => {
     document.getElementById("productStock").value = "0";
     document.getElementById("productPrice").value = "0.00";
     document.getElementById("productCategory").value = "Lubricants";
+    
+    // Set button to GREEN for CREATE
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.classList.remove('editing');
+    saveBtn.textContent = 'Save';
+    
     productModal.classList.add("active");
 });
 
@@ -1024,6 +1075,11 @@ function editProduct(id) {
     document.getElementById("productStock").value = product.qty
     document.getElementById("productPrice").value = parseFloat(product.sell_price).toFixed(2);
     document.getElementById("productImage").value = product.image_url || '';
+
+    // Set button to ORANGE for UPDATE
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.classList.add('editing');
+    saveBtn.textContent = 'Update';
 
     productModal.classList.add("active");
 }
@@ -1128,7 +1184,11 @@ productForm.addEventListener("submit", async (e) => {
         if (result.success) {
             productModal.classList.remove("active");
             await loadProducts();
-            showBigNotification(editingId ? 'PRODUCT UPDATED!' : 'PRODUCT SAVED!', true);
+            // Use 'warning' (orange) for updates, 'success' (green) for creates
+            showBigNotification(
+                editingId ? 'PRODUCT UPDATED!' : 'PRODUCT SAVED!', 
+                editingId ? 'warning' : 'success'
+            );
         } else {
             showBigNotification('FAILED TO SAVE: ' + result.message);
         }
@@ -1137,7 +1197,12 @@ productForm.addEventListener("submit", async (e) => {
         showBigNotification('FAILED TO SAVE PRODUCT');
     } finally {
         saveBtn.disabled = false;
-        saveBtn.textContent = 'Save';
+        saveBtn.textContent = editingId ? 'Update' : 'Save';
+        if (editingId) {
+            saveBtn.classList.add('editing');
+        } else {
+            saveBtn.classList.remove('editing');
+        }
     }
 });
 

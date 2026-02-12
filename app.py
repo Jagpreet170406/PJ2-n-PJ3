@@ -473,11 +473,23 @@ def dashboard():
         trend_data = [round(float(row['revenue']), 2) if row['revenue'] else 0 for row in trend_rows]
     
     # Render dashboard template with all data
-    return render_template("dashboard.html", invoices=invoices, stats=stats,
-                           customers=customers, products=products,
-                           current_page=page, total_pages=total_pages,
-                           search=search, start_date=start_date, end_date=end_date,
-                           trend_labels=trend_labels, trend_data=trend_data,
+    return render_template("dashboard.html", 
+                           invoices=invoices, 
+                           # Unpack stats dict into individual variables
+                           total_revenue=stats['total_revenue'],
+                           total_gst=stats['total_gst'],
+                           invoice_count=stats['total_invoices'],
+                           total_qty=stats['total_units'],
+                           # Pass products as inventory for the form
+                           inventory=products,
+                           customers=customers,
+                           current_page=page, 
+                           total_pages=total_pages,
+                           search=search, 
+                           start_date=start_date, 
+                           end_date=end_date,
+                           trend_labels=trend_labels, 
+                           trend_data=trend_data,
                            role=session.get("role"))
 
 @app.route("/create-invoice", methods=["POST"])
