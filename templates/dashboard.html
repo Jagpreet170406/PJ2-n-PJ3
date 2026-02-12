@@ -1242,8 +1242,9 @@ function showDeleteModal(invoiceNo) {
     console.log('Is undefined?', invoiceNo === undefined);
     console.log('=========================');
     
-    currentInvoiceToDelete = invoiceNo;
-    document.getElementById('deleteInvoiceNo').textContent = invoiceNo;
+    // Clean and trim the invoice number
+    currentInvoiceToDelete = String(invoiceNo).trim();
+    document.getElementById('deleteInvoiceNo').textContent = currentInvoiceToDelete;
     document.getElementById('deleteModal').classList.add('show');
 }
 
@@ -1268,8 +1269,12 @@ async function confirmDelete() {
     hideDeleteModal();
     
     try {
-        const url = `/delete-invoice/${currentInvoiceToDelete}`;
+        // URL-encode the invoice number to handle special characters
+        const encodedInvoiceNo = encodeURIComponent(currentInvoiceToDelete);
+        const url = `/delete-invoice/${encodedInvoiceNo}`;
         console.log('🔗 DELETE URL:', url);
+        console.log('🔗 Original Invoice No:', currentInvoiceToDelete);
+        console.log('🔗 Encoded Invoice No:', encodedInvoiceNo);
         
         const response = await fetch(url, {
             method: 'POST',
