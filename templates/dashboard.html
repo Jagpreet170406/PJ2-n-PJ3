@@ -1235,6 +1235,13 @@ let currentInvoiceToDelete = null;
 const csrfToken = '{{ csrf_token() }}';
 
 function showDeleteModal(invoiceNo) {
+    console.log('=== DELETE MODAL DEBUG ===');
+    console.log('Invoice No:', invoiceNo);
+    console.log('Type:', typeof invoiceNo);
+    console.log('Is null?', invoiceNo === null);
+    console.log('Is undefined?', invoiceNo === undefined);
+    console.log('=========================');
+    
     currentInvoiceToDelete = invoiceNo;
     document.getElementById('deleteInvoiceNo').textContent = invoiceNo;
     document.getElementById('deleteModal').classList.add('show');
@@ -1246,13 +1253,25 @@ function hideDeleteModal() {
 }
 
 async function confirmDelete() {
-    if (!currentInvoiceToDelete) return;
+    console.log('=== CONFIRM DELETE DEBUG ===');
+    console.log('currentInvoiceToDelete:', currentInvoiceToDelete);
+    console.log('Type:', typeof currentInvoiceToDelete);
+    console.log('============================');
+    
+    if (!currentInvoiceToDelete) {
+        console.error('❌ No invoice to delete!');
+        showBigNotification('ERROR: No invoice selected', 'error');
+        return;
+    }
     
     // Hide modal first
     hideDeleteModal();
     
     try {
-        const response = await fetch(`/delete-invoice/${currentInvoiceToDelete}`, {
+        const url = `/delete-invoice/${currentInvoiceToDelete}`;
+        console.log('🔗 DELETE URL:', url);
+        
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1260,11 +1279,22 @@ async function confirmDelete() {
             }
         });
         
+        console.log('📡 Response status:', response.status);
+        
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('❌ Delete failed:', response.status, errorText);
+            
+            if (response.status === 404) {
+                showBigNotification('INVOICE NOT FOUND - Check if it exists in database!', 'error');
+            } else {
+                showBigNotification(`DELETE FAILED: ${response.status}`, 'error');
+            }
+            return;
         }
         
         const result = await response.json();
+        console.log('✅ Delete result:', result);
         
         if (result.success) {
             // Show RED notification for delete (using false)
@@ -1277,7 +1307,7 @@ async function confirmDelete() {
             showBigNotification('FAILED TO DELETE: ' + result.message, 'error');
         }
     } catch (error) {
-        console.error('Error deleting invoice:', error);
+        console.error('❌ Error deleting invoice:', error);
         showBigNotification('FAILED TO DELETE INVOICE', 'error');
     }
     
