@@ -609,6 +609,145 @@ def delete_invoice(invoice_no):
     
     return redirect(url_for("dashboard"))
 
+@app.route("/update-invoice/<invoice_no>", methods=["POST"])
+@require_staff
+def update_invoice(invoice_no):
+    """
+    Update an existing invoice and its line items.
+    Accepts JSON payload with invoice header and line items.
+    
+    Expected JSON structure:
+    {
+        "invoice_date": "2024-01-15",
+        "customer_id": 1,
+        "legend_id": "SGP",
+        "lines": [
+            {
+                "line_no": 1,
+                "product_id": 5,
+                "qty": 10,
+                "total_amt": 150.00,
+                "gst_amt": 12.00
+            },
+            ...
+        ]
+    }
+    """
+    try:
+        # Get JSON data from request
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False, 
+                'message': 'No data provided'
+            }), 400
+        
+        # === VALIDATE REQUIRED FIELDS ===
+        if not data.get('invoice_date'):
+            return jsonify({'success': False, 'message': 'Invoice date is required'}), 400
+        
+        if not data.get('customer_id'):
+            return jsonify({'success': False, 'message': 'Customer is required'}), 400
+        
+        if not data.get('lines') or len(data['lines']) == 0:
+            return jsonify({'success': False, 'message': 'At least one line item is required'}), 400
+        
+        # === VALIDATE LINE ITEMS ===
+        for i, line in enumerate(data['lines']):
+            # Validate product_id
+            if not line.get('product_id'):
+                return jsonify({'success': False, 'message': f'Line {i+1}: Product is required'}), 400
+            
+            # Validate quantity
+            try:
+                qty = int(line.get('qty', 0))
+                if qty < 1:
+                    return jsonify({'success': False, 'message': f'Line {i+1}: Quantity must be at least 1'}), 400
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': f'Line {i+1}: Invalid quantity'}), 400
+            
+            # Validate total amount
+            try:
+                total_amt = float(line.get('total_amt', 0))
+                if total_amt < 0:
+                    return jsonify({'success': False, 'message': f'Line {i+1}: Total amount cannot be negative'}), 400
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': f'Line {i+1}: Invalid total amount'}), 400
+            
+            # Validate GST amount
+            try:
+                gst_amt = float(line.get('gst_amt', 0))
+                if gst_amt < 0:
+                    return jsonify({'success': False, 'message': f'Line {i+1}: GST amount cannot be negative'}), 400
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': f'Line {i+1}: Invalid GST amount'}), 400
+        
+        # === UPDATE DATABASE ===
+        with get_db() as conn:
+            # Check if invoice exists
+            existing = conn.execute("SELECT 1 FROM sales_invoice_header WHERE invoice_no = ?", (invoice_no,)).fetchone()
+            if not existing:
+                return jsonify({
+                    'success': False,
+                    'message': f'Invoice {invoice_no} not found'
+                }), 404
+            
+            # Update invoice header
+            conn.execute("""
+                UPDATE sales_invoice_header 
+                SET invoice_date = ?, 
+                    customer_id = ?, 
+                    legend_id = ?
+                WHERE invoice_no = ?
+            """, (
+                data['invoice_date'],
+                data['customer_id'],
+                data.get('legend_id', ''),
+                invoice_no
+            ))
+            
+            # Delete all existing line items for this invoice
+            conn.execute("DELETE FROM sales_invoice_line WHERE invoice_no = ?", (invoice_no,))
+            
+            # Insert new line items
+            for line in data['lines']:
+                conn.execute("""
+                    INSERT INTO sales_invoice_line (
+                        invoice_no, 
+                        line_no, 
+                        product_id, 
+                        qty, 
+                        total_amt, 
+                        gst_amt
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (
+                    invoice_no,
+                    line['line_no'],
+                    line['product_id'],
+                    line['qty'],
+                    line['total_amt'],
+                    line['gst_amt']
+                ))
+            
+            conn.commit()
+        
+        print(f"✅ Updated invoice {invoice_no}")
+        return jsonify({
+            'success': True,
+            'message': 'Invoice updated successfully'
+        })
+        
+    except Exception as e:
+        print(f"❌ Update invoice error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': f'Server error: {str(e)}'
+        }), 500
+
 # === MARKET ANALYSIS ROUTES ===
 
 @app.route("/market-analysis")
