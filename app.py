@@ -561,51 +561,48 @@ def create_invoice():
     
     # === INSERT INVOICE INTO DATABASE ===
     try:
-        conn = get_db()
-        cursor = conn.cursor()
+        # Use context manager (with statement) to ensure proper commit
+        with get_db() as conn:
+            # Check if invoice number already exists (prevent duplicates)
+            existing = conn.execute("SELECT 1 FROM sales_invoice_header WHERE invoice_no = ?", (invoice_no,)).fetchone()
+            if existing:
+                flash(f"Invoice {invoice_no} already exists!", "danger")
+                print(f"❌ Invoice {invoice_no} already exists!")
+                return redirect(url_for("dashboard"))
+            
+            print(f"📝 Inserting invoice {invoice_no}...")
+            print(f"   Date: {invoice_date}")
+            print(f"   Customer ID: {customer_id}")
+            print(f"   Legend: {legend_id}")
+            print(f"   Product ID: {product_id}")
+            print(f"   Qty: {qty}")
+            print(f"   Total: {total_amt}")
+            print(f"   GST: {gst_amt}")
+            
+            # Insert invoice header
+            conn.execute("INSERT INTO sales_invoice_header (invoice_no, invoice_date, customer_id, legend_id) VALUES (?, ?, ?, ?)",
+                        (invoice_no, invoice_date, customer_id, legend_id))
+            print(f"✅ Header inserted")
+            
+            # Insert first line item (line_no = 1)
+            conn.execute("INSERT INTO sales_invoice_line (invoice_no, line_no, product_id, qty, total_amt, gst_amt) VALUES (?, 1, ?, ?, ?, ?)",
+                        (invoice_no, product_id, qty, total_amt, gst_amt))
+            print(f"✅ Line item inserted")
+            
+            # Commit is automatic when exiting the 'with' block successfully
+            conn.commit()
+            print(f"✅ COMMITTED to database")
         
-        # Check if invoice number already exists (prevent duplicates)
-        existing = cursor.execute("SELECT 1 FROM sales_invoice_header WHERE invoice_no = ?", (invoice_no,)).fetchone()
-        if existing:
-            flash(f"Invoice {invoice_no} already exists!", "danger")
-            print(f"❌ Invoice {invoice_no} already exists!")
-            conn.close()
-            return redirect(url_for("dashboard"))
-        
-        print(f"📝 Inserting invoice {invoice_no}...")
-        print(f"   Date: {invoice_date}")
-        print(f"   Customer ID: {customer_id}")
-        print(f"   Legend: {legend_id}")
-        print(f"   Product ID: {product_id}")
-        print(f"   Qty: {qty}")
-        print(f"   Total: {total_amt}")
-        print(f"   GST: {gst_amt}")
-        
-        # Insert invoice header
-        cursor.execute("INSERT INTO sales_invoice_header (invoice_no, invoice_date, customer_id, legend_id) VALUES (?, ?, ?, ?)",
-                    (invoice_no, invoice_date, customer_id, legend_id))
-        print(f"✅ Header inserted")
-        
-        # Insert first line item (line_no = 1)
-        cursor.execute("INSERT INTO sales_invoice_line (invoice_no, line_no, product_id, qty, total_amt, gst_amt) VALUES (?, 1, ?, ?, ?, ?)",
-                    (invoice_no, product_id, qty, total_amt, gst_amt))
-        print(f"✅ Line item inserted")
-        
-        conn.commit()
-        print(f"✅ COMMITTED to database")
-        conn.close()
-        
-        # Verify it was saved
-        verify_conn = get_db()
-        verify = verify_conn.execute("SELECT * FROM sales_invoice_header WHERE invoice_no = ?", (invoice_no,)).fetchone()
-        verify_conn.close()
-        
-        if verify:
-            print(f"✅✅✅ VERIFIED: Invoice {invoice_no} is in database!")
-            flash(f"Invoice {invoice_no} created successfully!", "success")
-        else:
-            print(f"❌❌❌ VERIFICATION FAILED: Invoice {invoice_no} NOT in database after commit!")
-            flash(f"Invoice {invoice_no} creation failed - not saved!", "danger")
+        # Verify it was saved (using fresh connection)
+        with get_db() as verify_conn:
+            verify = verify_conn.execute("SELECT * FROM sales_invoice_header WHERE invoice_no = ?", (invoice_no,)).fetchone()
+            
+            if verify:
+                print(f"✅✅✅ VERIFIED: Invoice {invoice_no} is in database!")
+                flash(f"Invoice {invoice_no} created successfully!", "success")
+            else:
+                print(f"❌❌❌ VERIFICATION FAILED: Invoice {invoice_no} NOT in database after commit!")
+                flash(f"Invoice {invoice_no} creation failed - not saved!", "danger")
             
     except Exception as e:
         print(f"❌ Create invoice error: {e}")
