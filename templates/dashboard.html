@@ -1245,21 +1245,43 @@ function hideDeleteModal() {
     currentInvoiceToDelete = null;
 }
 
-function confirmDelete() {
+async function confirmDelete() {
     if (!currentInvoiceToDelete) return;
     
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/delete-invoice/' + currentInvoiceToDelete;
+    // Hide modal first
+    hideDeleteModal();
     
-    const csrfInput = document.createElement('input');
-    csrfInput.type = 'hidden';
-    csrfInput.name = 'csrf_token';
-    csrfInput.value = csrfToken;
+    try {
+        const response = await fetch(`/delete-invoice/${currentInvoiceToDelete}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Show RED notification for delete (using false)
+            showBigNotification('INVOICE DELETED!', false);
+            // Reload page after notification
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            showBigNotification('FAILED TO DELETE: ' + result.message, 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting invoice:', error);
+        showBigNotification('FAILED TO DELETE INVOICE', 'error');
+    }
     
-    form.appendChild(csrfInput);
-    document.body.appendChild(form);
-    form.submit();
+    currentInvoiceToDelete = null;
 }
 
 // Close modal when clicking outside

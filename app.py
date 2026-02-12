@@ -592,22 +592,36 @@ def delete_invoice(invoice_no):
     """
     Delete an invoice and all its line items.
     Cascades deletion: line items first, then header.
+    Returns JSON response for AJAX handling.
     """
     try:
         with get_db() as conn:
+            # Check if invoice exists first
+            existing = conn.execute("SELECT 1 FROM sales_invoice_header WHERE invoice_no = ?", (invoice_no,)).fetchone()
+            if not existing:
+                return jsonify({
+                    'success': False,
+                    'message': f'Invoice {invoice_no} not found'
+                }), 404
+            
             # Delete line items first (to satisfy foreign key constraints)
             conn.execute("DELETE FROM sales_invoice_line WHERE invoice_no=?", (invoice_no,))
             # Then delete the header
             conn.execute("DELETE FROM sales_invoice_header WHERE invoice_no=?", (invoice_no,))
             conn.commit()
         
-        flash(f"Invoice {invoice_no} deleted successfully!", "success")
         print(f"✅ Deleted invoice {invoice_no}")
+        return jsonify({
+            'success': True,
+            'message': f'Invoice {invoice_no} deleted successfully'
+        })
+        
     except Exception as e:
-        flash(f"Error deleting invoice: {str(e)}", "danger")
         print(f"❌ Delete error: {e}")
-    
-    return redirect(url_for("dashboard"))
+        return jsonify({
+            'success': False,
+            'message': f'Error deleting invoice: {str(e)}'
+        }), 500
 
 @app.route("/update-invoice/<invoice_no>", methods=["POST"])
 @require_staff
