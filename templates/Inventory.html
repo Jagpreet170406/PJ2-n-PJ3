@@ -326,14 +326,14 @@ body {
 }
 
 .edit-btn {
-    background: #f59e0b;                                  /* ORANGE for UPDATE */
+    background: #3b82f6;                                  /* BLUE for EDIT */
     color: white;
-    box-shadow: 0 4px 12px rgba(245,158,11,0.25);
+    box-shadow: 0 4px 12px rgba(59,130,246,0.25);
 }
 
 .edit-btn:hover {
-    background: #d97706;
-    box-shadow: 0 8px 20px rgba(245,158,11,0.35);
+    background: #2563eb;
+    box-shadow: 0 8px 20px rgba(59,130,246,0.35);
 }
 
 .delete-btn {
@@ -499,7 +499,7 @@ body {
 }
 
 .save-btn {
-    background: #10b981;                                  /* GREEN for CREATE */
+    background: #10b981;                                  /* GREEN for SAVE/CREATE */
     color: white;
     box-shadow: 0 10px 26px rgba(16,185,129,0.25);
 }
@@ -511,13 +511,8 @@ body {
 }
 
 .save-btn.editing {
-    background: #f59e0b;                                  /* ORANGE when EDITING */
-    box-shadow: 0 10px 26px rgba(245,158,11,0.25);
-}
-
-.save-btn.editing:hover {
-    background: #d97706;
-    box-shadow: 0 16px 45px rgba(245,158,11,0.35);
+    /* Button stays GREEN but text changes to "Update" */
+    /* Notification will be AMBER when updating */
 }
 
 .save-btn:disabled {
@@ -871,8 +866,9 @@ function clearValidationErrors() {
     document.querySelectorAll('input, select').forEach(el => el.classList.remove('error'));
 }
 
-// Show BIG NOTIFICATION - TRAFFIC LIGHT SYSTEM
-// 🟢 GREEN = Create/Success, 🟠 ORANGE = Update, 🔴 RED = Delete/Error
+// Show BIG NOTIFICATION
+// 🟢 GREEN = Save/Create, 🟠 AMBER = Update, 🔴 RED = Delete/Error
+// NOTE: Buttons are different - Edit=BLUE, Delete=RED
 function showBigNotification(message, type = 'error') {
     let icon = '✖';
     let className = 'big-notification';

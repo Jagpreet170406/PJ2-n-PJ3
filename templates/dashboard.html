@@ -271,15 +271,15 @@ body {
 }
 
 .btn-primary {
-    background: rgba(255,255,255,0.92);
-    color: #111827;
-    box-shadow: 0 10px 26px rgba(0,0,0,0.28);
+    background: #3b82f6;                                  /* BLUE for EDIT */
+    color: white;
+    box-shadow: 0 10px 26px rgba(59,130,246,0.25);
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 16px 45px rgba(0,0,0,0.35);
-    background: #ffffff;
+    box-shadow: 0 16px 45px rgba(59,130,246,0.35);
+    background: #2563eb;
 }
 
 .btn-secondary {
@@ -294,7 +294,7 @@ body {
 }
 
 .btn-success {
-    background: #10b981;
+    background: #10b981;                                  /* GREEN for CREATE */
     color: white;
     box-shadow: 0 10px 26px rgba(16,185,129,0.25);
 }
@@ -302,18 +302,7 @@ body {
 .btn-success:hover {
     transform: translateY(-2px);
     box-shadow: 0 16px 45px rgba(16,185,129,0.35);
-}
-
-.btn-warning {
-    background: #f59e0b;
-    color: white;
-    box-shadow: 0 10px 26px rgba(245,158,11,0.25);
-}
-
-.btn-warning:hover {
-    background: #d97706;
-    transform: translateY(-2px);
-    box-shadow: 0 16px 45px rgba(245,158,11,0.35);
+    background: #059669;
 }
 
 .btn-danger {
@@ -729,7 +718,7 @@ body {
                             <div>{{ invoice_data.totals.qty }}</div>
                         </div>
                         <div class="actions-cell" onclick="event.stopPropagation();">
-                            <button type="button" class="btn btn-warning" onclick="editInvoice('{{ invoice_no }}')">Edit</button>
+                            <button type="button" class="btn btn-primary" onclick="editInvoice('{{ invoice_no }}')">Edit</button>
                             <button type="button" class="btn btn-danger" onclick="showDeleteModal('{{ invoice_no }}')">Delete</button>
                         </div>
                     </div>
@@ -815,7 +804,9 @@ body {
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Show BIG NOTIFICATION (matching Inventory.html)
+// Show BIG NOTIFICATION
+// NOTIFICATIONS: 🟢 GREEN = Save/Create, 🟠 AMBER = Update, 🔴 RED = Delete/Error
+// BUTTONS: 🔵 BLUE = Edit, 🔴 RED = Delete
 function showBigNotification(message, type = 'error') {
     const bigNotification = document.getElementById('bigNotification');
     let icon = '✖';
