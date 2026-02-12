@@ -498,7 +498,7 @@ body {
     font-size: 1.35rem;
     font-weight: 900;
     margin: 0;
-    color: rgba(255,255,255,0.92);
+    color: #ef4444;  /* RED for delete confirmation */
 }
 
 .modal-body {
@@ -515,7 +515,6 @@ body {
 
 /* ====== BIG NOTIFICATION (matching Inventory.html) ====== */
 .big-notification {
-    display: none;
     position: fixed;
     top: 50%;
     left: 50%;
@@ -531,6 +530,8 @@ body {
     z-index: 9999;
     box-shadow: 0 30px 90px rgba(0,0,0,0.60);
     backdrop-filter: blur(20px);
+    opacity: 0;
+    pointer-events: none;
     min-width: 400px;
 }
 
@@ -545,7 +546,6 @@ body {
 }
 
 .big-notification.show {
-    display: block;
     animation: bigPopIn 0.45s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
 }
 
@@ -555,6 +555,7 @@ body {
 
 @keyframes bigPopIn {
     0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+    50% { transform: translate(-50%, -50%) scale(1.1); }
     100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
 }
 
@@ -871,7 +872,13 @@ function showBigNotification(message, type = 'error') {
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
         {% for category, message in messages %}
-            showBigNotification('{{ message }}', {{ 'true' if category == 'success' else 'false' }});
+            {% if category == 'success' %}
+                showBigNotification('{{ message }}', 'success');
+            {% elif category == 'warning' %}
+                showBigNotification('{{ message }}', 'warning');
+            {% else %}
+                showBigNotification('{{ message }}', 'error');
+            {% endif %}
         {% endfor %}
     {% endif %}
 {% endwith %}
@@ -928,6 +935,20 @@ window.onclick = function(event) {
     if (event.target === modal) {
         hideDeleteModal();
     }
+}
+
+// Invoice form submission handler
+const invoiceForm = document.getElementById('invoiceForm');
+if (invoiceForm) {
+    invoiceForm.addEventListener('submit', function(e) {
+        // Show a brief "processing" message before form submits
+        // The actual success/error message will come from the server via flash messages
+        const submitButton = invoiceForm.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = 'Creating Invoice...';
+        }
+    });
 }
 
 // Sales Trend Chart
