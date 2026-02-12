@@ -621,23 +621,46 @@ def delete_invoice(invoice_no):
     Cascades deletion: line items first, then header.
     Returns JSON response for AJAX handling.
     """
+    print("=" * 70)
+    print(f"🔥 DELETE REQUEST for invoice: '{invoice_no}'")
+    print(f"   Type: {type(invoice_no)}")
+    print(f"   Length: {len(invoice_no)}")
+    print(f"   Repr: {repr(invoice_no)}")
+    print("=" * 70)
+    
     try:
         with get_db() as conn:
             # Check if invoice exists first
-            existing = conn.execute("SELECT 1 FROM sales_invoice_header WHERE invoice_no = ?", (invoice_no,)).fetchone()
+            print(f"🔍 Searching for invoice '{invoice_no}' in database...")
+            existing = conn.execute("SELECT * FROM sales_invoice_header WHERE invoice_no = ?", (invoice_no,)).fetchone()
+            
             if not existing:
+                print(f"❌ Invoice '{invoice_no}' NOT FOUND in database")
+                
+                # Show all invoices for debugging
+                all_inv = conn.execute("SELECT invoice_no FROM sales_invoice_header LIMIT 10").fetchall()
+                print(f"📋 First 10 invoices in DB:")
+                for inv in all_inv:
+                    print(f"   - '{inv[0]}'")
+                
                 return jsonify({
                     'success': False,
-                    'message': f'Invoice {invoice_no} not found'
+                    'message': f'Invoice {invoice_no} not found in database'
                 }), 404
             
+            print(f"✅ Invoice found! Proceeding with deletion...")
+            
             # Delete line items first (to satisfy foreign key constraints)
-            conn.execute("DELETE FROM sales_invoice_line WHERE invoice_no=?", (invoice_no,))
+            deleted_lines = conn.execute("DELETE FROM sales_invoice_line WHERE invoice_no=?", (invoice_no,))
+            print(f"   Deleted {deleted_lines.rowcount} line items")
+            
             # Then delete the header
-            conn.execute("DELETE FROM sales_invoice_header WHERE invoice_no=?", (invoice_no,))
+            deleted_header = conn.execute("DELETE FROM sales_invoice_header WHERE invoice_no=?", (invoice_no,))
+            print(f"   Deleted {deleted_header.rowcount} header rows")
+            
             conn.commit()
+            print(f"✅ Successfully deleted invoice '{invoice_no}'")
         
-        print(f"✅ Deleted invoice {invoice_no}")
         return jsonify({
             'success': True,
             'message': f'Invoice {invoice_no} deleted successfully'
@@ -645,6 +668,8 @@ def delete_invoice(invoice_no):
         
     except Exception as e:
         print(f"❌ Delete error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': f'Error deleting invoice: {str(e)}'
