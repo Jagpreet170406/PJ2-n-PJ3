@@ -1253,10 +1253,12 @@ async function confirmDelete() {
         return;
     }
 
+    // Save to local var FIRST — hideDeleteModal() sets currentInvoiceToDelete = null
+    const invoiceToDelete = currentInvoiceToDelete;
     hideDeleteModal();
 
     try {
-        const response = await fetch(`/delete-invoice/${currentInvoiceToDelete}`, {
+        const response = await fetch(`/delete-invoice/${invoiceToDelete}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
@@ -1267,7 +1269,6 @@ async function confirmDelete() {
             } else {
                 showBigNotification(`DELETE FAILED: ${response.status}`, 'error');
             }
-            currentInvoiceToDelete = null;
             return;
         }
 
@@ -1283,8 +1284,6 @@ async function confirmDelete() {
         console.error('Error deleting invoice:', error);
         showBigNotification('FAILED TO DELETE INVOICE', 'error');
     }
-
-    currentInvoiceToDelete = null;
 }
 
 // Close modal when clicking outside
