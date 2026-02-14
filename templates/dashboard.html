@@ -73,25 +73,19 @@ body {
     padding: 0 20px;
 }
 
-/* TWO COLUMN LAYOUT */
-.dashboard-grid {
+/* single-column layout — no grid needed */
+
+/* TOP ROW: Filters left | Create Invoice right */
+.top-row-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 320px 1fr;
     gap: 24px;
     align-items: start;
+    margin-bottom: 24px;
 }
 
-@media (max-width: 1100px) {
-    .dashboard-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-.left-column,
-.right-column {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
+@media (max-width: 1000px) {
+    .top-row-grid { grid-template-columns: 1fr; }
 }
 
 /* --- INVERTED THEME BELOW HERO --- */
@@ -101,9 +95,13 @@ body {
     border: 1px solid rgba(255,255,255,0.14);
     border-radius: 24px;
     padding: 24px;
-    margin-bottom: 24px;
     backdrop-filter: blur(18px);
     box-shadow: 0 18px 60px rgba(0,0,0,0.35);
+}
+
+/* Cards outside the two-column grid still need bottom spacing */
+.card-shell > .section-card {
+    margin-bottom: 24px;
 }
 
 .section-header {
@@ -176,53 +174,7 @@ body {
 .kpi-value.tertiary  { color: #000000; }
 
 /* -----------------------------
-   FIX #1: FILTERS SPACING
-   - Force the 3 filter fields to sit wider apart (1 row on desktop)
-   - Avoid big empty right space
--------------------------------- */
-.filters-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr; /* Search wider, dates equal */
-    gap: 18px;
-    align-items: end;
-    margin-bottom: 14px;
-}
-
-@media (max-width: 900px) {
-    .filters-grid {
-        grid-template-columns: 1fr; /* stack on smaller screens */
-    }
-}
-
-/* FILTERS */
-.filter-group label {
-    display: block;
-    font-size: 0.8rem;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.75);
-    margin-bottom: 8px;
-}
-
-.filter-group input,
-.filter-group select {
-    width: 100%;
-    background: rgba(0,0,0,0.35);
-    border: 1px solid rgba(255,255,255,0.18);
-    border-radius: 12px;
-    padding: 12px 14px;
-    color: rgba(255,255,255,0.92);
-    font-size: 0.95rem;
-    box-sizing: border-box;
-}
-
-.filter-group input:focus,
-.filter-group select:focus {
-    outline: none;
-    border-color: rgba(255,255,255,0.35);
-    box-shadow: 0 0 0 4px rgba(255,255,255,0.08);
-}
+/* FILTERS — use same .form-group styles as Create Invoice */
 
 /* -----------------------------
    FIX #2: "Select Product" + "Quantity" overlap
@@ -233,7 +185,7 @@ body {
 -------------------------------- */
 .form-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr)); /* 4 clean columns */
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 16px;
     margin-bottom: 16px;
     align-items: end;
@@ -378,7 +330,7 @@ body {
     padding: 18px;
     cursor: pointer;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    grid-template-columns: repeat(8, 1fr) 160px;
     gap: 14px;
     align-items: center;
     transition: background 0.2s;
@@ -709,104 +661,98 @@ body {
         </div>
         {% endif %}
 
-        <!-- Filters -->
-        <div class="filters-section">
-            <h2 class="section-title">Filters</h2>
-            <form method="GET" action="{{ url_for('dashboard') }}">
-                <div class="filters-grid">
-                    <div class="filter-group">
+        <!-- TOP ROW: Filters (left) + Create Invoice (right) -->
+        <div class="top-row-grid">
+
+            <!-- FILTERS CARD -->
+            <div class="section-card">
+                <h2 class="section-title" style="margin-bottom: 20px;">Filters</h2>
+                <form method="GET" action="{{ url_for('dashboard') }}">
+                    <div class="form-group" style="margin-bottom: 16px;">
                         <label for="search">SEARCH</label>
                         <input type="text" id="search" name="search" placeholder="Invoice # or Customer" value="{{ search or '' }}">
                     </div>
-                    <div class="filter-group">
+                    <div class="form-group" style="margin-bottom: 16px;">
                         <label for="start_date">START DATE</label>
                         <input type="date" id="start_date" name="start_date" value="{{ start_date or '' }}">
                     </div>
-                    <div class="filter-group">
+                    <div class="form-group" style="margin-bottom: 20px;">
                         <label for="end_date">END DATE</label>
                         <input type="date" id="end_date" name="end_date" value="{{ end_date or '' }}">
                     </div>
-                </div>
-                <button type="submit" class="btn btn-primary">Apply Filters</button>
-                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary" style="text-decoration: none; display: inline-block;">Clear</a>
-            </form>
-        </div>
-
-        <!-- TWO COLUMN LAYOUT -->
-        <div class="dashboard-grid">
-            <!-- LEFT COLUMN: Invoice Creation Form -->
-            <div class="left-column">
-                <div class="section-card">
-                    <h2 class="section-title">Create Invoice</h2>
-                    <form method="POST" action="{{ url_for('create_invoice') }}" id="invoiceForm">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        
-                        <!-- Header Fields -->
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="invoice_no">INVOICE #</label>
-                                <input type="text" id="invoice_no" name="invoice_no" required placeholder="INV-001" minlength="3">
-                            </div>
-                            <div class="form-group">
-                                <label for="invoice_date">DATE</label>
-                                <input type="date" id="invoice_date" name="invoice_date" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="customer_id">CUSTOMER</label>
-                                <select id="customer_id" name="customer_id" required>
-                                    <option value="">Select Customer</option>
-                                    {% for customer in customers %}
-                                    <option value="{{ customer.customer_id }}">{{ customer.customer_code }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="legend_id">LEGEND ID</label>
-                                <input type="text" id="legend_id" name="legend_id" placeholder="SGP" value="SGP">
-                            </div>
-                        </div>
-
-                        <!-- Product Line Item -->
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="product_id">PRODUCT</label>
-                                <select id="product_id" name="product_id" required>
-                                    <option value="">Select Product</option>
-                                    {% for product in inventory %}
-                                    <option value="{{ product.product_id }}">{{ product.hem_name }}{% if product.sku_no %} ({{ product.sku_no }}){% endif %}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="qty">QUANTITY</label>
-                                <input type="number" id="qty" name="qty" required min="1" value="1">
-                            </div>
-                            <div class="form-group">
-                                <label for="total_amt">TOTAL AMOUNT (S$)</label>
-                                <input type="number" id="total_amt" name="total_amt" required min="0" step="0.01" value="0.00">
-                            </div>
-                            <div class="form-group">
-                                <label for="gst_amt">GST AMOUNT (S$)</label>
-                                <input type="number" id="gst_amt" name="gst_amt" required min="0" step="0.01" value="0.00">
-                            </div>
-                        </div>
-                        
-                        <div style="margin-top: 20px; display: flex; gap: 12px;">
-                            <button type="submit" class="btn btn-success">Create Invoice</button>
-                        </div>
-                    </form>
-                </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="submit" class="btn btn-primary">Apply Filters</button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary" style="text-decoration: none; display: inline-block;">Clear</a>
+                    </div>
+                </form>
             </div>
 
-            <!-- RIGHT COLUMN: Invoice List -->
-            <div class="right-column">
-                <div class="section-card">
-                    <div class="section-header">
-                        <h2 class="section-title">Recent Invoices</h2>
+            <!-- RIGHT COLUMN: Create Invoice + Invoice List stacked -->
+            <div style="display: flex; flex-direction: column; gap: 24px;">
+
+            <!-- CREATE INVOICE CARD -->
+            <div class="section-card">
+                <h2 class="section-title" style="margin-bottom: 20px;">Create Invoice</h2>
+                <form method="POST" action="{{ url_for('create_invoice') }}" id="invoiceForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="invoice_no">INVOICE #</label>
+                            <input type="text" id="invoice_no" name="invoice_no" required placeholder="INV-001" minlength="3">
+                        </div>
+                        <div class="form-group">
+                            <label for="invoice_date">DATE</label>
+                            <input type="date" id="invoice_date" name="invoice_date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="customer_id">CUSTOMER</label>
+                            <select id="customer_id" name="customer_id" required>
+                                <option value="">Select Customer</option>
+                                {% for customer in customers %}
+                                <option value="{{ customer.customer_id }}">{{ customer.customer_code }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="legend_id">LEGEND ID</label>
+                            <input type="text" id="legend_id" name="legend_id" placeholder="SGP" value="SGP">
+                        </div>
+                        <div class="form-group">
+                            <label for="product_id">PRODUCT</label>
+                            <select id="product_id" name="product_id" required>
+                                <option value="">Select Product</option>
+                                {% for product in inventory %}
+                                <option value="{{ product.product_id }}">{{ product.hem_name }}{% if product.sku_no %} ({{ product.sku_no }}){% endif %}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="qty">QUANTITY</label>
+                            <input type="number" id="qty" name="qty" required min="1" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="total_amt">TOTAL AMOUNT (S$)</label>
+                            <input type="number" id="total_amt" name="total_amt" required min="0" step="0.01" value="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="gst_amt">GST AMOUNT (S$)</label>
+                            <input type="number" id="gst_amt" name="gst_amt" required min="0" step="0.01" value="0.00">
+                        </div>
                     </div>
-                    
-                    {% if invoices %}
-                        {% for invoice_no, invoice_data in invoices.items() %}
+                    <div style="margin-top: 20px;">
+                        <button type="submit" class="btn btn-success">Create Invoice</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- INVOICE LIST — under Create Invoice -->
+            <div class="section-card">
+            <div class="section-header">
+                <h2 class="section-title">Recent Invoices</h2>
+            </div>
+
+            {% if invoices %}
+                {% for invoice_no, invoice_data in invoices.items() %}
                 <div class="invoice-item">
                     <div class="invoice-header" onclick="toggleInvoice('{{ invoice_no }}')">
                         <div>
@@ -846,7 +792,7 @@ body {
                             <button type="button" class="btn btn-danger" onclick="showDeleteModal('{{ invoice_no }}')">Delete</button>
                         </div>
                     </div>
-                    
+
                     <div class="invoice-lines" id="lines-{{ invoice_no }}">
                         {% for line in invoice_data.lines %}
                         <div class="line-item">
@@ -879,7 +825,6 @@ body {
                     {% if current_page > 1 %}
                         <a href="{{ url_for('dashboard', page=current_page-1, search=search, start_date=start_date, end_date=end_date) }}">← Prev</a>
                     {% endif %}
-                    
                     {% for p in range(1, total_pages + 1) %}
                         {% if p == current_page %}
                             <span class="active">{{ p }}</span>
@@ -889,7 +834,6 @@ body {
                             <span>...</span>
                         {% endif %}
                     {% endfor %}
-                    
                     {% if current_page < total_pages %}
                         <a href="{{ url_for('dashboard', page=current_page+1, search=search, start_date=start_date, end_date=end_date) }}">Next →</a>
                     {% endif %}
@@ -898,19 +842,17 @@ body {
             {% else %}
                 <div class="empty-state">
                     <p style="font-size: 1.1rem; color: rgba(255,255,255,0.85);">No invoices found</p>
-                    <p style="font-size: 0.9rem; color: rgba(255,255,255,0.6); margin-top: 0.5rem;">Create your first invoice using the form on the left</p>
+                    <p style="font-size: 0.9rem; color: rgba(255,255,255,0.6); margin-top: 0.5rem;">Create your first invoice using the form above</p>
                 </div>
             {% endif %}
-                </div>
-            </div>
-            <!-- END RIGHT COLUMN -->
         </div>
-        <!-- END DASHBOARD GRID -->
+        <!-- END RIGHT COLUMN -->
+
+        </div>
+        <!-- END TOP ROW -->
 
     </div>
 </div>
-
-<!-- Edit Invoice Modal -->
 <div id="editModal" class="modal">
     <div class="modal-content" style="max-width: 700px; text-align: left;">
         <div class="modal-header">
