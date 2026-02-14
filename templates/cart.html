@@ -370,11 +370,34 @@ body {
                         {{ product['hem_name'] }}
                     </h6>
                     
+                    <!-- SKU Variants Info -->
+                    {% if product['variant_count'] and product['variant_count'] > 1 %}
+                        <small class="text-info" style="display: block; margin-bottom: 8px;">
+                            <strong>{{ product['variant_count'] }} variants</strong>
+                        </small>
+                        <small class="text-muted" style="font-size: 0.7rem; display: block; margin-bottom: 8px; max-height: 40px; overflow: hidden; text-overflow: ellipsis;">
+                            SKUs: {{ product['sup_part_no'][:60] }}{% if product['sup_part_no']|length > 60 %}...{% endif %}
+                        </small>
+                    {% else %}
+                        <small class="text-muted" style="display: block; margin-bottom: 8px;">
+                            SKU: {{ product['sup_part_no'] }}
+                        </small>
+                    {% endif %}
+                    
+                    <!-- Total Stock across all variants -->
+                    <small class="text-success" style="display: block; margin-bottom: 8px;">
+                        <strong>In Stock: {{ product['qty'] }} units</strong>
+                    </small>
+                    
                     <!-- Bottom section (pushed to bottom by mt-auto) -->
                     <div class="mt-auto">
                         
-                        <!-- Price: Formatted to 2 decimal places (e.g., SGD 45.50) -->
-                        <div class="price-tag">SGD {{ "%.2f"|format(product['sell_price']) }}</div>
+                        <!-- Price: Show range if variants have different prices -->
+                        {% if product['max_price'] and product['max_price'] != product['sell_price'] %}
+                            <div class="price-tag">SGD {{ "%.2f"|format(product['sell_price']) }} - {{ "%.2f"|format(product['max_price']) }}</div>
+                        {% else %}
+                            <div class="price-tag">SGD {{ "%.2f"|format(product['sell_price']) }}</div>
+                        {% endif %}
                         
                         <!-- ========== QUANTITY SELECTOR ========== -->
                         <div class="qty-card">
@@ -499,7 +522,7 @@ body {
             <!-- ========== PAGE COUNTER ========== -->
             <!-- Shows "Page X of Y | Total Items" below pagination -->
             <div class="mt-2 text-muted">
-                <small>Page {{ current_page }} of {{ total_pages }} | 25,119 Items Total</small>
+                <small>Page {{ current_page }} of {{ total_pages }} | {{ (total_pages * 24) if total_pages else 0 }} Unique Products (grouped by name)</small>
             </div>
         </nav>
         {% endif %}

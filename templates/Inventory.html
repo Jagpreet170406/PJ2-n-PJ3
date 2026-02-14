@@ -991,14 +991,32 @@ function renderProducts() {
             stockLabel = "⚠ Low";
         }
 
+        // Show variant info if product has multiple SKUs
+        const variantInfo = product.variant_count > 1 
+            ? `<small style="color: rgba(100,200,255,0.85); display: block; margin-top: 4px;"><strong>${product.variant_count} SKU variants</strong></small>`
+            : '';
+        
+        // Truncate SKU list if too long
+        const skuDisplay = product.sup_part_no 
+            ? (product.sup_part_no.length > 50 
+                ? product.sup_part_no.substring(0, 50) + '...' 
+                : product.sup_part_no)
+            : '';
+
+        // Show price range if variants have different prices
+        const priceDisplay = product.max_price && product.max_price !== product.sell_price
+            ? `SGD ${parseFloat(product.sell_price).toFixed(2)} - ${parseFloat(product.max_price).toFixed(2)}`
+            : `SGD ${parseFloat(product.sell_price).toFixed(2)}`;
+
         return `
             <div class="card">
                 <div class="img-placeholder">${product.image_url ? `<img src="${product.image_url}" style="max-width:100%; max-height:100%; object-fit:contain;">` : 'No Image'}</div>
                 <div><strong>${product.hem_name}</strong></div>
-                ${product.sup_part_no ? `<small style="color: rgba(255,255,255,0.65);">SKU: ${product.sup_part_no}</small><br>` : ''}
+                ${variantInfo}
+                ${skuDisplay ? `<small style="color: rgba(255,255,255,0.65);">SKU: ${skuDisplay}</small><br>` : ''}
                 ${product.category ? `<small style="color: rgba(255,255,255,0.65);">${product.category}</small>` : ''}
                 <div class="stock ${stockClass}">Stock: ${product.qty} ${stockLabel}</div>
-                <div style="margin-top: 8px; font-size: 14px; font-weight: 900; color: #10b981;">SGD ${parseFloat(product.sell_price).toFixed(2)}</div>
+                <div style="margin-top: 8px; font-size: 14px; font-weight: 900; color: #10b981;">${priceDisplay}</div>
                 <div class="card-actions">
                     <button class="edit-btn" onclick="editProduct(${product.inventory_id})">Edit</button>
                     <button class="delete-btn" onclick="showDeleteModal(${product.inventory_id})">Delete</button>

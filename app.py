@@ -127,12 +127,27 @@ def cart():
             base_query += " AND category = ?"
             params.append(category_filter)
 
-        # Calculate total pages for pagination
-        total_count = conn.execute("SELECT COUNT(*)" + base_query, params).fetchone()[0]
+        # Calculate total pages for pagination (count DISTINCT product names)
+        total_count = conn.execute("SELECT COUNT(DISTINCT hem_name)" + base_query, params).fetchone()[0]
         total_pages = (total_count // per_page) + (1 if total_count % per_page > 0 else 0)
 
-        # Get products for current page (DISTINCT to avoid duplicates)
-        final_query = "SELECT DISTINCT hem_name, sup_part_no, category, sell_price, image_url, inventory_id, qty" + base_query + " ORDER BY hem_name ASC LIMIT ? OFFSET ?"
+        # Get grouped products by name, showing SKU variants and total stock
+        final_query = """
+            SELECT 
+                hem_name,
+                GROUP_CONCAT(DISTINCT sup_part_no, ', ') as sup_part_no,
+                category,
+                MIN(sell_price) as sell_price,
+                MAX(sell_price) as max_price,
+                image_url,
+                MIN(inventory_id) as inventory_id,
+                SUM(qty) as qty,
+                COUNT(*) as variant_count
+        """ + base_query + """
+            GROUP BY hem_name
+            ORDER BY hem_name ASC 
+            LIMIT ? OFFSET ?
+        """
         params.extend([per_page, offset])
         products = conn.execute(final_query, params).fetchall()
 
@@ -233,16 +248,27 @@ def inventory():
 @csrf.exempt
 @require_staff
 def api_get_inventory():
-    """API: Retrieve all inventory items as JSON (DISTINCT to avoid duplicates)."""
+    """API: Retrieve grouped inventory items by product name to reduce duplicates."""
     try:
         with get_db() as conn:
             items = conn.execute("""
-                SELECT DISTINCT hem_name, sup_part_no, category, org, loc_on_shelf, 
-                                qty, sell_price, image_url, inventory_id 
-                FROM inventory 
+                SELECT 
+                    hem_name,
+                    GROUP_CONCAT(DISTINCT sup_part_no, ', ') as sup_part_no,
+                    category,
+                    org,
+                    loc_on_shelf,
+                    SUM(qty) as qty,
+                    MIN(sell_price) as sell_price,
+                    MAX(sell_price) as max_price,
+                    image_url,
+                    MIN(inventory_id) as inventory_id,
+                    COUNT(*) as variant_count
+                FROM inventory
+                GROUP BY hem_name
                 ORDER BY hem_name ASC
             """).fetchall()
-            print(f"✅ Loaded {len(items)} inventory items")
+            print(f"✅ Loaded {len(items)} grouped inventory items (reduced from duplicates)")
             return jsonify([dict(item) for item in items])
     except Exception as e:
         print(f"❌ Error getting inventory: {e}")
