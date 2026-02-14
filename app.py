@@ -855,9 +855,20 @@ def generate_ai_insights(kpis, top_products, top_customers, trend_data):
         return None
     
     try:
-        # Prepare data summary for AI
+        # Prepare data summary for AI (with safe checks for empty data)
         top_product_share = (top_products[0]['revenue'] / kpis['revenue'] * 100) if top_products and kpis['revenue'] > 0 else 0
         top_customer_share = (top_customers[0]['revenue'] / kpis['revenue'] * 100) if top_customers and kpis['revenue'] > 0 else 0
+        
+        # Build product and customer details safely
+        if top_products:
+            product_detail = f"{top_products[0]['hem_name']} (SGD {top_products[0]['revenue']:.2f}, {top_product_share:.1f}% of revenue)"
+        else:
+            product_detail = "N/A (no product data available)"
+        
+        if top_customers:
+            customer_detail = f"{top_customers[0]['customer_code']} (SGD {top_customers[0]['revenue']:.2f}, {top_customer_share:.1f}% of revenue, {top_customers[0]['orders']} orders)"
+        else:
+            customer_detail = "N/A (no customer data available)"
         
         data_summary = f"""
 Sales Performance Data:
@@ -867,45 +878,45 @@ Sales Performance Data:
 - Average Order Value: SGD {kpis['aov']:.2f}
 - GST Collected: SGD {kpis['gst']:.2f}
 
-Top Product: {top_products[0]['hem_name'] if top_products else 'N/A'} (SGD {top_products[0]['revenue']:.2f}, {top_product_share:.1f}% of revenue)
-Top Customer: {top_customers[0]['customer_code'] if top_customers else 'N/A'} (SGD {top_customers[0]['revenue']:.2f}, {top_customer_share:.1f}% of revenue, {top_customers[0]['orders'] if top_customers else 0} orders)
+Top Product: {product_detail}
+Top Customer: {customer_detail}
 
 Revenue Trend: {len(trend_data['labels'])} months of data
 """
 
         # Call Groq API
         response = groq_client.chat.completions.create(
-            model="llama-3.1-70b-versatile",  # Fast and capable
+            model="llama-3.3-70b-versatile",  # Updated model (llama-3.1 was decommissioned)
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a business analyst specializing in sales data. Provide concise, actionable insights and recommendations for a sales department. Focus on specific numbers and concrete actions."
+                    "content": "You are a business analyst. Provide CONCISE, actionable insights. Each insight should be 1-2 SHORT sentences max. Be direct and specific with numbers."
                 },
                 {
                     "role": "user",
                     "content": f"""Analyze this sales data and provide:
-1. Three key strategic insights (2-3 sentences each)
-2. Five specific, actionable recommendations (2-3 sentences each)
+1. SIX key strategic insights (1-2 SHORT sentences each, max 25 words)
+2. Five specific, actionable recommendations (2-3 sentences each, max 40 words)
 
 {data_summary}
 
-Format your response as JSON with this structure:
+Format your response as JSON:
 {{
   "insights": [
-    {{"title": "Insight Title", "description": "Detailed insight description"}},
-    ...
+    {{"title": "Short Title (2-4 words)", "description": "One concise sentence with a key metric or finding."}},
+    ... (6 total)
   ],
   "recommendations": [
-    {{"title": "Recommendation Title", "description": "Specific action items"}},
-    ...
+    {{"title": "Action Title (3-5 words)", "description": "Specific action with numbers/targets."}},
+    ... (5 total)
   ]
 }}
 
-Be specific with numbers and thresholds. Focus on risk mitigation, growth opportunities, and operational improvements."""
+Be BRIEF and SPECIFIC. Focus on numbers and actionable insights."""
                 }
             ],
             temperature=0.3,  # Lower temperature for more consistent output
-            max_tokens=1500
+            max_tokens=2000
         )
         
         # Parse AI response
