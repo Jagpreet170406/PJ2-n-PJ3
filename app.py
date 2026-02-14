@@ -4,7 +4,7 @@ import os
 import json
 from functools import wraps
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -53,6 +53,13 @@ def init_db():
                 recommended_price REAL
             )
         """)
+        # Performance indexes for dashboard filtering/sorting
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_sih_date    ON sales_invoice_header(invoice_date)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_sih_cust    ON sales_invoice_header(customer_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_sil_inv     ON sales_invoice_line(invoice_no)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_sil_prod    ON sales_invoice_line(product_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_prod_name   ON products(hem_name)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_cust_code   ON customers(customer_code)")
         conn.commit()
 
 init_db()  # Initialize database on app startup
@@ -60,8 +67,11 @@ init_db()  # Initialize database on app startup
 # === CONTEXT PROCESSORS ===
 @app.context_processor
 def inject_csrf_token():
-    """Make CSRF token available to all templates."""
-    return dict(csrf_token=generate_csrf)
+    """Make CSRF token and today's date available to all templates."""
+    return dict(
+        csrf_token=generate_csrf,
+        today=date.today().isoformat()
+    )
 
 # === AUTHENTICATION DECORATORS ===
 def require_staff(f):
@@ -314,189 +324,162 @@ def api_delete_inventory(inventory_id):
 @app.route("/dashboard")
 @require_staff
 def dashboard():
-    """
-    Sales dashboard showing invoices, KPIs, and trends.
-    Features:
-    - Pagination for invoice list
-    - Search across invoice numbers, products, and customers
-    - Date range filtering
-    - KPI calculations (revenue, customers, units, etc.)
-    - Monthly revenue trend chart data
-    """
-    # Get pagination and filter parameters from URL
-    page = request.args.get('page', 1, type=int)
-    per_page = 20
-    offset = (page - 1) * per_page
-    search = request.args.get('search', '').strip()
+    """Sales dashboard — optimized: SQL-level pagination, minimal joins, indexed queries."""
+    page       = request.args.get('page', 1, type=int)
+    per_page   = 20
+    offset     = (page - 1) * per_page
+    search     = request.args.get('search', '').strip()
     start_date = request.args.get('start_date', '').strip()
-    end_date = request.args.get('end_date', '').strip()
-    
+    end_date   = request.args.get('end_date', '').strip()
+
     with get_db() as conn:
-        # === BUILD WHERE CLAUSE FOR FILTERING ===
-        where_clauses = []
-        params = []
-        
-        # Search filter: searches invoice number, product name, and customer code
-        if search:
-            where_clauses.append("(h.invoice_no LIKE ? OR p.hem_name LIKE ? OR c.customer_code LIKE ?)")
-            params.extend([f'%{search}%', f'%{search}%', f'%{search}%'])
-        
-        # Date range filters
-        if start_date:
-            where_clauses.append("h.invoice_date >= ?")
-            params.append(start_date)
-        
-        if end_date:
-            where_clauses.append("h.invoice_date <= ?")
-            params.append(end_date)
-        
-        # Combine all WHERE clauses, or use "1=1" if no filters
-        where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
-        
-        # === CALCULATE KEY PERFORMANCE INDICATORS (KPIs) ===
-        kpi_query = f"""
-            SELECT 
-                COUNT(DISTINCT h.invoice_no) as total_invoices,
-                COUNT(DISTINCT h.customer_id) as total_customers,
-                COALESCE(SUM(l.total_amt), 0) as total_revenue,
-                COALESCE(SUM(l.gst_amt), 0) as total_gst,
-                COALESCE(SUM(l.qty), 0) as total_units,
-                COALESCE(AVG(l.total_amt), 0) as avg_line_value
+
+        # === BUILD FILTER: only join what each query actually needs ===
+        # For search we need products/customers; date filter only touches header.
+        # We pre-compute a set of matching invoice_nos once, then reuse it.
+
+        if search or start_date or end_date:
+            # Build a minimal subquery that returns matching invoice_nos
+            inner_clauses = []
+            inner_params  = []
+
+            if search:
+                inner_clauses.append("""(
+                    h.invoice_no LIKE ?
+                    OR EXISTS (
+                        SELECT 1 FROM sales_invoice_line l2
+                        JOIN products p2 ON p2.product_id = l2.product_id
+                        WHERE l2.invoice_no = h.invoice_no AND p2.hem_name LIKE ?
+                    )
+                    OR EXISTS (
+                        SELECT 1 FROM customers c2
+                        WHERE c2.customer_id = h.customer_id AND c2.customer_code LIKE ?
+                    )
+                )""")
+                like = f'%{search}%'
+                inner_params.extend([like, like, like])
+
+            if start_date:
+                inner_clauses.append("h.invoice_date >= ?")
+                inner_params.append(start_date)
+
+            if end_date:
+                inner_clauses.append("h.invoice_date <= ?")
+                inner_params.append(end_date)
+
+            filter_where = "WHERE " + " AND ".join(inner_clauses)
+        else:
+            filter_where  = ""
+            inner_params  = []
+
+        # === 1. COUNT + KPIs in a single pass (no Python-side aggregation) ===
+        kpi_row = conn.execute(f"""
+            SELECT
+                COUNT(DISTINCT h.invoice_no)            AS total_invoices,
+                COUNT(DISTINCT h.customer_id)           AS total_customers,
+                COALESCE(SUM(l.total_amt), 0)           AS total_revenue,
+                COALESCE(SUM(l.gst_amt),  0)            AS total_gst,
+                COALESCE(SUM(l.qty),      0)            AS total_units
             FROM sales_invoice_header h
-            LEFT JOIN sales_invoice_line l ON h.invoice_no = l.invoice_no
-            LEFT JOIN products p ON l.product_id = p.product_id
-            LEFT JOIN customers c ON h.customer_id = c.customer_id
-            WHERE {where_sql}
-        """
-        
-        stats_row = conn.execute(kpi_query, params).fetchone()
+            LEFT JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
+            {filter_where}
+        """, inner_params).fetchone()
+
+        total_count = int(kpi_row['total_invoices'] or 0)
+        total_pages = (total_count + per_page - 1) // per_page
         stats = {
-            'total_invoices': stats_row['total_invoices'] or 0,
-            'total_customers': stats_row['total_customers'] or 0,
-            'total_revenue': round(stats_row['total_revenue'] or 0, 2),
-            'total_gst': round(stats_row['total_gst'] or 0, 2),
-            'total_units': stats_row['total_units'] or 0,
-            'avg_line_value': round(stats_row['avg_line_value'] or 0, 2)
+            'total_invoices':  total_count,
+            'total_customers': int(kpi_row['total_customers'] or 0),
+            'total_revenue':   round(float(kpi_row['total_revenue'] or 0), 2),
+            'total_gst':       round(float(kpi_row['total_gst']     or 0), 2),
+            'total_units':     int(kpi_row['total_units']    or 0),
         }
-        
-        # === GET DISTINCT INVOICE NUMBERS FOR PAGINATION ===
-        # Subquery gets one row per invoice_no first, then we filter/order — avoids
-        # dupes caused by multi-line invoices inflating the JOIN result set.
-        distinct_invoices_query = f"""
-            SELECT h.invoice_no
-            FROM sales_invoice_header h
-            LEFT JOIN customers c ON h.customer_id = c.customer_id
-            WHERE h.invoice_no IN (
-                SELECT DISTINCT h2.invoice_no
-                FROM sales_invoice_header h2
-                LEFT JOIN sales_invoice_line l ON h2.invoice_no = l.invoice_no
-                LEFT JOIN products p ON l.product_id = p.product_id
-                LEFT JOIN customers c2 ON h2.customer_id = c2.customer_id
-                WHERE {where_sql}
-            )
-            ORDER BY h.invoice_date DESC, h.invoice_no DESC
-        """
-        
-        all_invoice_nos = [row['invoice_no'] for row in conn.execute(distinct_invoices_query, params).fetchall()]
-        total_count = len(all_invoice_nos)
-        total_pages = (total_count // per_page) + (1 if total_count % per_page > 0 else 0)
-        
-        # Get only the invoice numbers for the current page
-        paginated_invoice_nos = all_invoice_nos[offset:offset + per_page]
-        
-        # === BUILD INVOICE DATA STRUCTURE ===
-        # Structure: {invoice_no: {header: {...}, lines: [...], totals: {...}}}
-        invoices = {}
-        
-        if paginated_invoice_nos:
-            # Create placeholders for SQL IN clause
-            invoice_placeholders = ','.join(['?' for _ in paginated_invoice_nos])
-            
-            # Get invoice headers for current page
-            headers_query = f"""
-                SELECT h.invoice_no, h.invoice_date, h.customer_id, c.customer_code, h.legend_id
+
+        # === 2. PAGINATED invoice numbers — SQL LIMIT/OFFSET, never load all rows ===
+        page_params = inner_params + [per_page, offset]
+        paginated_invoice_nos = [
+            row['invoice_no'] for row in conn.execute(f"""
+                SELECT DISTINCT h.invoice_no
                 FROM sales_invoice_header h
-                LEFT JOIN customers c ON h.customer_id = c.customer_id
-                WHERE h.invoice_no IN ({invoice_placeholders})
-            """
-            
-            headers = conn.execute(headers_query, paginated_invoice_nos).fetchall()
-            
-            # Initialize invoice structure with headers
-            for header in headers:
-                invoices[header['invoice_no']] = {
-                    'header': dict(header),
-                    'lines': [],
+                {filter_where}
+                ORDER BY h.invoice_date DESC, h.invoice_no DESC
+                LIMIT ? OFFSET ?
+            """, page_params).fetchall()
+        ]
+
+        # === 3. FETCH headers + lines only for this page's invoices ===
+        invoices = {}
+        if paginated_invoice_nos:
+            placeholders = ','.join(['?'] * len(paginated_invoice_nos))
+
+            for hdr in conn.execute(f"""
+                SELECT h.invoice_no, h.invoice_date, h.customer_id,
+                       c.customer_code, h.legend_id
+                FROM sales_invoice_header h
+                LEFT JOIN customers c ON c.customer_id = h.customer_id
+                WHERE h.invoice_no IN ({placeholders})
+            """, paginated_invoice_nos).fetchall():
+                invoices[hdr['invoice_no']] = {
+                    'header': dict(hdr),
+                    'lines':  [],
                     'totals': {'total_amt': 0, 'gst_amt': 0, 'qty': 0}
                 }
-            
-            # Get all line items for these invoices
-            lines_query = f"""
-                SELECT l.invoice_no, l.line_no, l.product_id, p.sku_no, p.hem_name, l.qty, l.total_amt, l.gst_amt
+
+            for line in conn.execute(f"""
+                SELECT l.invoice_no, l.line_no, l.product_id,
+                       p.sku_no, p.hem_name, l.qty, l.total_amt, l.gst_amt
                 FROM sales_invoice_line l
-                LEFT JOIN products p ON l.product_id = p.product_id
-                WHERE l.invoice_no IN ({invoice_placeholders})
+                LEFT JOIN products p ON p.product_id = l.product_id
+                WHERE l.invoice_no IN ({placeholders})
                 ORDER BY l.invoice_no, l.line_no
-            """
-            
-            lines = conn.execute(lines_query, paginated_invoice_nos).fetchall()
-            
-            # Populate lines and calculate per-invoice totals
-            for line in lines:
-                invoice_no = line['invoice_no']
-                if invoice_no in invoices:
-                    invoices[invoice_no]['lines'].append(dict(line))
-                    invoices[invoice_no]['totals']['total_amt'] += line['total_amt'] or 0
-                    invoices[invoice_no]['totals']['gst_amt'] += line['gst_amt'] or 0
-                    invoices[invoice_no]['totals']['qty'] += line['qty'] or 0
-            
-            # Preserve pagination order (important for consistent display)
-            ordered_invoices = {}
-            for invoice_no in paginated_invoice_nos:
-                if invoice_no in invoices:
-                    ordered_invoices[invoice_no] = invoices[invoice_no]
-            invoices = ordered_invoices
-        
-        # === GET REFERENCE DATA FOR DROPDOWNS ===
-        # Get all customers for the "Create Invoice" form
-        customers = conn.execute("SELECT customer_id, customer_code FROM customers ORDER BY customer_code").fetchall()
-        # Get all distinct products (no limit) for the datalist
-        products = conn.execute("SELECT DISTINCT product_id, sku_no, hem_name FROM products ORDER BY hem_name").fetchall()
-        
-        # === GET REVENUE TREND DATA BY MONTH ===
-        trend_query = f"""
-            SELECT substr(h.invoice_date, 1, 7) as month, COALESCE(SUM(l.total_amt), 0) as revenue
+            """, paginated_invoice_nos).fetchall():
+                inv = line['invoice_no']
+                if inv in invoices:
+                    invoices[inv]['lines'].append(dict(line))
+                    invoices[inv]['totals']['total_amt'] += line['total_amt'] or 0
+                    invoices[inv]['totals']['gst_amt']   += line['gst_amt']   or 0
+                    invoices[inv]['totals']['qty']        += line['qty']       or 0
+
+            # Restore sort order from paginated list
+            invoices = {k: invoices[k] for k in paginated_invoice_nos if k in invoices}
+
+        # === 4. TREND — only needs header + line, no products/customers join ===
+        trend_rows = conn.execute(f"""
+            SELECT substr(h.invoice_date, 1, 7)  AS month,
+                   COALESCE(SUM(l.total_amt), 0) AS revenue
             FROM sales_invoice_header h
-            LEFT JOIN sales_invoice_line l ON h.invoice_no = l.invoice_no
-            LEFT JOIN products p ON l.product_id = p.product_id
-            LEFT JOIN customers c ON h.customer_id = c.customer_id
-            WHERE {where_sql}
+            LEFT JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
+            {filter_where}
             GROUP BY month
             ORDER BY month
-        """
-        trend_rows = conn.execute(trend_query, params).fetchall()
-        trend_labels = [row['month'] if row['month'] else 'Unknown' for row in trend_rows]
-        trend_data = [round(float(row['revenue']), 2) if row['revenue'] else 0 for row in trend_rows]
-    
-    # Render dashboard template with all data
-    return render_template("dashboard.html", 
-                           invoices=invoices, 
-                           # Unpack stats dict into individual variables
-                           total_revenue=stats['total_revenue'],
-                           total_gst=stats['total_gst'],
-                           invoice_count=stats['total_invoices'],
-                           total_qty=stats['total_units'],
-                           # Pass products as inventory for the form
-                           inventory=products,
-                           customers=customers,
-                           current_page=page, 
-                           total_pages=total_pages,
-                           search=search, 
-                           start_date=start_date, 
-                           end_date=end_date,
-                           trend_labels=trend_labels, 
-                           trend_data=trend_data,
-                           role=session.get("role"))
+        """, inner_params).fetchall()
+        trend_labels = [r['month'] or 'Unknown' for r in trend_rows]
+        trend_data   = [round(float(r['revenue'] or 0), 2) for r in trend_rows]
+
+        # === 5. Reference data for form dropdowns ===
+        customers = conn.execute(
+            "SELECT customer_id, customer_code FROM customers ORDER BY customer_code"
+        ).fetchall()
+        products = conn.execute(
+            "SELECT DISTINCT product_id, sku_no, hem_name FROM products ORDER BY hem_name"
+        ).fetchall()
+
+    return render_template("dashboard.html",
+        invoices=invoices,
+        total_revenue=stats['total_revenue'],
+        total_gst=stats['total_gst'],
+        invoice_count=stats['total_invoices'],
+        total_qty=stats['total_units'],
+        inventory=products,
+        customers=customers,
+        current_page=page,
+        total_pages=total_pages,
+        search=search,
+        start_date=start_date,
+        end_date=end_date,
+        trend_labels=trend_labels,
+        trend_data=trend_data,
+        role=session.get("role"))
 
 @app.route("/create-invoice", methods=["POST"])
 @require_staff
@@ -520,9 +503,17 @@ def create_invoice():
         flash("Invoice number is required and must be at least 3 characters!", "danger")
         return redirect(url_for("dashboard"))
     
-    # Validate invoice date (required)
+    # Validate invoice date (required, no future dates)
     if not invoice_date:
         flash("Invoice date is required!", "danger")
+        return redirect(url_for("dashboard"))
+    try:
+        parsed_date = datetime.strptime(invoice_date, "%Y-%m-%d").date()
+        if parsed_date > date.today():
+            flash("Invoice date cannot be in the future!", "danger")
+            return redirect(url_for("dashboard"))
+    except ValueError:
+        flash("Invalid date format!", "danger")
         return redirect(url_for("dashboard"))
     
     # Validate customer selection (required)
@@ -565,7 +556,7 @@ def create_invoice():
         flash("Invalid GST amount value!", "danger")
         return redirect(url_for("dashboard"))
     
-    # === INSERT INVOICE INTO DATABASE ===
+            # === INSERT INVOICE INTO DATABASE ===
     try:
         # Use context manager (with statement) to ensure proper commit
         with get_db() as conn:
@@ -575,19 +566,37 @@ def create_invoice():
                 flash(f"Invoice {invoice_no} already exists!", "danger")
                 print(f"❌ Invoice {invoice_no} already exists!")
                 return redirect(url_for("dashboard"))
-            
+
+            # Resolve customer_code → customer_id integer
+            # The form submits customer_code text; we need the integer FK
+            cust_row = conn.execute(
+                "SELECT customer_id FROM customers WHERE customer_code = ? COLLATE NOCASE",
+                (customer_id,)
+            ).fetchone()
+            if cust_row:
+                resolved_customer_id = cust_row['customer_id']
+            else:
+                # Customer doesn't exist yet — create it on the fly
+                cur = conn.execute(
+                    "INSERT INTO customers (customer_code) VALUES (?)", (customer_id.upper(),)
+                )
+                resolved_customer_id = cur.lastrowid
+                print(f"✅ New customer created: {customer_id} → id {resolved_customer_id}")
+
             print(f"📝 Inserting invoice {invoice_no}...")
             print(f"   Date: {invoice_date}")
-            print(f"   Customer ID: {customer_id}")
+            print(f"   Customer: {customer_id} (id={resolved_customer_id})")
             print(f"   Legend: {legend_id}")
             print(f"   Product ID: {product_id}")
             print(f"   Qty: {qty}")
             print(f"   Total: {total_amt}")
             print(f"   GST: {gst_amt}")
-            
-            # Insert invoice header
-            conn.execute("INSERT INTO sales_invoice_header (invoice_no, invoice_date, customer_id, legend_id) VALUES (?, ?, ?, ?)",
-                        (invoice_no, invoice_date, customer_id, legend_id))
+
+            # Insert invoice header with resolved integer customer_id
+            conn.execute(
+                "INSERT INTO sales_invoice_header (invoice_no, invoice_date, customer_id, legend_id) VALUES (?, ?, ?, ?)",
+                (invoice_no, invoice_date, resolved_customer_id, legend_id)
+            )
             print(f"✅ Header inserted")
             
             # Insert first line item (line_no = 1)
@@ -620,6 +629,7 @@ def create_invoice():
     return redirect(url_for("dashboard"))
 
 @app.route("/delete-invoice/<invoice_no>", methods=["POST"])
+@csrf.exempt
 @require_staff
 def delete_invoice(invoice_no):
     """
@@ -682,6 +692,7 @@ def delete_invoice(invoice_no):
         }), 500
 
 @app.route("/update-invoice/<invoice_no>", methods=["POST"])
+@csrf.exempt
 @require_staff
 def update_invoice(invoice_no):
     """
@@ -718,7 +729,14 @@ def update_invoice(invoice_no):
         # === VALIDATE REQUIRED FIELDS ===
         if not data.get('invoice_date'):
             return jsonify({'success': False, 'message': 'Invoice date is required'}), 400
-        
+
+        try:
+            parsed_date = datetime.strptime(data['invoice_date'], "%Y-%m-%d").date()
+            if parsed_date > date.today():
+                return jsonify({'success': False, 'message': 'Invoice date cannot be in the future'}), 400
+        except ValueError:
+            return jsonify({'success': False, 'message': 'Invalid date format'}), 400
+
         if not data.get('customer_id'):
             return jsonify({'success': False, 'message': 'Customer is required'}), 400
         
@@ -899,89 +917,110 @@ def market_analysis():
 
         try:
             # === CALCULATE KEY PERFORMANCE INDICATORS ===
+            # Deduplicate lines first via subquery (DISTINCT on invoice_no + line_no)
+            # to prevent double-counting if any line rows were inserted more than once.
             kpi_row = conn.execute(f"""
-                SELECT COALESCE(SUM(l.total_amt), 0) AS revenue, 
-                       COALESCE(SUM(l.gst_amt), 0) AS gst,
-                       COUNT(DISTINCT h.invoice_no) AS orders, 
-                       COALESCE(SUM(l.qty), 0) AS units
-                FROM sales_invoice_header h
-                JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
-                {where}
+                SELECT COALESCE(SUM(lines.total_amt), 0) AS revenue,
+                       COALESCE(SUM(lines.gst_amt),   0) AS gst,
+                       COUNT(DISTINCT lines.invoice_no) AS orders,
+                       COALESCE(SUM(lines.qty),        0) AS units
+                FROM (
+                    SELECT DISTINCT l.invoice_no, l.line_no,
+                           l.total_amt, l.gst_amt, l.qty
+                    FROM sales_invoice_header h
+                    JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
+                    {where}
+                ) AS lines
             """, params).fetchone()
 
             revenue = float(kpi_row["revenue"] or 0)
-            gst = float(kpi_row["gst"] or 0)
-            orders = int(kpi_row["orders"] or 0)
-            units = float(kpi_row["units"] or 0)
-            aov = (revenue / orders) if orders else 0  # Average Order Value
+            gst     = float(kpi_row["gst"]     or 0)
+            orders  = int(kpi_row["orders"]    or 0)
+            units   = float(kpi_row["units"]   or 0)
+            aov     = (revenue / orders) if orders else 0
 
             kpis = {
-                "revenue": round(revenue, 2), 
-                "gst": round(gst, 2), 
-                "orders": orders, 
-                "units": round(units, 2), 
-                "aov": round(aov, 2)
+                "revenue": round(revenue, 2),
+                "gst":     round(gst,     2),
+                "orders":  orders,
+                "units":   round(units,   2),
+                "aov":     round(aov,     2)
             }
 
             # === GET MONTHLY REVENUE TREND ===
-            # Extract year-month (YYYY-MM) and sum revenue for each month
+            # Deduplicate lines before grouping by month.
             trend_rows = conn.execute(f"""
-                SELECT substr(h.invoice_date, 1, 7) AS ym, 
-                       COALESCE(SUM(l.total_amt), 0) AS revenue
-                FROM sales_invoice_header h
-                JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
-                {where}
-                GROUP BY ym 
-                ORDER BY ym
+                SELECT lines.ym,
+                       COALESCE(SUM(lines.total_amt), 0) AS revenue
+                FROM (
+                    SELECT DISTINCT l.invoice_no, l.line_no,
+                           substr(h.invoice_date, 1, 7) AS ym,
+                           l.total_amt
+                    FROM sales_invoice_header h
+                    JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
+                    {where}
+                ) AS lines
+                GROUP BY lines.ym
+                ORDER BY lines.ym
             """, params).fetchall()
 
-            trend_labels = [r["ym"] for r in trend_rows if r["ym"]]
+            trend_labels  = [r["ym"] for r in trend_rows if r["ym"]]
             trend_revenue = [float(r["revenue"] or 0) for r in trend_rows if r["ym"]]
 
             # === GET TOP 10 PRODUCTS BY REVENUE ===
+            # Deduplicate at (invoice_no, line_no) level before aggregating per product.
             top_products_rows = conn.execute(f"""
-                SELECT l.product_id, 
-                       p.sku_no, 
+                SELECT lines.product_id,
+                       p.sku_no,
                        COALESCE(p.hem_name, 'Unknown') AS hem_name,
-                       COALESCE(SUM(l.total_amt), 0) AS revenue, 
-                       COALESCE(SUM(l.qty), 0) AS units
-                FROM sales_invoice_header h
-                JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
-                LEFT JOIN products p ON p.product_id = l.product_id
-                {where}
-                GROUP BY l.product_id, p.sku_no, hem_name 
-                ORDER BY revenue DESC 
+                       COALESCE(SUM(lines.total_amt), 0) AS revenue,
+                       COALESCE(SUM(lines.qty),       0) AS units
+                FROM (
+                    SELECT DISTINCT l.invoice_no, l.line_no,
+                           l.product_id, l.total_amt, l.qty
+                    FROM sales_invoice_header h
+                    JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
+                    {where}
+                ) AS lines
+                LEFT JOIN products p ON p.product_id = lines.product_id
+                GROUP BY lines.product_id, p.sku_no, hem_name
+                ORDER BY revenue DESC
                 LIMIT 10
             """, params).fetchall()
 
             top_products = [{
-                "product_id": r["product_id"], 
-                "sku_no": r["sku_no"], 
-                "hem_name": r["hem_name"],
-                "revenue": round(float(r["revenue"] or 0), 2), 
-                "units": round(float(r["units"] or 0), 2)
+                "product_id": r["product_id"],
+                "sku_no":     r["sku_no"],
+                "hem_name":   r["hem_name"],
+                "revenue":    round(float(r["revenue"] or 0), 2),
+                "units":      round(float(r["units"]   or 0), 2)
             } for r in top_products_rows]
 
             # === GET TOP 10 CUSTOMERS BY REVENUE ===
+            # Deduplicate at (invoice_no, line_no) level before aggregating per customer.
             top_customers_rows = conn.execute(f"""
-                SELECT h.customer_id, 
-                       COALESCE(c.customer_code, CAST(h.customer_id AS TEXT)) AS customer_code,
-                       COALESCE(SUM(l.total_amt), 0) AS revenue, 
-                       COUNT(DISTINCT h.invoice_no) AS orders
-                FROM sales_invoice_header h
-                JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
-                LEFT JOIN customers c ON c.customer_id = h.customer_id
-                {where}
-                GROUP BY h.customer_id, customer_code 
-                ORDER BY revenue DESC 
+                SELECT lines.customer_id,
+                       COALESCE(c.customer_code, CAST(lines.customer_id AS TEXT)) AS customer_code,
+                       COALESCE(SUM(lines.total_amt),      0) AS revenue,
+                       COUNT(DISTINCT lines.invoice_no)      AS orders
+                FROM (
+                    SELECT DISTINCT l.invoice_no, l.line_no,
+                           h.customer_id, l.total_amt
+                    FROM sales_invoice_header h
+                    JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
+                    {where}
+                ) AS lines
+                LEFT JOIN customers c ON c.customer_id = lines.customer_id
+                GROUP BY lines.customer_id, customer_code
+                ORDER BY revenue DESC
                 LIMIT 10
             """, params).fetchall()
 
             top_customers = [{
-                "customer_id": r["customer_id"], 
+                "customer_id":   r["customer_id"],
                 "customer_code": r["customer_code"],
-                "revenue": round(float(r["revenue"] or 0), 2), 
-                "orders": int(r["orders"] or 0)
+                "revenue":       round(float(r["revenue"] or 0), 2),
+                "orders":        int(r["orders"] or 0)
             } for r in top_customers_rows]
 
         except Exception as e:

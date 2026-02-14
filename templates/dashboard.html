@@ -242,6 +242,20 @@ input[list] {
     box-shadow: 0 0 0 4px rgba(255,255,255,0.08);
 }
 
+.form-group input.field-error,
+.form-group select.field-error {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239,68,68,0.2);
+}
+
+.field-error-msg {
+    display: none;
+    margin-top: 5px;
+    font-size: 0.75rem;
+    color: #ef4444;
+    font-weight: 600;
+}
+
 /* ADD LINE BUTTON */
 .btn {
     padding: 12px 22px;
@@ -712,7 +726,8 @@ input[list] {
                         </div>
                         <div class="form-group">
                             <label for="invoice_date">DATE</label>
-                            <input type="date" id="invoice_date" name="invoice_date" required>
+                            <input type="date" id="invoice_date" name="invoice_date" required max="{{ today }}">
+                            <span class="field-error-msg" id="invoice_date_err">Date cannot be in the future.</span>
                         </div>
                         <div class="form-group">
                             <label for="customer_id_input">CUSTOMER ID</label>
@@ -877,7 +892,8 @@ input[list] {
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
                     <div class="form-group">
                         <label for="edit_invoice_date" style="display: block; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.75); margin-bottom: 8px;">DATE</label>
-                        <input type="date" id="edit_invoice_date" name="invoice_date" required style="width: 100%; background: #000000; border: 1px solid rgba(255,255,255,0.18); border-radius: 12px; padding: 12px 14px; color: rgba(255,255,255,0.92); font-size: 0.95rem; box-sizing: border-box;">
+                        <input type="date" id="edit_invoice_date" name="invoice_date" required max="{{ today }}" style="width: 100%; background: #000000; border: 1px solid rgba(255,255,255,0.18); border-radius: 12px; padding: 12px 14px; color: rgba(255,255,255,0.92); font-size: 0.95rem; box-sizing: border-box;">
+                        <span class="field-error-msg" id="edit_invoice_date_err">Date cannot be in the future.</span>
                     </div>
                     <div class="form-group">
                         <label for="edit_customer_id" style="display: block; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.75); margin-bottom: 8px;">CUSTOMER</label>
@@ -1249,6 +1265,42 @@ window.onclick = function(event) {
 
 // === CREATE INVOICE: Customer → Legend auto-fill + Product ID resolution ===
 
+// Live date validation — inline field error, no big notification
+function setDateError(input, errId, hasError) {
+    const err = document.getElementById(errId);
+    if (hasError) {
+        input.classList.add('field-error');
+        if (err) err.style.display = 'block';
+    } else {
+        input.classList.remove('field-error');
+        if (err) err.style.display = 'none';
+    }
+}
+
+function validateInvoiceDate(input, errId) {
+    if (!input.value) { setDateError(input, errId, false); return true; }
+    if (input.value > '{{ today }}') {
+        setDateError(input, errId, true);
+        return false;
+    }
+    setDateError(input, errId, false);
+    return true;
+}
+
+const invoiceDateInput     = document.getElementById('invoice_date');
+const editInvoiceDateInput = document.getElementById('edit_invoice_date');
+
+if (invoiceDateInput) {
+    invoiceDateInput.addEventListener('change', function() {
+        validateInvoiceDate(this, 'invoice_date_err');
+    });
+}
+if (editInvoiceDateInput) {
+    editInvoiceDateInput.addEventListener('change', function() {
+        validateInvoiceDate(this, 'edit_invoice_date_err');
+    });
+}
+
 // Build product lookup map from datalist: display text → product_id
 const productList = document.getElementById('product_list');
 const productMap = {};
@@ -1286,13 +1338,19 @@ if (productInput && productIdHidden) {
 const invoiceForm = document.getElementById('invoiceForm');
 if (invoiceForm) {
     invoiceForm.addEventListener('submit', function(e) {
+        // Block if date is in the future
+        if (invoiceDateInput && !validateInvoiceDate(invoiceDateInput, 'invoice_date_err')) {
+            e.preventDefault();
+            invoiceDateInput.focus();
+            return;
+        }
         // Ensure product_id resolved before submit
         if (productInput && productIdHidden && !productIdHidden.value) {
             const typed = productInput.value.trim();
             productIdHidden.value = productMap[typed] || '';
             if (!productIdHidden.value) {
                 e.preventDefault();
-                showBigNotification('Please select a valid product from the list', 'error');
+                productInput.classList.add('field-error');
                 return;
             }
         }
