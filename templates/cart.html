@@ -7,703 +7,1376 @@
 <!-- ============================================ -->
 <style>
    
-   /* Background for Cart Page (Full White to ensure consistency. Even if BG images added it would stay centered.) */
+/* Background for Cart Page - Oppo Style */
 body {
-    background-color: white;
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-    background-repeat: no-repeat;
+    background: #f8f8f8;
+    min-height: 100vh;
 }
     
-    /* Main Shop Container: 2-column grid layout (sidebar + products). Max 1400px wide, centered on page */
-    .shop-container { 
-        max-width: 1400px; 
-        margin: 2rem auto; 
-        padding: 0 1rem; 
-        display: grid; 
-        grid-template-columns: 250px 1fr; /* Left: 250px sidebar, Right: remaining space */
-        gap: 2rem; 
-    }
-    
-    /* Responsive: On screens smaller than 992px, stack sidebar and products vertically instead of side-by-side */
-    @media (max-width: 992px) { 
-        .shop-container { grid-template-columns: 1fr; } 
-    }
-    
-    /* Sidebar: Semi-transparent gray box with blur effect. STICKY means it follows you when you scroll! */
-    .sidebar { 
-        background: rgba(248, 249, 250, 0.95); /* 95% opaque light gray */
-        padding: 1.5rem; 
-        border-radius: 12px; 
-        border: 1px solid #eee; 
-        height: fit-content; 
-        position: sticky; /* This makes it stick to screen when scrolling */
-        top: 100px; /* Stays 100px from top when scrolling */
-        backdrop-filter: blur(10px); /* Blurs background behind sidebar */
-    }
-    
-    /* Category Links: Block-style links with hover effects */
-    .category-link { 
-        display: block; 
-        padding: .6rem; 
-        text-decoration: none; 
-        color: #333; 
-        border-radius: 8px; 
-        transition: 0.2s; /* Smooth transition for hover effects */
-    }
-    
-    /* Category Link Hover/Active: Light blue background, bold text, slides right slightly */
-    .category-link:hover, 
-    .category-link.active { 
-        background: #e5edff; /* Light blue */
-        font-weight: bold; 
-        color: #2563eb; /* Darker blue */
-        padding-left: 1rem; /* Slides right by increasing left padding */
-    }
-    
-    /* Product Grid: Auto-adjusting grid that fits as many 260px-wide cards as possible per row */
-    .product-grid { 
-        display: grid; 
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); /* Magic! Auto-creates columns */
-        gap: 1.5rem; 
-    }
-    
-    /* Product Card: Individual product box with hover lift effect */
-    .product-card { 
-        background: rgba(255, 255, 255, 0.95); /* Semi-transparent white */
-        border: 1px solid #eee; 
-        border-radius: 16px; 
-        overflow: hidden; /* Keeps image from breaking rounded corners */
-        display: flex; 
-        flex-direction: column; /* Stack content vertically: image, text, buttons */
-        transition: 0.3s; 
-        height: 100%; /* All cards same height in each row */
-        backdrop-filter: blur(10px); 
-    }
-    
-    /* Product Card Hover: Lifts up 5px and shows shadow for 3D effect */
-    .product-card:hover { 
-        transform: translateY(-5px); /* Moves card UP by 5px */
-        box-shadow: 0 12px 24px rgba(0,0,0,0.08); /* Soft shadow */
-    }
-    
-    /* Product Image: Fixed height, fits image inside without stretching/cropping */
-    .item-image { 
-        width: 100%; 
-        height: 200px; 
-        object-fit: contain; /* Fits whole image inside without distortion */
-        background: #f9f9f9; /* Light gray background for images */
-        padding: 10px; 
-    }
-    
-    /* Card Details Section: Contains all text and buttons. Grows to fill available space */
-    .card-details { 
-        padding: 1.25rem; 
-        display: flex; 
-        flex-direction: column; 
-        flex-grow: 1; /* Expands to fill remaining card height, pushes buttons to bottom */
-    }
-    
-    /* Price Tag: Big, bold, RED price */
-    .price-tag { 
-        font-size: 1.3rem; 
-        font-weight: 800; 
-        color: #dc2626; /* Red color */
-        margin-bottom: 1rem; 
-    }
+/* Main Shop Container: Two-column layout with sidebar */
+.shop-container { 
+    max-width: 1600px; 
+    margin: 2rem auto; 
+    padding: 0 1.5rem 2rem 1.5rem;
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 2rem;
+    align-items: start;
+}
 
-    /* ========== QUANTITY SELECTOR (+ and - buttons) ========== */
-    
-    /* Quantity Card Container: Holds minus button, number display, and plus button in a row */
-    .qty-card { 
-        border: 2px solid #edeff2; 
-        border-radius: 10px; 
-        display: flex; 
-        align-items: center; 
-        background: #fcfcfc; 
-        margin-bottom: 12px; 
-        justify-content: space-between; /* Pushes buttons to edges, number in middle */
+@media (max-width: 992px) {
+    .shop-container {
+        grid-template-columns: 1fr;
+        padding: 0 1rem 2rem 1rem;
     }
-    
-    /* Quantity Buttons (+ and -): Invisible background until hover */
-    .qty-btn { 
-        border: none; 
-        background: none; 
-        width: 45px; 
-        height: 40px; 
-        cursor: pointer; 
-        font-size: 1.2rem; 
-        font-weight: bold; 
-        color: #666; /* Gray text */
-    }
-    
-    /* Quantity Button Hover: Light blue background and darker blue text */
-    .qty-btn:hover { 
-        background: #e5edff; 
-        color: #2563eb; 
-    }
-    
-    /* Quantity Display: The number in the middle. Readonly so users can't type */
-    .qty-display { 
-        width: 50px; 
-        text-align: center; 
-        font-weight: 800; 
-        border: none; 
-        background: transparent; 
-        font-size: 1rem; 
-    }
+}
 
-    /* ========== ADD TO CART & BUY NOW BUTTONS ========== */
-    
-    /* Cart Buttons Container: Holds both buttons side by side with small gap */
-    .cart-buttons { 
-        display: flex; 
-        gap: 0.6rem; 
-    }
-    
-    /* Add to Cart Button: White background with blue border (outlined style) */
-    .btn-add-cart { 
-        background: white; 
-        border: 2px solid #2563eb; 
-        color: #2563eb; 
-        font-weight: 700; 
-        border-radius: 10px; 
-    }
-    
-    /* Buy Now Button: Blue background with white text (solid style) */
-    .btn-buy-now { 
-        background: #2563eb; 
-        border: 2px solid #2563eb; 
-        color: white; 
-        font-weight: 700; 
-        border-radius: 10px; 
-    }
+/* ============================================ */
+/* LEFT SIDEBAR: FILTER SECTION - Oppo Style */
+/* ============================================ */
+.filter-sidebar {
+    background: #ffffff;
+    padding: 2rem;
+    border-radius: 16px;
+    border: 2px solid #000000;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    height: fit-content;
+    position: sticky;
+    top: 100px;
+}
 
-    /* ========== PAGINATION (Page Numbers at Bottom) ========== */
-    
-    /* Pagination Wrapper: Centers pagination at bottom with spacing */
-    .pagination-wrapper { 
-        margin-top: 3rem; 
-        display: flex; 
-        flex-direction: column; 
-        align-items: center; 
-    }
-    
-    /* Pagination Container: White rounded box with shadow holding page numbers */
-    .pagination { 
-        background: rgba(255, 255, 255, 0.95); 
-        padding: 5px; 
-        border-radius: 12px; 
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
-        backdrop-filter: blur(10px); 
-    }
-    
-    /* Page Link: Individual page number styling */
-    .page-link { 
-        color: #2563eb; /* Blue text */
-        font-weight: bold; 
-        border: none; 
-        margin: 0 2px; 
-        border-radius: 8px !important; /* !important overrides Bootstrap defaults */
-    }
-    
-    /* Active Page: Highlighted with blue background and white text */
-    .page-item.active .page-link { 
-        background-color: #2563eb; 
-        color: white; 
-    }
-    
-    /* Disabled Page (prev/next when can't go further): Gray text */
-    .page-item.disabled .page-link { 
-        color: #ccc; 
-    }
+.filter-sidebar h5 {
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: #000000;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 3px solid #000000;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    letter-spacing: -0.5px;
+}
 
-    /* ========== ANIMATIONS (Flying box and delivery van) ========== */
-    
-    /* Flying Item: The 📦 box that flies to cart when you click "Add to Cart" */
-    .flying-item { 
-        position: fixed; /* Can move anywhere on screen */
-        z-index: 9999; /* Appears on top of everything */
-        pointer-events: none; /* Can't click on it */
-        transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Bouncy easing curve */
-        font-size: 55px; 
-        filter: drop-shadow(0 5px 15px rgba(0,0,0,0.3)); /* Shadow around emoji */
+.filter-group {
+    margin-bottom: 1.75rem;
+}
+
+.filter-group label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #000000;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: block;
+    margin-bottom: 0.75rem;
+}
+
+.filter-group select,
+.filter-group input {
+    width: 100%;
+    padding: 1rem;
+    border: 1.5px solid #d9d9d9;
+    border-radius: 8px;
+    background: #fafafa;
+    font-size: 0.95rem;
+    transition: all 0.3s;
+    font-weight: 500;
+    color: #333;
+}
+
+.filter-group select:focus,
+.filter-group input:focus {
+    border-color: #000000;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
+    outline: none;
+}
+
+.filter-group select:hover,
+.filter-group input:hover {
+    background: white;
+    border-color: #666;
+}
+
+.price-range-inputs {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.price-range-inputs input {
+    flex: 1;
+}
+
+.price-range-inputs span {
+    color: #999;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.btn-apply-filter {
+    width: 100%;
+    background: #000000;
+    color: white;
+    border: none;
+    padding: 1.1rem;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+
+.btn-apply-filter:hover {
+    background: #333;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+}
+
+.btn-apply-filter:active {
+    transform: translateY(0);
+}
+
+.btn-clear-filter {
+    width: 100%;
+    background: white;
+    color: #000000;
+    border: 1.5px solid #d9d9d9;
+    padding: 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+    display: block;
+    text-decoration: none;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-clear-filter:hover {
+    background: #fafafa;
+    border-color: #000000;
+    transform: translateY(-2px);
+}
+
+/* Mobile: Better spacing */
+@media (max-width: 992px) {
+    .filter-sidebar {
+        position: relative;
+        top: 0;
+        margin-bottom: 2rem;
     }
+}
+
+/* ============================================ */
+/* RIGHT SECTION: PRODUCT GRID - Oppo Style */
+/* ============================================ */
+.products-section {
+    min-height: 400px;
+}
+
+.products-header {
+    background: #ffffff;
+    padding: 2rem 2.5rem;
+    border-radius: 16px;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 2px solid #000000;
+}
+
+.products-header h3 {
+    font-size: 1.75rem;
+    font-weight: 900;
+    color: #000000;
+    margin: 0;
+    letter-spacing: -0.5px;
+}
+
+.products-count {
+    font-size: 1rem;
+    color: #666;
+    font-weight: 600;
+    background: #f5f5f5;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+}
+
+/* Product Grid */
+.product-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+/* Product Card - Oppo Premium Style */
+.product-card { 
+    background: #ffffff;
+    border: 2px solid #000000;
+    border-radius: 16px; 
+    overflow: hidden;
+    display: flex; 
+    flex-direction: column;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 100%;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    position: relative;
+}
+
+.product-card:hover { 
+    transform: translateY(-10px);
+    box-shadow: 0 24px 48px rgba(0,0,0,0.2);
+    border-color: #000000;
+}
+
+.product-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: #000000;
+    transform: scaleX(0);
+    transition: transform 0.4s;
+}
+
+.product-card:hover::after {
+    transform: scaleX(1);
+}
+
+/* Product Image Container - Premium */
+.product-image-wrapper {
+    position: relative;
+    background: linear-gradient(135deg, #fafafa 0%, #f0f0f0 100%);
+    padding: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 280px;
+    border-bottom: 1px solid #e8e8e8;
+}
+
+.item-image { 
+    width: 100%; 
+    height: 100%;
+    object-fit: contain;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.08));
+}
+
+.product-card:hover .item-image {
+    transform: scale(1.08);
+}
+
+/* Stock Badge - Oppo Style */
+.stock-badge {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    background: #000000;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.stock-badge.low-stock {
+    background: #666666;
+}
+
+/* Card Details - Rich Content */
+.card-details { 
+    padding: 2rem; 
+    display: flex; 
+    flex-direction: column; 
+    flex-grow: 1;
+    background: white;
+}
+
+.product-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #000000;
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+    min-height: 3.2rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    letter-spacing: -0.3px;
+}
+
+.sku-display {
+    font-size: 0.8rem;
+    color: #000000;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    background: #f5f5f5;
+    padding: 0.5rem 0.9rem;
+    border-radius: 6px;
+    display: inline-block;
+    width: fit-content;
+    border: 1px solid #e0e0e0;
+    letter-spacing: 0.5px;
+}
+
+/* Price Section - Premium Display */
+.price-section {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #e8e8e8;
+}
+
+.price-tag { 
+    font-size: 1.8rem; 
+    font-weight: 900; 
+    color: #000000;
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    letter-spacing: -0.5px;
+}
+
+.price-currency {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #666666;
+}
+
+/* Variant Dropdown - Enhanced */
+.variant-dropdown-wrapper {
+    margin-bottom: 1.25rem;
+}
+
+.variant-dropdown-label {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #000000;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.6rem;
+    letter-spacing: 1px;
+}
+
+.variant-quick-select {
+    width: 100%;
+    padding: 1rem;
+    border: 1.5px solid #d9d9d9;
+    border-radius: 8px;
+    background: #fafafa;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #000000;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.variant-quick-select:hover {
+    background: white;
+    border-color: #666;
+}
+
+.variant-quick-select:focus {
+    border-color: #000000;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
+    outline: none;
+}
+
+/* Quantity Selector - Premium */
+.qty-card { 
+    border: 1.5px solid #d9d9d9;
+    border-radius: 8px; 
+    display: flex; 
+    align-items: center; 
+    background: #fafafa;
+    margin-bottom: 1.25rem; 
+    justify-content: space-between;
+    overflow: hidden;
+}
+
+.qty-btn { 
+    border: none; 
+    background: transparent;
+    width: 48px; 
+    height: 48px; 
+    cursor: pointer; 
+    font-size: 1.4rem; 
+    font-weight: 900; 
+    color: #000000;
+    transition: all 0.2s;
+}
+
+.qty-btn:hover { 
+    background: #000000;
+    color: white;
+}
+
+.qty-btn:active {
+    transform: scale(0.9);
+}
+
+.qty-display { 
+    font-size: 1.15rem; 
+    font-weight: 800; 
+    color: #000000;
+    min-width: 45px; 
+    text-align: center; 
+    border: none;
+    background: transparent;
+}
+
+/* Action Buttons - Oppo Premium Style */
+.btn-add-cart { 
+    background: #000000;
+    color: white; 
+    border: none; 
+    padding: 1.1rem; 
+    border-radius: 8px; 
+    font-weight: 700; 
+    cursor: pointer; 
+    margin-bottom: 1rem; 
+    transition: all 0.3s;
+    font-size: 0.95rem;
+    width: 100%;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+
+.btn-add-cart:hover { 
+    background: #333;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+.btn-add-cart:active {
+    transform: translateY(-1px);
+}
+
+.btn-add-cart:disabled {
+    background: #d9d9d9;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+    color: #999;
+}
+
+.btn-buy-now { 
+    background: white;
+    color: #000000;
+    border: 1.5px solid #000000;
+    padding: 1.05rem;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.95rem;
+    width: 100%;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+
+.btn-buy-now:hover { 
+    background: #000000;
+    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+}
+
+.btn-buy-now:active {
+    transform: translateY(-1px);
+}
+
+.btn-buy-now:disabled {
+    background: #fafafa;
+    color: #d9d9d9;
+    border-color: #d9d9d9;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ============================================ */
+/* RIGHT SECTION: PRODUCT GRID */
+/* ============================================ */
+.products-section {
+    min-height: 400px;
+}
+
+.products-header {
+    background: white;
+    padding: 1.5rem 2rem;
+    border-radius: 20px;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 2px solid #000000;
+}
+
+.products-header h3 {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #000000;
+    margin: 0;
+}
+
+.products-count {
+    font-size: 0.95rem;
+    color: #666666;
+    font-weight: 600;
+}
+
+/* Product Grid: Auto-adjusting grid */
+.product-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* Product Card */
+.product-card { 
+    background: white;
+    border: 2px solid #000000;
+    border-radius: 20px; 
+    overflow: hidden;
+    display: flex; 
+    flex-direction: column;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 100%;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+.product-card:hover { 
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+}
+
+.product-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: #000000;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.product-card:hover::before {
+    opacity: 1;
+}
+
+/* Product Image Container */
+.product-image-wrapper {
+    position: relative;
+    background: #f5f5f5;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 240px;
+}
+
+.item-image { 
+    width: 100%; 
+    height: 100%;
+    object-fit: contain;
+    transition: transform 0.3s;
+}
+
+.product-card:hover .item-image {
+    transform: scale(1.05);
+}
+
+/* Stock Badge */
+.stock-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: #000000;
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stock-badge.low-stock {
+    background: #666666;
+}
+
+/* Card Details */
+.card-details { 
+    padding: 1.5rem; 
+    display: flex; 
+    flex-direction: column; 
+    flex-grow: 1;
+}
+
+.product-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #000000;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+    min-height: 2.8rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.sku-display {
+    font-size: 0.85rem;
+    color: #000000;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    background: #f5f5f5;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    display: inline-block;
+    width: fit-content;
+    border: 1px solid #000000;
+}
+
+/* Price Section */
+.price-section {
+    margin-bottom: 1.25rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.price-tag { 
+    font-size: 1.6rem; 
+    font-weight: 900; 
+    color: #000000;
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 0.3rem;
+}
+
+.price-currency {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #666666;
+}
+
+/* Variant Dropdown */
+.variant-dropdown-wrapper {
+    margin-bottom: 1rem;
+}
+
+.variant-dropdown-label {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #000000;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.5px;
+}
+
+.variant-quick-select {
+    width: 100%;
+    padding: 0.85rem;
+    border: 2px solid #000000;
+    border-radius: 12px;
+    background: #ffffff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #000000;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.variant-quick-select:hover {
+    background: #f5f5f5;
+}
+
+.variant-quick-select:focus {
+    border-color: #000000;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(0,0,0,0.1);
+    outline: none;
+}
+
+/* Quantity Selector */
+.qty-card { 
+    border: 2px solid #000000;
+    border-radius: 12px; 
+    display: flex; 
+    align-items: center; 
+    background: #ffffff;
+    margin-bottom: 1rem; 
+    justify-content: space-between;
+    overflow: hidden;
+}
+
+.qty-btn { 
+    border: none; 
+    background: transparent;
+    width: 45px; 
+    height: 45px; 
+    cursor: pointer; 
+    font-size: 1.3rem; 
+    font-weight: 900; 
+    color: #000000;
+    transition: all 0.2s;
+}
+
+.qty-btn:hover { 
+    background: #000000;
+    color: white;
+}
+
+.qty-btn:active {
+    transform: scale(0.95);
+}
+
+.qty-display { 
+    font-size: 1.1rem; 
+    font-weight: 800; 
+    color: #000000;
+    min-width: 40px; 
+    text-align: center; 
+    border: none;
+    background: transparent;
+}
+
+/* Action Buttons */
+.btn-add-cart { 
+    background: #000000;
+    color: white; 
+    border: none; 
+    padding: 0.9rem; 
+    border-radius: 12px; 
+    font-weight: 800; 
+    cursor: pointer; 
+    margin-bottom: 0.75rem; 
+    transition: all 0.3s;
+    font-size: 0.95rem;
+    width: 100%;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-add-cart:hover { 
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+.btn-add-cart:active {
+    transform: translateY(0);
+}
+
+.btn-add-cart:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+    color: #666666;
+}
+
+.btn-buy-now { 
+    background: white;
+    color: #000000;
+    border: 2px solid #000000;
+    padding: 0.85rem;
+    border-radius: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.95rem;
+    width: 100%;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-buy-now:hover { 
+    background: #000000;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.btn-buy-now:active {
+    transform: translateY(0);
+}
+
+.btn-buy-now:disabled {
+    background: #f5f5f5;
+    color: #cccccc;
+    border-color: #cccccc;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ============================================ */
+/* PAGINATION - Oppo Premium Style */
+/* ============================================ */
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 3rem;
+    margin-bottom: 2rem;
+}
+
+.pagination {
+    display: flex;
+    list-style: none;
+    padding: 0;
+    gap: 0.75rem;
+    background: white;
+    padding: 1.25rem 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 2px solid #000000;
+}
+
+.page-item {
     
-    /* Delivery Car: The 🚐 van that drives across screen for "Buy Now" */
-    .delivery-car { 
-        position: fixed; 
-        z-index: 10000; /* Higher than flying box, appears on top */
-        font-size: 100px; 
-        pointer-events: none; 
-        left: -350px; /* Starts off-screen to the left */
-        bottom: 30%; /* Positioned 30% from bottom of screen */
-        transition: left 5s linear; /* Takes 5 seconds to drive across */
-        display: flex; 
-        flex-direction: column; /* Stacks speech bubble above van */
-        align-items: center; 
-    }
-    
-    /* Speech Bubble: Yellow bubble saying "Packing..." then "Secured! Driving to Checkout..." */
-    .huat-bubble { 
-        background: #ffdf00; /* Bright yellow */
-        color: #000; 
-        padding: 12px 24px; 
-        border-radius: 30px; /* Very rounded for bubble effect */
-        font-size: 20px; 
-        font-weight: 900; 
-        margin-bottom: 15px; 
-        opacity: 0; /* Starts invisible */
-        transition: opacity 0.5s; 
-        border: 3px solid #000; 
-        white-space: nowrap; /* Text won't wrap to new line */
-    }
-    
-    /* Van Body: Flips the van emoji horizontally so it faces right */
-    .van-body { 
-        transform: scaleX(-1); /* Mirrors horizontally */
-    }
-    
-    /* ========== SEARCH FORM ========== */
-    
-    /* Search Form Container: Holds search input and button in a row */
-    .search-form { 
-        display: flex; 
-        gap: 0.5rem; 
-        align-items: stretch; /* Makes input and button same height */
-        margin-bottom: 1.5rem; 
-    }
-    
-    /* Search Input: Takes up most of the space */
-    .search-form input[type="text"] { 
-        flex: 1; /* Grows to fill available space */
-        height: 48px; 
-    }
-    
-    /* Search Button: Fixed size */
-    .search-form button { 
-        height: 48px; 
-        padding: 0 1.5rem; 
-        white-space: nowrap; /* "Search" text won't wrap */
-    }
+}
+
+.page-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 48px;
+    height: 48px;
+    padding: 0 0.85rem;
+    background: #fafafa;
+    border: 1.5px solid #d9d9d9;
+    border-radius: 8px;
+    color: #000000;
+    text-decoration: none;
+    font-weight: 700;
+    transition: all 0.3s;
+    font-size: 0.95rem;
+}
+
+.page-link:hover {
+    background: #000000;
+    color: white;
+    border-color: #000000;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+}
+
+.page-item.active .page-link {
+    background: #000000;
+    color: white;
+    border-color: #000000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.page-item.disabled .page-link {
+    background: #fafafa;
+    color: #d9d9d9;
+    cursor: not-allowed;
+    pointer-events: none;
+    border-color: #e8e8e8;
+}
+
+/* ============================================ */
+/* CART BADGE IN NAVIGATION */
+/* ============================================ */
+.cart-badge { 
+    display: none; /* Hidden by default */
+    align-items: center;
+    justify-content: center;
+    background: #dc2626; 
+    color: white; 
+    border-radius: 50%; 
+    width: 22px; 
+    height: 22px; 
+    font-size: 0.7rem; 
+    font-weight: 800;
+    line-height: 1;
+    margin-left: 0.5rem;
+}
+
+/* Show badge when it has items */
+.cart-badge.show {
+    display: inline-flex;
+}
+
+/* ============================================ */
+/* FLYING ANIMATION EFFECTS */
+/* ============================================ */
+.flying-item { 
+    position: fixed; 
+    font-size: 3rem; 
+    pointer-events: none; 
+    z-index: 99999; 
+    transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94); 
+}
+
+.delivery-car { 
+    position: fixed; 
+    bottom: 50px; 
+    left: -20%; 
+    font-size: 5rem; 
+    z-index: 99999; 
+    transition: left 2s ease-in-out; 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+    transform: scaleX(-1); /* Flip van horizontally */
+}
+
+.huat-bubble { 
+    background: white; 
+    padding: 15px 25px; 
+    border-radius: 20px; 
+    font-size: 1.2rem; 
+    font-weight: bold; 
+    color: #2563eb; 
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2); 
+    white-space: nowrap; 
+    opacity: 0; 
+    transition: opacity 0.5s;
+    transform: scaleX(-1); /* Un-flip the text so it's readable */
+}
+
+.van-body { 
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2)); 
+}
+
 </style>
 
 <!-- ============================================ -->
 <!-- HTML STRUCTURE -->
 <!-- ============================================ -->
 
-<!-- Main container holding sidebar and products -->
 <div class="shop-container">
     
-    <!-- ========== LEFT SIDEBAR: Categories and Reset Button ========== -->
-    <aside class="sidebar">
-        <!-- Category title -->
-        <h5 class="font-weight-bold">Categories</h5>
-        <hr>
+    <!-- ============================================ -->
+    <!-- LEFT SIDEBAR: FILTERS -->
+    <!-- ============================================ -->
+    <aside class="filter-sidebar">
+        <h5>🔍 Filters</h5>
         
-        <!-- "All Products" link - active when no category filter is selected -->
-        <a href="{{ url_for('cart', search=search_query) }}" 
-           class="category-link {{ 'active' if not category_filter }}">
-            All Products
-        </a>
-        
-        <!-- Loop through all categories from database and create links -->
-        {% for c in categories %}
-        <a href="{{ url_for('cart', category=c['category'], search=search_query) }}" 
-           class="category-link {{ 'active' if category_filter == c['category'] }}">
-            {{ c['category'] }} <!-- Display category name (e.g., "Engine", "Brakes") -->
-        </a>
-        {% endfor %}
-        
-        <!-- Reset Cart Button: Deletes cart from browser storage and reloads page -->
-        <div class="mt-5">
-            <button onclick="localStorage.removeItem('cart'); location.reload();" 
-                    class="btn btn-sm btn-outline-secondary border-0" 
-                    style="font-size: 10px;">
-                Reset Cart Data
-            </button>
-        </div>
-    </aside>
-
-    <!-- ========== MAIN CONTENT AREA: Search, Products, Pagination ========== -->
-    <main>
-        
-        <!-- ========== SEARCH FORM ========== -->
-        <!-- Sends GET request to cart page with search query -->
-        <form action="{{ url_for('cart') }}" method="GET" class="search-form">
-            <!-- Search input box - shows current search query if exists -->
-            <input type="text" 
-                   name="search" 
-                   class="form-control" 
-                   placeholder="Search by name or part number..." 
-                   value="{{ search_query }}">
+        <form method="GET" action="{{ url_for('cart') }}">
+            <!-- Category Filter -->
+            <div class="filter-group">
+                <label>Category</label>
+                <select name="category">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}" {% if category_filter == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             
-            <!-- Hidden input: If user is viewing a category, keep that filter when searching -->
-            {% if category_filter %}
-                <input type="hidden" name="category" value="{{ category_filter }}">
-            {% endif %}
+            <!-- Origin Filter -->
+            <div class="filter-group">
+                <label>Origin</label>
+                <select name="origin">
+                    <option value="">All Origins</option>
+                    {% for org in origins %}
+                    <option value="{{ org }}">{{ org }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             
-            <!-- Search submit button -->
-            <button type="submit" class="btn btn-primary">Search</button>
-        </form>
-
-        <!-- ========== PRODUCT GRID: All product cards displayed here ========== -->
-        <div class="product-grid">
-            
-            <!-- Loop through each product from database -->
-            {% for product in products %}
-            <div class="product-card">
-                
-                <!-- Product Image: Shows product image or placeholder if none exists -->
-                <img src="{{ product['image_url'] or 'https://via.placeholder.com/300x200?text=Parts' }}" 
-                     class="item-image">
-                
-                <!-- Product Details Section -->
-                <div class="card-details">
-                    
-                    <!-- Category name in small gray uppercase text -->
-                    <small class="text-muted text-uppercase fw-bold">{{ product['category'] }}</small>
-                    
-                    <!-- Product name - min-height ensures all names take same vertical space -->
-                    <h6 class="mt-1 font-weight-bold" style="min-height: 40px;">
-                        {{ product['hem_name'] }}
-                    </h6>
-                    
-                    <!-- SKU Variants Info -->
-                    {% if product['variant_count'] and product['variant_count'] > 1 %}
-                        <small class="text-info" style="display: block; margin-bottom: 8px;">
-                            <strong>{{ product['variant_count'] }} variants</strong>
-                        </small>
-                        <small class="text-muted" style="font-size: 0.7rem; display: block; margin-bottom: 8px; max-height: 40px; overflow: hidden; text-overflow: ellipsis;">
-                            SKUs: {{ product['sup_part_no'][:60] }}{% if product['sup_part_no']|length > 60 %}...{% endif %}
-                        </small>
-                    {% else %}
-                        <small class="text-muted" style="display: block; margin-bottom: 8px;">
-                            SKU: {{ product['sup_part_no'] }}
-                        </small>
-                    {% endif %}
-                    
-                    <!-- Total Stock across all variants -->
-                    <small class="text-success" style="display: block; margin-bottom: 8px;">
-                        <strong>In Stock: {{ product['qty'] }} units</strong>
-                    </small>
-                    
-                    <!-- Bottom section (pushed to bottom by mt-auto) -->
-                    <div class="mt-auto">
-                        
-                        <!-- Price: Show range if variants have different prices -->
-                        {% if product['max_price'] and product['max_price'] != product['sell_price'] %}
-                            <div class="price-tag">SGD {{ "%.2f"|format(product['sell_price']) }} - {{ "%.2f"|format(product['max_price']) }}</div>
-                        {% else %}
-                            <div class="price-tag">SGD {{ "%.2f"|format(product['sell_price']) }}</div>
-                        {% endif %}
-                        
-                        <!-- ========== QUANTITY SELECTOR ========== -->
-                        <div class="qty-card">
-                            <!-- Minus button: Decreases quantity by 1 -->
-                            <button class="qty-btn" 
-                                    onclick="adjustShopQty('{{ product['inventory_id'] }}', -1)">
-                                −
-                            </button>
-                            
-                            <!-- Quantity display: Shows current quantity, readonly prevents typing -->
-                            <input type="number" 
-                                   id="qty-shop-{{ product['inventory_id'] }}" 
-                                   class="qty-display" 
-                                   value="1" 
-                                   readonly>
-                            
-                            <!-- Plus button: Increases quantity by 1 -->
-                            <button class="qty-btn" 
-                                    onclick="adjustShopQty('{{ product['inventory_id'] }}', 1)">
-                                +
-                            </button>
-                        </div>
-                        
-                        <!-- ========== ADD TO CART & BUY NOW BUTTONS ========== -->
-                        <div class="cart-buttons">
-                            <!-- Add to Cart: Adds item and shows flying box animation -->
-                            <button onclick="handleAddToCart(event, {{ product['inventory_id'] }}, '{{ product['hem_name']|escape }}', {{ product['sell_price'] }}, false)" 
-                                    class="btn btn-add-cart btn-sm flex-fill">
-                                Add to Cart
-                            </button>
-                            
-                            <!-- Buy Now: Adds item, shows van animation, redirects to checkout -->
-                            <button onclick="handleAddToCart(event, {{ product['inventory_id'] }}, '{{ product['hem_name']|escape }}', {{ product['sell_price'] }}, true)" 
-                                    class="btn btn-buy-now btn-sm flex-fill">
-                                Buy Now
-                            </button>
-                        </div>
-                    </div>
+            <!-- Price Range Filter -->
+            <div class="filter-group">
+                <label>Price Range</label>
+                <div class="price-range-inputs">
+                    <input type="number" name="min_price" placeholder="Min" min="0" step="0.01" value="{{ min_price or '' }}">
+                    <span>—</span>
+                    <input type="number" name="max_price" placeholder="Max" min="0" step="0.01" value="{{ max_price or '' }}">
                 </div>
             </div>
             
-            <!-- ========== NO RESULTS MESSAGE ========== -->
-            <!-- Only shows if products loop is empty (no search results) -->
+            <!-- Search Filter -->
+            <div class="filter-group">
+                <label>Search</label>
+                <input type="text" name="search" placeholder="Search products..." value="{{ search_query or '' }}">
+            </div>
+            
+            <!-- Apply Filter Button -->
+            <button type="submit" class="btn-apply-filter">Apply Filters</button>
+        </form>
+        
+        <!-- Clear Filter Button -->
+        <a href="{{ url_for('cart') }}" class="btn-clear-filter">Clear All</a>
+    </aside>
+    
+    <!-- ============================================ -->
+    <!-- RIGHT SECTION: PRODUCT GRID -->
+    <!-- ============================================ -->
+    <section class="products-section">
+        
+        <!-- Products Header -->
+        <div class="products-header">
+            <h3>All Products</h3>
+            <span class="products-count">{{ products|length }} items</span>
+        </div>
+        
+        <div class="product-grid">
+            {% for product in products %}
+            <div class="product-card">
+                <!-- Product Image -->
+                <div class="product-image-wrapper">
+                    <img src="{{ product.image_url or '/static/placeholder.png' }}" alt="{{ product.name }}" class="item-image">
+                    {% if product.qty %}
+                    <div class="stock-badge {% if product.qty < 10 %}low-stock{% endif %}">
+                        {% if product.qty < 10 %}Low Stock{% else %}In Stock{% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="card-details">
+                    <h6 class="product-title">{{ product.name }}</h6>
+                    
+                    <!-- Show SKU for single-variant products -->
+                    {% if product.variant_count == 1 and product.get('sku') %}
+                    <div class="sku-display">SKU: {{ product.sku }}</div>
+                    {% endif %}
+                    
+                    <!-- Price Section -->
+                    <div class="price-section">
+                        <div class="price-tag">
+                            <span class="price-currency">SGD</span> {{ "%.2f"|format(product.price) }}
+                        </div>
+                    </div>
+                    
+                    <!-- Multi-variant dropdown (MANDATORY) -->
+                    {% if product.variant_count > 1 %}
+                    <div class="variant-dropdown-wrapper">
+                        <label class="variant-dropdown-label">⚠ Select SKU (Required)</label>
+                        <select class="variant-quick-select" id="variant-select-{{ product.id }}" 
+                                onchange="handleVariantChange({{ product.id }}, '{{ product.name|replace("'", "\\'") }}')">
+                            <option value="">-- Choose a SKU --</option>
+                        </select>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Quantity Selector -->
+                    <div class="qty-card">
+                        <button class="qty-btn" onclick="changeQty({{ product.id }}, -1)">−</button>
+                        <input type="number" class="qty-display" id="qty-{{ product.id }}" value="1" readonly>
+                        <button class="qty-btn" onclick="changeQty({{ product.id }}, 1)">+</button>
+                    </div>
+                    
+                    <!-- Add to Cart Button -->
+                    <button class="btn-add-cart" id="btn-add-{{ product.id }}" 
+                            onclick="handleAddToCart(event, {{ product.id }}, '{{ product.name|replace("'", "\\'") }}', {{ product.price }}, false)"
+                            {% if product.variant_count > 1 %}disabled{% endif %}>
+                        🛒 Add to Cart
+                    </button>
+                    
+                    <!-- Buy Now Button -->
+                    <button class="btn-buy-now" id="btn-buy-{{ product.id }}" 
+                            onclick="handleAddToCart(event, {{ product.id }}, '{{ product.name|replace("'", "\\'") }}', {{ product.price }}, true)"
+                            {% if product.variant_count > 1 %}disabled{% endif %}>
+                        ⚡ Buy Now
+                    </button>
+                </div>
+            </div>
             {% else %}
-            <div class="text-center py-5 w-100">
-                <h3 class="text-muted">No items found matching your search. 😭</h3>
+            <div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: #666;">
+                <h4>No products found</h4>
+                <p>Try adjusting your filters</p>
             </div>
             {% endfor %}
         </div>
-
-        <!-- ========== PAGINATION (Only shows if more than 1 page) ========== -->
+        
+        <!-- ============================================ -->
+        <!-- PAGINATION -->
+        <!-- ============================================ -->
         {% if total_pages > 1 %}
         <nav class="pagination-wrapper">
             <ul class="pagination">
+                <!-- Previous Button -->
+                <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('cart', page=current_page-1, category=category_filter, search=search_query, min_price=min_price, max_price=max_price) }}">«</a>
+                </li>
                 
-                <!-- ========== PREVIOUS PAGE BUTTON ========== -->
-                <!-- Disabled if on first page (can't go back further) -->
-                <li class="page-item {{ 'disabled' if current_page == 1 }}">
-                    <a class="page-link" 
-                       href="{{ url_for('cart', page=current_page-1, category=category_filter, search=search_query) }}">
-                        «
-                    </a>
+                <!-- First Page -->
+                <li class="page-item {% if current_page == 1 %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('cart', page=1, category=category_filter, search=search_query, min_price=min_price, max_price=max_price) }}">1</a>
                 </li>
-
-                <!-- ========== FIRST PAGE (Always visible) ========== -->
-                <li class="page-item {{ 'active' if current_page == 1 }}">
-                    <a class="page-link" 
-                       href="{{ url_for('cart', page=1, category=category_filter, search=search_query) }}">
-                        1
-                    </a>
-                </li>
-
-                <!-- ========== FIRST ELLIPSIS (...) ========== -->
-                <!-- Shows "..." if current page is more than 4 (skips pages 2-3) -->
+                
+                <!-- First Ellipsis -->
                 {% if current_page > 4 %}
-                    <li class="page-item disabled">
-                        <span class="page-link">...</span>
-                    </li>
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
                 {% endif %}
-
-                <!-- ========== MIDDLE PAGE NUMBERS ========== -->
-                <!-- Only shows pages within 2 of current page (e.g., if on page 10, shows 8,9,10,11,12) -->
-                {% for p in range(1, total_pages + 1) %}
-                    {% if p > 1 and p < total_pages %} <!-- Skip first and last (already shown) -->
-                        {% if p >= current_page - 2 and p <= current_page + 2 %} <!-- Only show nearby pages -->
-                            <li class="page-item {{ 'active' if p == current_page }}">
-                                <a class="page-link" 
-                                   href="{{ url_for('cart', page=p, category=category_filter, search=search_query) }}">
-                                    {{ p }}
-                                </a>
-                            </li>
-                        {% endif %}
+                
+                <!-- Middle Pages -->
+                {% for p in range(2, total_pages) %}
+                    {% if p >= current_page - 2 and p <= current_page + 2 %}
+                    <li class="page-item {% if p == current_page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('cart', page=p, category=category_filter, search=search_query, min_price=min_price, max_price=max_price) }}">{{ p }}</a>
+                    </li>
                     {% endif %}
                 {% endfor %}
-
-                <!-- ========== SECOND ELLIPSIS (...) ========== -->
-                <!-- Shows "..." if current page is more than 3 pages before the last page -->
+                
+                <!-- Second Ellipsis -->
                 {% if current_page < total_pages - 3 %}
-                    <li class="page-item disabled">
-                        <span class="page-link">...</span>
-                    </li>
-                {% endif %}
-
-                <!-- ========== LAST PAGE (Always visible) ========== -->
-                <li class="page-item {{ 'active' if current_page == total_pages }}">
-                    <a class="page-link" 
-                       href="{{ url_for('cart', page=total_pages, category=category_filter, search=search_query) }}">
-                        {{ total_pages }}
-                    </a>
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
                 </li>
-
-                <!-- ========== NEXT PAGE BUTTON ========== -->
-                <!-- Disabled if on last page (can't go forward) -->
-                <li class="page-item {{ 'disabled' if current_page == total_pages }}">
-                    <a class="page-link" 
-                       href="{{ url_for('cart', page=current_page+1, category=category_filter, search=search_query) }}">
-                        »
-                    </a>
+                {% endif %}
+                
+                <!-- Last Page -->
+                {% if total_pages > 1 %}
+                <li class="page-item {% if current_page == total_pages %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('cart', page=total_pages, category=category_filter, search=search_query, min_price=min_price, max_price=max_price) }}">{{ total_pages }}</a>
+                </li>
+                {% endif %}
+                
+                <!-- Next Button -->
+                <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('cart', page=current_page+1, category=category_filter, search=search_query, min_price=min_price, max_price=max_price) }}">»</a>
                 </li>
             </ul>
-            
-            <!-- ========== PAGE COUNTER ========== -->
-            <!-- Shows "Page X of Y | Total Items" below pagination -->
-            <div class="mt-2 text-muted">
-                <small>Page {{ current_page }} of {{ total_pages }} | {{ (total_pages * 24) if total_pages else 0 }} Unique Products (grouped by name)</small>
-            </div>
         </nav>
         {% endif %}
-        
-    </main>
+    </section>
+    
 </div>
 
 <!-- ============================================ -->
-<!-- JAVASCRIPT SECTION -->
+<!-- JAVASCRIPT -->
 <!-- ============================================ -->
 <script>
+/* ========== INITIALIZE PAGE ========== */
+document.addEventListener('DOMContentLoaded', function() {
+    // Use global updateCartBadge from navbar
+    if (window.updateCartBadge) {
+        window.updateCartBadge();
+    }
+    populateAllVariantDropdowns();
+});
 
-/* ========== ADJUST QUANTITY FUNCTION ========== */
-/* Called when user clicks + or - buttons to change quantity */
-/* Parameters: id = product inventory ID, delta = +1 or -1 */
-function adjustShopQty(id, delta) {
-    // Find the quantity input for this specific product
-    const el = document.getElementById(`qty-shop-${id}`);
+/* ========== POPULATE VARIANT DROPDOWNS ========== */
+async function populateAllVariantDropdowns() {
+    const dropdowns = document.querySelectorAll('.variant-quick-select');
     
-    // Get current value and add delta (+1 or -1)
-    let val = parseInt(el.value) + delta;
-    
-    // If result is less than 1, set to 1 (prevents 0 or negative quantities)
-    el.value = val < 1 ? 1 : val;
+    for (const dropdown of dropdowns) {
+        const productId = dropdown.id.replace('variant-select-', '');
+        const productName = dropdown.getAttribute('onchange').match(/'([^']+)'/)[1];
+        await populateVariantDropdown(productId, productName);
+    }
 }
 
-/* ========== ADD TO CART MAIN FUNCTION ========== */
-/* Handles both "Add to Cart" and "Buy Now" button clicks */
-/* Parameters: 
-   - event: The click event
-   - id: Product inventory ID
-   - name: Product name
-   - price: Product price
-   - isBuyNow: true if "Buy Now" was clicked, false if "Add to Cart"
-*/
-function handleAddToCart(event, id, name, price, isBuyNow) {
-    event.preventDefault(); // Prevents default button behavior
+async function populateVariantDropdown(productId, productName) {
+    try {
+        const response = await fetch(`/api/product-variants?name=${encodeURIComponent(productName)}`);
+        const variants = await response.json();
+        
+        const select = document.getElementById(`variant-select-${productId}`);
+        if (!select) return;
+        
+        select.innerHTML = '<option value="">-- Choose a SKU --</option>' + 
+            variants.map(v => {
+                const sku = v.sup_part_no || 'N/A';
+                const origin = v.org ? ` (${v.org})` : '';
+                const price = parseFloat(v.sell_price).toFixed(2);
+                return `
+                    <option value="${v.inventory_id}" 
+                            data-price="${v.sell_price}"
+                            data-name="${v.hem_name}"
+                            data-sku="${sku}">
+                        ${sku}${origin} - SGD ${price}
+                    </option>
+                `;
+            }).join('');
+            
+    } catch (error) {
+        console.error('Error loading variants:', error);
+    }
+}
+
+/* ========== HANDLE VARIANT DROPDOWN CHANGE ========== */
+function handleVariantChange(originalId, productName) {
+    const select = document.getElementById(`variant-select-${originalId}`);
+    if (!select) return;
     
-    // Get the quantity user selected
-    const qtyInput = document.getElementById(`qty-shop-${id}`);
-    const qty = parseInt(qtyInput.value);
+    const addBtn = document.getElementById(`btn-add-${originalId}`);
+    const buyBtn = document.getElementById(`btn-buy-${originalId}`);
     
-    // Find the product card to get the image
-    const card = event.target.closest('.product-card');
-    const imageUrl = card.querySelector('.item-image').src;
+    if (select.value) {
+        const selectedOption = select.options[select.selectedIndex];
+        const variantId = parseInt(select.value);
+        const variantPrice = parseFloat(selectedOption.dataset.price);
+        const variantSku = selectedOption.dataset.sku;
+        
+        select.setAttribute('data-selected-variant-id', variantId);
+        select.setAttribute('data-selected-variant-price', variantPrice);
+        select.setAttribute('data-selected-variant-sku', variantSku);
+        
+        addBtn.disabled = false;
+        buyBtn.disabled = false;
+    } else {
+        addBtn.disabled = true;
+        buyBtn.disabled = true;
+    }
+}
+
+/* ========== QUANTITY ADJUSTMENT ========== */
+function changeQty(productId, delta) {
+    const qtyEl = document.getElementById(`qty-${productId}`);
+    let currentQty = parseInt(qtyEl.value);
+    let newQty = Math.max(1, currentQty + delta);
+    qtyEl.value = newQty;
+}
+
+/* ========== ADD TO CART FUNCTION ========== */
+function handleAddToCart(event, inventoryId, productName, price, isBuyNow) {
+    event.preventDefault();
     
-    /* ========== CART STORAGE LOGIC ========== */
-    // Load cart from browser's localStorage (or empty array if none exists)
+    const variantSelect = document.getElementById(`variant-select-${inventoryId}`);
+    let finalId = inventoryId;
+    let finalName = productName;
+    let finalPrice = price;
+    
+    if (variantSelect && variantSelect.value) {
+        finalId = parseInt(variantSelect.getAttribute('data-selected-variant-id'));
+        finalPrice = parseFloat(variantSelect.getAttribute('data-selected-variant-price'));
+        const sku = variantSelect.getAttribute('data-selected-variant-sku');
+        finalName = `${productName} (SKU: ${sku})`;
+    }
+    
+    let quantity = 1;
+    const qtyDisplay = document.getElementById(`qty-${inventoryId}`);
+    if (qtyDisplay) {
+        quantity = parseInt(qtyDisplay.value) || 1;
+    }
+    
     let cart = JSON.parse(localStorage.getItem('cart') || '[]');
     
-    // Check if this product is already in cart
-    const existing = cart.find(item => item.id === id);
+    const existingIndex = cart.findIndex(item => item.id === finalId);
     
-    if (existing) {
-        // Product already in cart: Add to existing quantity
-        existing.quantity += qty;
+    if (existingIndex >= 0) {
+        cart[existingIndex].quantity += quantity;
     } else {
-        // Product not in cart: Add as new item
-        cart.push({ 
-            id, 
-            name, 
-            price: parseFloat(price), 
-            quantity: qty, 
-            image: imageUrl 
+        cart.push({
+            id: finalId,
+            name: finalName,
+            price: finalPrice,
+            quantity: quantity
         });
     }
     
-    // Save updated cart back to localStorage
     localStorage.setItem('cart', JSON.stringify(cart));
     
-    // Update the cart badge number in navigation
-    updateCartBadge();
-
-    /* ========== TRIGGER APPROPRIATE ANIMATION ========== */
+    console.log('🔥 CART SAVED TO LOCALSTORAGE:', cart);
+    console.log('🔥 window.updateCartBadge exists?', typeof window.updateCartBadge);
+    console.log('🔥 Badge element exists?', document.querySelector('.cart-badge'));
+    
+    // UPDATE BADGE IMMEDIATELY - NO DELAYS!
+    if (window.updateCartBadge) {
+        console.log('🔥 CALLING updateCartBadge NOW!');
+        window.updateCartBadge();
+    } else {
+        console.error('❌ window.updateCartBadge NOT FOUND!');
+    }
+    
     if (isBuyNow) {
-        // "Buy Now" was clicked: Show van animation and redirect to checkout
+        // Buy Now: Show VAN animation, THEN go to checkout
         startCarAnimation();
     } else {
-        // "Add to Cart" was clicked: Show flying box animation
+        // Add to Cart: Show package flying animation
         animateToCart(event);
     }
 }
 
+/* ========== UPDATE CART BADGE ========== */
+// Using global updateCartBadge function from navbar
+// No need to define it here anymore!
+
 /* ========== FLYING BOX ANIMATION ========== */
-/* Creates a 📦 emoji that flies from button to cart icon */
 function animateToCart(e) {
-    // Find the cart icon in the navigation bar
-    const cartIcon = document.querySelector('.cart-badge');
-    if(!cartIcon) return; // Exit if cart icon doesn't exist
+    // Target the cart button in navbar
+    const cartIcon = document.querySelector('.cart-btn') || document.querySelector('.cart-badge');
+    if (!cartIcon) return;
     
-    // Create the flying box element
     const flyer = document.createElement('div');
     flyer.className = 'flying-item';
     flyer.innerHTML = '📦';
     document.body.appendChild(flyer);
     
-    // Get starting position (where button was clicked) and ending position (cart icon)
     const startRect = e.target.getBoundingClientRect();
     const endRect = cartIcon.getBoundingClientRect();
     
-    // Position box at button location
     flyer.style.left = startRect.left + 'px';
     flyer.style.top = (startRect.top + window.scrollY) + 'px';
     
-    // On next animation frame, move box to cart location with effects
     requestAnimationFrame(() => {
         flyer.style.left = endRect.left + 'px';
         flyer.style.top = (endRect.top + window.scrollY) + 'px';
-        flyer.style.transform = 'scale(0.2) rotate(360deg)'; // Shrink and spin
-        flyer.style.opacity = '0'; // Fade out
+        flyer.style.transform = 'scale(0.2) rotate(360deg)';
+        flyer.style.opacity = '0';
     });
     
-    // Remove the flying box after animation completes (800ms)
+    // Remove the flying package after animation
     setTimeout(() => flyer.remove(), 800);
 }
 
 /* ========== DELIVERY VAN ANIMATION ========== */
-/* Creates a 🚐 van that drives across screen with speech bubble */
 function startCarAnimation() {
-    // Disable all buttons so user can't click during animation
     document.querySelectorAll('button').forEach(b => b.disabled = true);
     
-    // Create van wrapper with speech bubble and van emoji
     const carWrap = document.createElement('div');
     carWrap.className = 'delivery-car';
     carWrap.innerHTML = `
         <div class="huat-bubble" id="status-msg">Packing...</div>
-        <div class="van-body">🚐💨</div>
+        <div class="van-body">💨🚐</div>
     `;
     document.body.appendChild(carWrap);
     
-    // Get reference to speech bubble
     const bubble = carWrap.querySelector('#status-msg');
     
-    /* ========== ANIMATION TIMELINE ========== */
-    // After 100ms: Drive van to middle of screen, show "Packing..." bubble
     setTimeout(() => { 
         carWrap.style.left = '40%'; 
         bubble.style.opacity = '1'; 
     }, 100);
     
-    // After 2500ms: Change bubble text to "Secured! Driving to Checkout..."
     setTimeout(() => { 
         bubble.innerText = "Secured! Driving to Checkout..."; 
     }, 2500);
     
-    // After 4500ms: Drive van off-screen to the right
     setTimeout(() => { 
         carWrap.style.left = '120%'; 
     }, 4500);
     
-    // After 5500ms: Redirect to checkout page
     setTimeout(() => { 
         window.location.href = "{{ url_for('checkout') }}"; 
     }, 5500);
 }
 
-/* ========== UPDATE CART BADGE FUNCTION ========== */
-/* Updates the cart icon number in navigation to show total items */
-function updateCartBadge() {
-    // Load cart from localStorage
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    
-    // Add up all quantities from all items in cart
-    const total = cart.reduce((sum, item) => sum + item.quantity, 0);
-    
-    // Find cart badge element in navigation
-    const badge = document.querySelector('.cart-badge');
-    
-    if (badge) { 
-        // Set badge text to total number
-        badge.textContent = total; 
-        
-        // Show badge if items exist, hide if cart is empty
-        badge.style.display = total > 0 ? 'inline-block' : 'none'; 
-    }
-}
-
-/* ========== RUN ON PAGE LOAD ========== */
-/* Update cart badge when page first loads */
-document.addEventListener('DOMContentLoaded', updateCartBadge);
+// Listen for storage events (handled by navbar's global function now)
+// Listen for custom cart update events (handled by navbar's global function now)
+// No need for duplicate listeners here!
 
 </script>
 

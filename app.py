@@ -106,12 +106,22 @@ def cart():
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('search', '')
     category_filter = request.args.get('category', '')
+    min_price = request.args.get('min_price', type=float)
+    max_price = request.args.get('max_price', type=float)
     per_page = 24
     offset = (page - 1) * per_page
 
     with get_db() as conn:
         # Get all unique categories for filter dropdown
-        categories = conn.execute("SELECT DISTINCT category FROM inventory WHERE category IS NOT NULL").fetchall()
+        categories_raw = conn.execute("SELECT DISTINCT category FROM inventory WHERE category IS NOT NULL ORDER BY category").fetchall()
+        categories = [row[0] for row in categories_raw]
+        
+        # Get all unique origins for filter dropdown
+        origins_raw = conn.execute("SELECT DISTINCT org FROM inventory WHERE org IS NOT NULL AND org != '' ORDER BY org").fetchall()
+        origins = [row[0] for row in origins_raw]
+        
+        # Get price range for slider
+        price_range = conn.execute("SELECT MIN(sell_price), MAX(sell_price) FROM inventory WHERE qty > 0").fetchone()
         
         # Build dynamic query based on filters
         base_query = " FROM inventory WHERE qty > 0"  # Only show in-stock items
@@ -126,34 +136,70 @@ def cart():
         if category_filter:
             base_query += " AND category = ?"
             params.append(category_filter)
+        
+        # Add price range filter if provided
+        if min_price is not None:
+            base_query += " AND sell_price >= ?"
+            params.append(min_price)
+        
+        if max_price is not None:
+            base_query += " AND sell_price <= ?"
+            params.append(max_price)
 
         # Calculate total pages for pagination (count DISTINCT product names)
         total_count = conn.execute("SELECT COUNT(DISTINCT hem_name)" + base_query, params).fetchone()[0]
         total_pages = (total_count // per_page) + (1 if total_count % per_page > 0 else 0)
 
         # Get grouped products by name, showing SKU variants and total stock
+        # Sort by variant_count ASC, then by name - so single SKU products appear first
         final_query = """
             SELECT 
                 hem_name,
-                GROUP_CONCAT(DISTINCT sup_part_no, ', ') as sup_part_no,
+                GROUP_CONCAT(DISTINCT sup_part_no) as sup_part_no,
                 category,
                 MIN(sell_price) as sell_price,
                 MAX(sell_price) as max_price,
                 image_url,
                 MIN(inventory_id) as inventory_id,
                 SUM(qty) as qty,
-                COUNT(*) as variant_count
+                COUNT(*) as variant_count,
+                GROUP_CONCAT(DISTINCT org) as org,
+                MIN(sup_part_no) as first_sku
         """ + base_query + """
             GROUP BY hem_name
-            ORDER BY hem_name ASC 
+            ORDER BY variant_count ASC, hem_name ASC 
             LIMIT ? OFFSET ?
         """
         params.extend([per_page, offset])
-        products = conn.execute(final_query, params).fetchall()
+        products_raw = conn.execute(final_query, params).fetchall()
+        
+        # Convert Row objects to dictionaries for JSON serialization
+        products = []
+        for row in products_raw:
+            product_dict = {
+                'id': row['inventory_id'],
+                'name': row['hem_name'],
+                'category': row['category'] or 'Uncategorized',
+                'price': float(row['sell_price']) if row['sell_price'] else 0.0,
+                'max_price': float(row['max_price']) if row['max_price'] else 0.0,
+                'image_url': row['image_url'] or '/static/placeholder.png',
+                'qty': row['qty'] or 0,
+                'variant_count': row['variant_count'] or 1,
+                'origin': row['org'] or ''
+            }
+            
+            # For single-variant products, include the SKU
+            if row['variant_count'] == 1 and row['first_sku']:
+                product_dict['sku'] = row['first_sku']
+            
+            products.append(product_dict)
 
     return render_template("cart.html", products=products, categories=categories,
+                           origins=origins,
                            current_page=page, total_pages=total_pages,
                            search_query=search_query, category_filter=category_filter,
+                           min_price=min_price, max_price=max_price,
+                           price_range=price_range,
                            role=session.get("role", "customer"))
 
 @app.route("/checkout")
@@ -254,7 +300,7 @@ def api_get_inventory():
             items = conn.execute("""
                 SELECT 
                     hem_name,
-                    GROUP_CONCAT(DISTINCT sup_part_no, ', ') as sup_part_no,
+                    GROUP_CONCAT(DISTINCT sup_part_no) as sup_part_no,
                     category,
                     org,
                     loc_on_shelf,
@@ -354,6 +400,30 @@ def api_delete_inventory(inventory_id):
     except Exception as e:
         print(f"❌ Error deleting product: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route("/api/product-variants", methods=["GET"])
+@csrf.exempt
+def api_get_product_variants():
+    """API: Get all SKU variants for a specific product name."""
+    product_name = request.args.get('name', '')
+    
+    if not product_name:
+        return jsonify({"error": "Product name required"}), 400
+    
+    try:
+        with get_db() as conn:
+            variants = conn.execute("""
+                SELECT inventory_id, sup_part_no, hem_name, category, 
+                       org, loc_on_shelf, qty, sell_price, image_url
+                FROM inventory
+                WHERE hem_name = ? AND qty > 0
+                ORDER BY sup_part_no ASC
+            """, (product_name,)).fetchall()
+            
+            return jsonify([dict(v) for v in variants])
+    except Exception as e:
+        print(f"❌ Error fetching variants: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 # === SALES DASHBOARD ROUTES ===

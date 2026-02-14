@@ -398,6 +398,7 @@ function detectCardBrand(num){
 function handleSavedCardChange(){
     const val = document.getElementById('saved-card-id').value;
     const cardDetailsSection = document.getElementById('card-details-section');
+    const logo = document.getElementById('card-logo');
     
     if(val === 'new'){
         // User wants to enter a new card
@@ -408,6 +409,9 @@ function handleSavedCardChange(){
         document.getElementById('card-number').value = '';
         document.getElementById('card-exp').value = '';
         document.getElementById('card-cvv').value = '';
+        
+        // Hide logo
+        logo.style.display = 'none';
     } else {
         // User selected a saved card
         const savedCards = JSON.parse(localStorage.getItem('saved_cards') || '[]');
@@ -418,6 +422,20 @@ function handleSavedCardChange(){
             document.getElementById('card-name').value = card.name || '';
             document.getElementById('card-number').value = '•••• •••• •••• ' + card.last4;
             document.getElementById('card-exp').value = card.exp;
+            
+            // Show card logo based on saved brand
+            const VISA = "{{ url_for('static', filename='checkout/visa.png') }}";
+            const MC = "{{ url_for('static', filename='checkout/mastercard.png') }}";
+            
+            if(card.brand === 'Visa'){
+                logo.src = VISA;
+                logo.style.display = 'inline';
+            } else if(card.brand === 'Mastercard'){
+                logo.src = MC;
+                logo.style.display = 'inline';
+            } else {
+                logo.style.display = 'none';
+            }
         }
         
         // Hide input section (card already selected)
@@ -572,7 +590,26 @@ function updateQty(i, d){
     
     // Save updated cart and refresh display
     localStorage.setItem('cart', JSON.stringify(cart));
+    
+    // Dispatch custom event for real-time updates across tabs/windows
+    window.dispatchEvent(new CustomEvent('cartUpdated'));
+    
+    // Update cart badge immediately
+    updateCartBadge();
+    
     loadCheckoutCart();
+}
+
+/* ========== UPDATE CART BADGE FUNCTION ========== */
+function updateCartBadge() {
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const total = cart.reduce((sum, item) => sum + item.quantity, 0);
+    const badge = document.querySelector('.cart-badge');
+    
+    if (badge) {
+        badge.textContent = total;
+        badge.style.display = total > 0 ? 'inline-block' : 'none';
+    }
 }
 
 /* ========== PROCESS PAYMENT ========== */
@@ -732,15 +769,13 @@ async function processPayment(){
 document.addEventListener('DOMContentLoaded', function(){
     loadCheckoutCart();  // Load cart items and calculate totals
     loadSavedCards();    // Load saved payment cards
+    updateCartBadge();   // Update cart badge on load
 });
+
+// Listen for cart updates from other tabs/windows
+window.addEventListener('cartUpdated', updateCartBadge);
 
 </script>
 
 <!-- End of content block -->
 {% endblock %}
-
-
-
-
-
-
