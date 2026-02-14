@@ -176,6 +176,11 @@ body {
 /* -----------------------------
 /* FILTERS — use same .form-group styles as Create Invoice */
 
+/* Datalist inputs look identical to regular inputs */
+input[list] {
+    cursor: text;
+}
+
 /* -----------------------------
    FIX #2: "Select Product" + "Quantity" overlap
    Root cause: grid items can overflow if select/input don't have width + min-width rules.
@@ -216,13 +221,18 @@ body {
 .form-group input,
 .form-group select {
     width: 100%;
-    background: rgba(0,0,0,0.35);
+    background: #000000;
     border: 1px solid rgba(255,255,255,0.18);
     border-radius: 12px;
     padding: 12px 14px;
     color: rgba(255,255,255,0.92);
     font-size: 0.95rem;
     box-sizing: border-box;
+}
+
+.form-group select option {
+    background: #000000;
+    color: rgba(255,255,255,0.92);
 }
 
 .form-group input:focus,
@@ -705,26 +715,27 @@ body {
                             <input type="date" id="invoice_date" name="invoice_date" required>
                         </div>
                         <div class="form-group">
-                            <label for="customer_id">CUSTOMER</label>
-                            <select id="customer_id" name="customer_id" required>
-                                <option value="">Select Customer</option>
+                            <label for="customer_id_input">CUSTOMER ID</label>
+                            <input type="text" id="customer_id_input" name="customer_id" required placeholder="Type or select customer..." list="customer_list" autocomplete="off">
+                            <datalist id="customer_list">
                                 {% for customer in customers %}
-                                <option value="{{ customer.customer_id }}">{{ customer.customer_code }}</option>
+                                <option value="{{ customer.customer_code }}">{{ customer.customer_code }}</option>
                                 {% endfor %}
-                            </select>
+                            </datalist>
                         </div>
                         <div class="form-group">
                             <label for="legend_id">LEGEND ID</label>
-                            <input type="text" id="legend_id" name="legend_id" placeholder="SGP" value="SGP">
+                            <input type="text" id="legend_id" name="legend_id" placeholder="Auto-fills from Customer ID">
                         </div>
                         <div class="form-group">
-                            <label for="product_id">PRODUCT</label>
-                            <select id="product_id" name="product_id" required>
-                                <option value="">Select Product</option>
+                            <label for="product_input">PRODUCT</label>
+                            <input type="text" id="product_input" name="product_display" required placeholder="Type or select product..." list="product_list" autocomplete="off">
+                            <input type="hidden" id="product_id" name="product_id">
+                            <datalist id="product_list">
                                 {% for product in inventory %}
-                                <option value="{{ product.product_id }}">{{ product.hem_name }}{% if product.sku_no %} ({{ product.sku_no }}){% endif %}</option>
+                                <option value="{{ product.hem_name }}{% if product.sku_no %} ({{ product.sku_no }}){% endif %}" data-id="{{ product.product_id }}">
                                 {% endfor %}
-                            </select>
+                            </datalist>
                         </div>
                         <div class="form-group">
                             <label for="qty">QUANTITY</label>
@@ -866,11 +877,11 @@ body {
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
                     <div class="form-group">
                         <label for="edit_invoice_date" style="display: block; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.75); margin-bottom: 8px;">DATE</label>
-                        <input type="date" id="edit_invoice_date" name="invoice_date" required style="width: 100%; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.18); border-radius: 12px; padding: 12px 14px; color: rgba(255,255,255,0.92); font-size: 0.95rem; box-sizing: border-box;">
+                        <input type="date" id="edit_invoice_date" name="invoice_date" required style="width: 100%; background: #000000; border: 1px solid rgba(255,255,255,0.18); border-radius: 12px; padding: 12px 14px; color: rgba(255,255,255,0.92); font-size: 0.95rem; box-sizing: border-box;">
                     </div>
                     <div class="form-group">
                         <label for="edit_customer_id" style="display: block; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.75); margin-bottom: 8px;">CUSTOMER</label>
-                        <select id="edit_customer_id" name="customer_id" required style="width: 100%; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.18); border-radius: 12px; padding: 12px 14px; color: rgba(255,255,255,0.92); font-size: 0.95rem; box-sizing: border-box;">
+                        <select id="edit_customer_id" name="customer_id" required style="width: 100%; background: #000000; border: 1px solid rgba(255,255,255,0.18); border-radius: 12px; padding: 12px 14px; color: rgba(255,255,255,0.92); font-size: 0.95rem; box-sizing: border-box;">
                             <option value="">Select Customer</option>
                             {% for customer in customers %}
                             <option value="{{ customer.customer_id }}">{{ customer.customer_code }}</option>
@@ -882,7 +893,7 @@ body {
                 <div style="margin-bottom: 20px;">
                     <div class="form-group">
                         <label for="edit_legend_id" style="display: block; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.75); margin-bottom: 8px;">LEGEND ID</label>
-                        <input type="text" id="edit_legend_id" name="legend_id" placeholder="SGP" style="width: 100%; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.18); border-radius: 12px; padding: 12px 14px; color: rgba(255,255,255,0.92); font-size: 0.95rem; box-sizing: border-box;">
+                        <input type="text" id="edit_legend_id" name="legend_id" placeholder="SGP" style="width: 100%; background: #000000; border: 1px solid rgba(255,255,255,0.18); border-radius: 12px; padding: 12px 14px; color: rgba(255,255,255,0.92); font-size: 0.95rem; box-sizing: border-box;">
                     </div>
                 </div>
 
@@ -1236,12 +1247,55 @@ window.onclick = function(event) {
     }
 }
 
+// === CREATE INVOICE: Customer → Legend auto-fill + Product ID resolution ===
+
+// Build product lookup map from datalist: display text → product_id
+const productList = document.getElementById('product_list');
+const productMap = {};
+if (productList) {
+    Array.from(productList.options).forEach(opt => {
+        productMap[opt.value.trim()] = opt.getAttribute('data-id');
+    });
+}
+
+// Customer input → auto-fill Legend with first 3 chars (uppercase)
+const customerInput = document.getElementById('customer_id_input');
+const legendInput   = document.getElementById('legend_id');
+if (customerInput && legendInput) {
+    customerInput.addEventListener('input', function() {
+        const val = this.value.trim();
+        legendInput.value = val.length >= 3 ? val.substring(0, 3).toUpperCase() : val.toUpperCase();
+    });
+}
+
+// Product input → resolve hidden product_id when user picks/types
+const productInput  = document.getElementById('product_input');
+const productIdHidden = document.getElementById('product_id');
+if (productInput && productIdHidden) {
+    productInput.addEventListener('change', function() {
+        const typed = this.value.trim();
+        productIdHidden.value = productMap[typed] || '';
+    });
+    productInput.addEventListener('input', function() {
+        const typed = this.value.trim();
+        productIdHidden.value = productMap[typed] || '';
+    });
+}
+
 // Invoice form submission handler
 const invoiceForm = document.getElementById('invoiceForm');
 if (invoiceForm) {
     invoiceForm.addEventListener('submit', function(e) {
-        // Show a brief "processing" message before form submits
-        // The actual success/error message will come from the server via flash messages
+        // Ensure product_id resolved before submit
+        if (productInput && productIdHidden && !productIdHidden.value) {
+            const typed = productInput.value.trim();
+            productIdHidden.value = productMap[typed] || '';
+            if (!productIdHidden.value) {
+                e.preventDefault();
+                showBigNotification('Please select a valid product from the list', 'error');
+                return;
+            }
+        }
         const submitButton = invoiceForm.querySelector('button[type="submit"]');
         if (submitButton) {
             submitButton.disabled = true;

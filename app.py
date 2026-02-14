@@ -380,14 +380,20 @@ def dashboard():
         }
         
         # === GET DISTINCT INVOICE NUMBERS FOR PAGINATION ===
-        # First get all matching invoice numbers
+        # Subquery gets one row per invoice_no first, then we filter/order — avoids
+        # dupes caused by multi-line invoices inflating the JOIN result set.
         distinct_invoices_query = f"""
-            SELECT DISTINCT h.invoice_no
+            SELECT h.invoice_no
             FROM sales_invoice_header h
-            LEFT JOIN sales_invoice_line l ON h.invoice_no = l.invoice_no
-            LEFT JOIN products p ON l.product_id = p.product_id
             LEFT JOIN customers c ON h.customer_id = c.customer_id
-            WHERE {where_sql}
+            WHERE h.invoice_no IN (
+                SELECT DISTINCT h2.invoice_no
+                FROM sales_invoice_header h2
+                LEFT JOIN sales_invoice_line l ON h2.invoice_no = l.invoice_no
+                LEFT JOIN products p ON l.product_id = p.product_id
+                LEFT JOIN customers c2 ON h2.customer_id = c2.customer_id
+                WHERE {where_sql}
+            )
             ORDER BY h.invoice_date DESC, h.invoice_no DESC
         """
         
@@ -454,8 +460,8 @@ def dashboard():
         # === GET REFERENCE DATA FOR DROPDOWNS ===
         # Get all customers for the "Create Invoice" form
         customers = conn.execute("SELECT customer_id, customer_code FROM customers ORDER BY customer_code").fetchall()
-        # Get top 100 products for the dropdown (limit for performance)
-        products = conn.execute("SELECT product_id, sku_no, hem_name FROM products ORDER BY hem_name LIMIT 100").fetchall()
+        # Get all distinct products (no limit) for the datalist
+        products = conn.execute("SELECT DISTINCT product_id, sku_no, hem_name FROM products ORDER BY hem_name").fetchall()
         
         # === GET REVENUE TREND DATA BY MONTH ===
         trend_query = f"""
@@ -614,7 +620,6 @@ def create_invoice():
     return redirect(url_for("dashboard"))
 
 @app.route("/delete-invoice/<invoice_no>", methods=["POST"])
-@csrf.exempt
 @require_staff
 def delete_invoice(invoice_no):
     """
