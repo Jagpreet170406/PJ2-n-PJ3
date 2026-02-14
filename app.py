@@ -614,6 +614,7 @@ def create_invoice():
     return redirect(url_for("dashboard"))
 
 @app.route("/delete-invoice/<invoice_no>", methods=["POST"])
+@csrf.exempt
 @require_staff
 def delete_invoice(invoice_no):
     """
@@ -1010,4 +1011,3 @@ def logout():
 # === APPLICATION ENTRY POINT ===
 if __name__ == "__main__":
     app.run(debug=True)  # Run Flask development server with debug mode enabled
-

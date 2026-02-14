@@ -983,6 +983,9 @@ body {
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+// Global CSRF token (used by update-invoice fetch)
+const csrfToken = '{{ csrf_token() }}';
+
 // Show BIG NOTIFICATION
 // NOTIFICATIONS: 🟢 GREEN = Save/Create, 🟠 AMBER = Update, 🔴 RED = Delete/Error
 // BUTTONS: 🔵 BLUE = Edit, 🔴 RED = Delete
@@ -1232,17 +1235,8 @@ document.getElementById('editModal').addEventListener('click', function(e) {
 
 // Delete Modal Functions
 let currentInvoiceToDelete = null;
-const csrfToken = '{{ csrf_token() }}';
 
 function showDeleteModal(invoiceNo) {
-    console.log('=== DELETE MODAL DEBUG ===');
-    console.log('Invoice No:', invoiceNo);
-    console.log('Type:', typeof invoiceNo);
-    console.log('Is null?', invoiceNo === null);
-    console.log('Is undefined?', invoiceNo === undefined);
-    console.log('=========================');
-    
-    // Clean and trim the invoice number
     currentInvoiceToDelete = String(invoiceNo).trim();
     document.getElementById('deleteInvoiceNo').textContent = currentInvoiceToDelete;
     document.getElementById('deleteModal').classList.add('show');
@@ -1254,68 +1248,42 @@ function hideDeleteModal() {
 }
 
 async function confirmDelete() {
-    console.log('=== CONFIRM DELETE DEBUG ===');
-    console.log('currentInvoiceToDelete:', currentInvoiceToDelete);
-    console.log('Type:', typeof currentInvoiceToDelete);
-    console.log('============================');
-    
     if (!currentInvoiceToDelete) {
-        console.error('❌ No invoice to delete!');
         showBigNotification('ERROR: No invoice selected', 'error');
         return;
     }
-    
-    // Hide modal first
+
     hideDeleteModal();
-    
+
     try {
-        // URL-encode the invoice number to handle special characters
-        const encodedInvoiceNo = encodeURIComponent(currentInvoiceToDelete);
-        const url = `/delete-invoice/${encodedInvoiceNo}`;
-        console.log('🔗 DELETE URL:', url);
-        console.log('🔗 Original Invoice No:', currentInvoiceToDelete);
-        console.log('🔗 Encoded Invoice No:', encodedInvoiceNo);
-        
-        const response = await fetch(url, {
+        const response = await fetch(`/delete-invoice/${currentInvoiceToDelete}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-            }
+            headers: { 'Content-Type': 'application/json' }
         });
-        
-        console.log('📡 Response status:', response.status);
-        
+
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ Delete failed:', response.status, errorText);
-            
             if (response.status === 404) {
-                showBigNotification('INVOICE NOT FOUND - Check if it exists in database!', 'error');
+                showBigNotification('INVOICE NOT FOUND', 'error');
             } else {
                 showBigNotification(`DELETE FAILED: ${response.status}`, 'error');
             }
+            currentInvoiceToDelete = null;
             return;
         }
-        
+
         const result = await response.json();
-        console.log('✅ Delete result:', result);
-        
+
         if (result.success) {
-            // Show RED notification for delete (using false)
             showBigNotification('INVOICE DELETED!', false);
-            // Reload page after notification
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
+            setTimeout(() => { window.location.reload(); }, 1500);
         } else {
             showBigNotification('FAILED TO DELETE: ' + result.message, 'error');
         }
     } catch (error) {
-        console.error('❌ Error deleting invoice:', error);
+        console.error('Error deleting invoice:', error);
         showBigNotification('FAILED TO DELETE INVOICE', 'error');
     }
-    
+
     currentInvoiceToDelete = null;
 }
 
