@@ -131,8 +131,8 @@ def cart():
         total_count = conn.execute("SELECT COUNT(*)" + base_query, params).fetchone()[0]
         total_pages = (total_count // per_page) + (1 if total_count % per_page > 0 else 0)
 
-        # Get products for current page
-        final_query = "SELECT *" + base_query + " ORDER BY hem_name ASC LIMIT ? OFFSET ?"
+        # Get products for current page (DISTINCT to avoid duplicates)
+        final_query = "SELECT DISTINCT hem_name, sup_part_no, category, sell_price, image_url, inventory_id, qty" + base_query + " ORDER BY hem_name ASC LIMIT ? OFFSET ?"
         params.extend([per_page, offset])
         products = conn.execute(final_query, params).fetchall()
 
@@ -233,10 +233,15 @@ def inventory():
 @csrf.exempt
 @require_staff
 def api_get_inventory():
-    """API: Retrieve all inventory items as JSON."""
+    """API: Retrieve all inventory items as JSON (DISTINCT to avoid duplicates)."""
     try:
         with get_db() as conn:
-            items = conn.execute("SELECT * FROM inventory ORDER BY hem_name ASC").fetchall()
+            items = conn.execute("""
+                SELECT DISTINCT hem_name, sup_part_no, category, org, loc_on_shelf, 
+                                qty, sell_price, image_url, inventory_id 
+                FROM inventory 
+                ORDER BY hem_name ASC
+            """).fetchall()
             print(f"✅ Loaded {len(items)} inventory items")
             return jsonify([dict(item) for item in items])
     except Exception as e:
