@@ -8,11 +8,17 @@ from datetime import datetime, timedelta, date
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from werkzeug.security import generate_password_hash, check_password_hash
+from groq import Groq
 
 # === FLASK APP INITIALIZATION ===
 app = Flask(__name__)
 app.secret_key = "chinhon_secret_key"  # Secret key for session management
 csrf = CSRFProtect(app)  # Enable CSRF protection for forms
+
+# === GROQ API SETUP ===
+# Get API key from environment variable (set in your system or .env file)
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
 # === DATABASE SETUP ===
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Get current directory
@@ -840,6 +846,84 @@ def update_invoice(invoice_no):
 
 # === MARKET ANALYSIS ROUTES ===
 
+def generate_ai_insights(kpis, top_products, top_customers, trend_data):
+    """
+    Generate AI-powered insights and recommendations using Groq API.
+    Falls back to None if API is unavailable or fails.
+    """
+    if not groq_client:
+        return None
+    
+    try:
+        # Prepare data summary for AI
+        top_product_share = (top_products[0]['revenue'] / kpis['revenue'] * 100) if top_products and kpis['revenue'] > 0 else 0
+        top_customer_share = (top_customers[0]['revenue'] / kpis['revenue'] * 100) if top_customers and kpis['revenue'] > 0 else 0
+        
+        data_summary = f"""
+Sales Performance Data:
+- Total Revenue: SGD {kpis['revenue']:.2f}
+- Total Orders: {kpis['orders']}
+- Units Sold: {kpis['units']:.2f}
+- Average Order Value: SGD {kpis['aov']:.2f}
+- GST Collected: SGD {kpis['gst']:.2f}
+
+Top Product: {top_products[0]['hem_name'] if top_products else 'N/A'} (SGD {top_products[0]['revenue']:.2f}, {top_product_share:.1f}% of revenue)
+Top Customer: {top_customers[0]['customer_code'] if top_customers else 'N/A'} (SGD {top_customers[0]['revenue']:.2f}, {top_customer_share:.1f}% of revenue, {top_customers[0]['orders'] if top_customers else 0} orders)
+
+Revenue Trend: {len(trend_data['labels'])} months of data
+"""
+
+        # Call Groq API
+        response = groq_client.chat.completions.create(
+            model="llama-3.1-70b-versatile",  # Fast and capable
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a business analyst specializing in sales data. Provide concise, actionable insights and recommendations for a sales department. Focus on specific numbers and concrete actions."
+                },
+                {
+                    "role": "user",
+                    "content": f"""Analyze this sales data and provide:
+1. Three key strategic insights (2-3 sentences each)
+2. Five specific, actionable recommendations (2-3 sentences each)
+
+{data_summary}
+
+Format your response as JSON with this structure:
+{{
+  "insights": [
+    {{"title": "Insight Title", "description": "Detailed insight description"}},
+    ...
+  ],
+  "recommendations": [
+    {{"title": "Recommendation Title", "description": "Specific action items"}},
+    ...
+  ]
+}}
+
+Be specific with numbers and thresholds. Focus on risk mitigation, growth opportunities, and operational improvements."""
+                }
+            ],
+            temperature=0.3,  # Lower temperature for more consistent output
+            max_tokens=1500
+        )
+        
+        # Parse AI response
+        ai_text = response.choices[0].message.content
+        
+        # Try to extract JSON from response
+        import re
+        json_match = re.search(r'\{.*\}', ai_text, re.DOTALL)
+        if json_match:
+            ai_insights = json.loads(json_match.group())
+            return ai_insights
+        else:
+            return None
+            
+    except Exception as e:
+        print(f"⚠️ Groq API error: {e}")
+        return None
+
 @app.route("/market-analysis")
 @require_staff
 def market_analysis():
@@ -1032,13 +1116,21 @@ def market_analysis():
                 error_message=f"Query error: {str(e)}", legends=legends,
                 selected={"start": start, "end": end, "legend": legend},
                 kpis={"revenue": 0, "orders": 0, "units": 0, "aov": 0, "gst": 0},
-                trend_labels=[], trend_revenue=[], top_products=[], top_customers=[])
+                trend_labels=[], trend_revenue=[], top_products=[], top_customers=[], ai_insights=None)
+
+    # Generate AI insights (optional, falls back gracefully if unavailable)
+    ai_insights = generate_ai_insights(
+        kpis=kpis,
+        top_products=top_products,
+        top_customers=top_customers,
+        trend_data={"labels": trend_labels, "revenue": trend_revenue}
+    )
 
     # Render market analysis page with all calculated data
     return render_template("market_analysis.html", role=session.get("role"), error_message="",
         legends=legends, selected={"start": start, "end": end, "legend": legend},
         kpis=kpis, trend_labels=trend_labels, trend_revenue=trend_revenue,
-        top_products=top_products, top_customers=top_customers)
+        top_products=top_products, top_customers=top_customers, ai_insights=ai_insights)
 
 @app.route("/real-time-analytics")
 @require_staff
