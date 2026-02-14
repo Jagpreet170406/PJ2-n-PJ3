@@ -449,6 +449,29 @@
   .badge.buy { background: #d1fae5; color: #065f46; }
   .badge.hold { background: #fef3c7; color: #92400e; }
   .badge.review { background: #dbeafe; color: #1e40af; }
+  .date-error {
+    display: block;
+    color: #f87171;
+    font-size: 0.88rem;
+    font-weight: 700;
+    margin-top: 8px;
+    min-height: 1.2em;
+    letter-spacing: 0.01em;
+    background: rgba(248, 113, 113, 0.10);
+    border-left: 3px solid #f87171;
+    padding: 6px 10px;
+    border-radius: 0 6px 6px 0;
+  }
+  .date-error:empty {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-top: 6px;
+  }
+  .form-control.input-error {
+    border-color: #f87171;
+    box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.18);
+  }
 </style>
 
 <div class="page-wrap">
@@ -467,12 +490,14 @@
       <form method="GET" class="filters">
         <div class="filter-group">
           <label>Start Date</label>
-          <input type="date" name="start" class="form-control" value="{{ selected.start }}">
+          <input type="date" name="start" id="startDate" class="form-control" value="{{ selected.start }}">
+          <span class="date-error" id="startError"></span>
         </div>
 
         <div class="filter-group">
           <label>End Date</label>
-          <input type="date" name="end" class="form-control" value="{{ selected.end }}">
+          <span class="date-error" id="endError"></span>
+          <input type="date" name="end" id="endDate" class="form-control" value="{{ selected.end }}">
         </div>
 
         <div class="filter-group">
@@ -723,6 +748,71 @@
 
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  // ── Date validation ──────────────────────────────────────────────
+  (function () {
+    const today    = new Date().toISOString().split('T')[0];
+    const startEl  = document.getElementById('startDate');
+    const endEl    = document.getElementById('endDate');
+    const startErr = document.getElementById('startError');
+    const endErr   = document.getElementById('endError');
+    const form     = startEl.closest('form');
+
+    function setError(input, errEl, msg) {
+      errEl.textContent = msg;
+      if (msg) input.classList.add('input-error');
+      else input.classList.remove('input-error');
+    }
+
+    // Cap both inputs so the picker never offers future dates
+    startEl.setAttribute('max', today);
+    endEl.setAttribute('max', today);
+
+    // Validate on every input event (fires each keystroke/spinner change)
+    // so errors show the moment a complete, invalid date is detected
+    function validateDates() {
+      const startVal = startEl.value;  // empty string if incomplete
+      const endVal   = endEl.value;
+
+      // Only validate when both fields have a fully-entered date
+      setError(startEl, startErr, '');
+      setError(endEl,   endErr,   '');
+
+      if (startVal && startVal > today) {
+        setError(startEl, startErr, 'Start date cannot be in the future.');
+      }
+      if (endVal && endVal > today) {
+        setError(endEl, endErr, 'End date cannot be in the future.');
+      }
+      // Only compare start vs end when neither is a future-date error
+      if (startVal && endVal && endVal < startVal && startVal <= today && endVal <= today) {
+        setError(endEl, endErr, 'End date must be on or after the start date.');
+      }
+    }
+
+    startEl.addEventListener('input', validateDates);
+    endEl.addEventListener('input', validateDates);
+
+    // Also fire on 'change' to catch date-picker selection (click, not type)
+    startEl.addEventListener('change', function () {
+      endEl.setAttribute('min', this.value || '');
+      validateDates();
+    });
+    endEl.addEventListener('change', validateDates);
+
+    // Submit guard — block if any error is visible
+    form.addEventListener('submit', function (e) {
+      validateDates();
+      if (startErr.textContent || endErr.textContent) {
+        e.preventDefault();
+      }
+    });
+
+    // On load: set end's min from existing start value
+    if (startEl.value) endEl.setAttribute('min', startEl.value);
+  })();
+  // ────────────────────────────────────────────────────────────────
+</script>
 <script>
   const labels = {{ trend_labels|tojson }};
   const revenue = {{ trend_revenue|tojson }};
