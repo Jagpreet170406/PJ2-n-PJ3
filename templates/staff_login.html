@@ -152,7 +152,7 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div class="mb-3">
-          <label class="form-label">Username</label>
+          <label class="form-label"><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> Username</label>
           <input
             type="text"
             name="username"
@@ -163,7 +163,7 @@
         </div>
 
         <div class="mb-3">
-          <label class="form-label">Password</label>
+          <label class="form-label"><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> Password</label>
           <input
             type="password"
             name="password"

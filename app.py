@@ -122,55 +122,92 @@ def cart():
         # Get price range for slider
         price_range = conn.execute("SELECT MIN(sell_price), MAX(sell_price) FROM inventory WHERE qty > 0").fetchone()
         
-        # Build dynamic query based on filters
-        base_query = " FROM inventory WHERE qty > 0"  # Only show in-stock items
+        # Build dynamic WHERE clause based on active filters
+        where_clause = " WHERE qty > 0"  # Only show in-stock items
         params = []
 
         # Add search filter if provided
         if search_query:
-            base_query += " AND (hem_name LIKE ? OR sup_part_no LIKE ?)"
+            where_clause += " AND (hem_name LIKE ? OR sup_part_no LIKE ?)"
             params.extend([f'%{search_query}%', f'%{search_query}%'])
 
         # Add category filter if provided
         if category_filter:
-            base_query += " AND category = ?"
+            where_clause += " AND category = ?"
             params.append(category_filter)
-        
+
         # Add price range filter if provided
         if min_price is not None:
-            base_query += " AND sell_price >= ?"
+            where_clause += " AND sell_price >= ?"
             params.append(min_price)
-        
+
         if max_price is not None:
-            base_query += " AND sell_price <= ?"
+            where_clause += " AND sell_price <= ?"
             params.append(max_price)
 
-        # Calculate total pages for pagination (count DISTINCT product names)
-        total_count = conn.execute("SELECT COUNT(DISTINCT hem_name)" + base_query, params).fetchone()[0]
-        total_pages = (total_count // per_page) + (1 if total_count % per_page > 0 else 0)
-
-        # Get grouped products by name, showing SKU variants and total stock
-        # Sort by variant_count ASC, then by name - so single SKU products appear first
-        final_query = """
-            SELECT 
+        # ------------------------------------------------------------------
+        # BUCKETED POOL: 200 products max (50 per SKU-count tier)
+        #   Bucket 1 → exactly 1 SKU variant
+        #   Bucket 2 → exactly 2 SKU variants
+        #   Bucket 3 → exactly 3 SKU variants
+        #   Bucket 4 → 4 or more SKU variants
+        # The UNION ALL builds a fixed 200-row pool; pagination then slices it.
+        # Each params list is duplicated because the same WHERE clause is used
+        # in all four sub-queries.
+        # ------------------------------------------------------------------
+        # SQLite requires each UNION ALL branch wrapped in a subselect for ORDER BY + LIMIT
+        bucket_core = """
+            SELECT
                 hem_name,
                 GROUP_CONCAT(DISTINCT sup_part_no) as sup_part_no,
                 category,
-                MIN(sell_price) as sell_price,
-                MAX(sell_price) as max_price,
+                MIN(sell_price)   as sell_price,
+                MAX(sell_price)   as max_price,
                 image_url,
                 MIN(inventory_id) as inventory_id,
-                SUM(qty) as qty,
-                COUNT(*) as variant_count,
+                SUM(qty)          as qty,
+                COUNT(*)          as variant_count,
                 GROUP_CONCAT(DISTINCT org) as org,
-                MIN(sup_part_no) as first_sku
-        """ + base_query + """
-            GROUP BY hem_name
-            ORDER BY variant_count ASC, hem_name ASC 
-            LIMIT ? OFFSET ?
+                MIN(sup_part_no)  as first_sku
+            FROM inventory
         """
-        params.extend([per_page, offset])
-        products_raw = conn.execute(final_query, params).fetchall()
+
+        def make_bucket(vc_condition):
+            inner = bucket_core + where_clause + """
+                GROUP BY hem_name
+                HAVING """ + vc_condition + """
+                ORDER BY hem_name ASC
+                LIMIT 50
+            """
+            return "SELECT * FROM (" + inner + ") AS bkt"
+
+        pool_query = """
+            SELECT * FROM (
+                {b1}
+                UNION ALL
+                {b2}
+                UNION ALL
+                {b3}
+                UNION ALL
+                {b4}
+            ) AS pool
+            ORDER BY variant_count ASC, hem_name ASC
+        """.format(
+            b1=make_bucket("COUNT(*) = 1"),
+            b2=make_bucket("COUNT(*) = 2"),
+            b3=make_bucket("COUNT(*) = 3"),
+            b4=make_bucket("COUNT(*) > 3"),
+        )
+
+        # params repeated once per sub-query (4 buckets)
+        pool_params = params * 4
+
+        all_pooled = conn.execute(pool_query, pool_params).fetchall()
+
+        # Pagination over the capped 200-product pool
+        total_count = len(all_pooled)
+        total_pages = (total_count // per_page) + (1 if total_count % per_page > 0 else 0)
+        products_raw = all_pooled[offset: offset + per_page]
         
         # Convert Row objects to dictionaries for JSON serialization
         products = []
@@ -296,24 +333,42 @@ def api_get_inventory():
     """API: Retrieve grouped inventory items by product name to reduce duplicates."""
     try:
         with get_db() as conn:
-            items = conn.execute("""
-                SELECT 
+            # Bucketed pool: 50 products per SKU-count tier → max 200 total
+            # Bucket 1 = exactly 1 SKU, Bucket 2 = exactly 2, Bucket 3 = exactly 3, Bucket 4 = 4+
+            bucket_select = """
+                SELECT
                     hem_name,
                     GROUP_CONCAT(DISTINCT sup_part_no) as sup_part_no,
                     category,
                     org,
                     loc_on_shelf,
-                    SUM(qty) as qty,
-                    MIN(sell_price) as sell_price,
-                    MAX(sell_price) as max_price,
+                    SUM(qty)          as qty,
+                    MIN(sell_price)   as sell_price,
+                    MAX(sell_price)   as max_price,
                     image_url,
                     MIN(inventory_id) as inventory_id,
-                    COUNT(*) as variant_count
+                    COUNT(*)          as variant_count
                 FROM inventory
                 GROUP BY hem_name
-                ORDER BY hem_name ASC
-            """).fetchall()
-            print(f"✅ Loaded {len(items)} grouped inventory items (reduced from duplicates)")
+            """
+            # SQLite requires each UNION ALL branch wrapped in a subselect for ORDER BY + LIMIT
+            def inv_bucket(vc_condition):
+                inner = bucket_select + " HAVING " + vc_condition + " ORDER BY hem_name ASC LIMIT 50"
+                return "SELECT * FROM (" + inner + ") AS bkt"
+
+            pool_query = (
+                "SELECT * FROM ("
+                + inv_bucket("COUNT(*) = 1")
+                + " UNION ALL "
+                + inv_bucket("COUNT(*) = 2")
+                + " UNION ALL "
+                + inv_bucket("COUNT(*) = 3")
+                + " UNION ALL "
+                + inv_bucket("COUNT(*) > 3")
+                + ") AS pool ORDER BY variant_count ASC, hem_name ASC"
+            )
+            items = conn.execute(pool_query).fetchall()
+            print(f"✅ Loaded {len(items)} inventory items (bucketed pool: max 200)")
             return jsonify([dict(item) for item in items])
     except Exception as e:
         print(f"❌ Error getting inventory: {e}")

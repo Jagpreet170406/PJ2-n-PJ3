@@ -111,12 +111,14 @@
                 <!-- Credit Card Input Fields (Shows when entering new card) -->
                 <div id="card-details-section">
                     <!-- Cardholder Name -->
+                    <label class="small font-weight-bold text-muted" style="display:block; margin-bottom:0.25rem;"><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> NAME ON CARD</label>
                     <input type="text" 
                            id="card-name" 
                            class="form-control mb-2" 
                            placeholder="NAME ON CARD">
                     
                     <!-- Card Number (Auto-detects Visa/Mastercard and formats with spaces) -->
+                    <label class="small font-weight-bold text-muted" style="display:block; margin-bottom:0.25rem;"><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> CARD NUMBER</label>
                     <input type="tel" 
                            id="card-number" 
                            class="form-control mb-2" 
@@ -128,6 +130,7 @@
                     <div class="row">
                         <!-- Expiry Date (MM/YY format) -->
                         <div class="col-6">
+                            <label class="small font-weight-bold text-muted" style="display:block; margin-bottom:0.25rem;"><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> EXPIRY</label>
                             <input type="tel" 
                                    id="card-exp" 
                                    class="form-control" 
@@ -137,6 +140,7 @@
                         
                         <!-- CVV Security Code -->
                         <div class="col-6">
+                            <label class="small font-weight-bold text-muted" style="display:block; margin-bottom:0.25rem;"><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> CVV</label>
                             <input type="password" 
                                    id="card-cvv" 
                                    class="form-control" 

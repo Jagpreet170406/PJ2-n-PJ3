@@ -283,7 +283,6 @@ body {
     position: absolute;
     top: 1.25rem;
     right: 1.25rem;
-    background: #000000;
     color: white;
     padding: 0.5rem 1rem;
     border-radius: 4px;
@@ -294,8 +293,19 @@ body {
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
+.stock-badge.in-stock {
+    background: #16a34a;
+    box-shadow: 0 4px 12px rgba(22,163,74,0.35);
+}
+
 .stock-badge.low-stock {
-    background: #666666;
+    background: #d97706;
+    box-shadow: 0 4px 12px rgba(217,119,6,0.35);
+}
+
+.stock-badge.no-stock {
+    background: #dc2626;
+    box-shadow: 0 4px 12px rgba(220,38,38,0.35);
 }
 
 /* Card Details - Rich Content */
@@ -614,7 +624,6 @@ body {
     position: absolute;
     top: 1rem;
     right: 1rem;
-    background: #000000;
     color: white;
     padding: 0.4rem 0.8rem;
     border-radius: 20px;
@@ -624,8 +633,19 @@ body {
     letter-spacing: 0.5px;
 }
 
+.stock-badge.in-stock {
+    background: #16a34a;
+    box-shadow: 0 4px 12px rgba(22,163,74,0.35);
+}
+
 .stock-badge.low-stock {
-    background: #666666;
+    background: #d97706;
+    box-shadow: 0 4px 12px rgba(217,119,6,0.35);
+}
+
+.stock-badge.no-stock {
+    background: #dc2626;
+    box-shadow: 0 4px 12px rgba(220,38,38,0.35);
 }
 
 /* Card Details */
@@ -1044,10 +1064,12 @@ body {
                 <!-- Product Image -->
                 <div class="product-image-wrapper">
                     <img src="{{ product.image_url or '/static/placeholder.png' }}" alt="{{ product.name }}" class="item-image">
-                    {% if product.qty %}
-                    <div class="stock-badge {% if product.qty < 10 %}low-stock{% endif %}">
-                        {% if product.qty < 10 %}Low Stock{% else %}In Stock{% endif %}
-                    </div>
+                    {% if product.qty == 0 %}
+                    <div class="stock-badge no-stock">No Stock</div>
+                    {% elif product.qty < 10 %}
+                    <div class="stock-badge low-stock">Low Stock</div>
+                    {% else %}
+                    <div class="stock-badge in-stock">In Stock</div>
                     {% endif %}
                 </div>
                 
@@ -1087,14 +1109,14 @@ body {
                     <!-- Add to Cart Button -->
                     <button class="btn-add-cart" id="btn-add-{{ product.id }}" 
                             onclick="handleAddToCart(event, {{ product.id }}, '{{ product.name|replace("'", "\\'") }}', {{ product.price }}, false)"
-                            {% if product.variant_count > 1 %}disabled{% endif %}>
+                            {% if product.variant_count > 1 or product.qty == 0 %}disabled{% endif %}>
                         🛒 Add to Cart
                     </button>
                     
                     <!-- Buy Now Button -->
                     <button class="btn-buy-now" id="btn-buy-{{ product.id }}" 
                             onclick="handleAddToCart(event, {{ product.id }}, '{{ product.name|replace("'", "\\'") }}', {{ product.price }}, true)"
-                            {% if product.variant_count > 1 %}disabled{% endif %}>
+                            {% if product.variant_count > 1 or product.qty == 0 %}disabled{% endif %}>
                         ⚡ Buy Now
                     </button>
                 </div>
