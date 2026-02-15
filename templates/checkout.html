@@ -6,6 +6,33 @@
 {% extends "base.html" %}
 {% block content %}
 
+<style>
+/* Date validation error styling (like market_analysis.html) */
+.date-error {
+  display: block;
+  color: #f87171;
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin-top: 8px;
+  letter-spacing: 0.01em;
+  background: rgba(248, 113, 113, 0.10);
+  border-left: 3px solid #f87171;
+  padding: 6px 10px;
+  border-radius: 0 6px 6px 0;
+  visibility: visible;
+}
+.date-error:empty {
+  visibility: hidden;
+  background: none;
+  border: none;
+  padding: 0;
+}
+.form-control.input-error {
+  border-color: #f87171 !important;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.18) !important;
+}
+</style>
+
 <!-- Main Container: Checkout page content with top margin to clear navbar -->
 <div class="container mb-5" style="margin-top: 100px;">
     
@@ -60,16 +87,23 @@
 
                 <!-- Pickup Date Selector (Shows when Pickup is selected) -->
                 <div id="pickup-date-section" class="mt-3">
-                    <label>📅 Pick-up Date</label>
-                    <input type="date" id="pickup-date" class="form-control">
+                    <label><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> 📅 Pick-up Date</label>
+                    <input type="date" id="pickup-date" class="form-control" required>
+                    <span class="date-error" id="pickup-date-error"></span>
                 </div>
 
                 <!-- Delivery Address Input (Shows when Delivery is selected, hidden by default) -->
                 <div id="delivery-address-section" class="mt-3 d-none">
-                    <label>📍 Delivery Address</label>
+                    <label><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> 📍 Delivery Address</label>
                     <textarea id="delivery-address" 
                               class="form-control" 
-                              placeholder="Block, Street, Unit No, Postal Code"></textarea>
+                              placeholder="e.g., Blk 123 Orchard Road, #01-234, Singapore 238867"
+                              rows="3"
+                              required></textarea>
+                    <span class="date-error" id="delivery-address-error"></span>
+                    <small class="text-muted" style="display: block; margin-top: 5px;">
+                        Please include: Street/Block, Unit Number, Postal/Zip Code, Country (if outside Singapore)
+                    </small>
                 </div>
             </div>
 
@@ -628,6 +662,24 @@ async function processPayment(){
     // Clear previous error messages
     errorMsg.innerText = '';
 
+    /* ========== VALIDATE PICKUP DATE (IF PICKUP METHOD) ========== */
+    if(currentFulfillment === 'pickup'){
+        if(!validatePickupDate()){
+            // Scroll to pickup date field
+            document.getElementById('pickup-date').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+    }
+    
+    /* ========== VALIDATE DELIVERY ADDRESS (IF DELIVERY METHOD) ========== */
+    if(currentFulfillment === 'delivery'){
+        if(!validateDeliveryAddress()){
+            // Scroll to delivery address field
+            document.getElementById('delivery-address').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+    }
+
     let cardDetails = null;
 
     /* ========== VALIDATE CREDIT CARD (IF NEW CARD) ========== */
@@ -768,12 +820,128 @@ async function processPayment(){
     }
 }
 
+/* ========== PICKUP DATE VALIDATION ========== */
+/* Validates that pickup date is today or in the future (no past dates allowed) */
+function validatePickupDate() {
+    const pickupDateInput = document.getElementById('pickup-date');
+    const errorSpan = document.getElementById('pickup-date-error');
+    const today = new Date().toISOString().split('T')[0];
+    
+    if (!pickupDateInput.value) {
+        // No date selected
+        pickupDateInput.classList.add('input-error');
+        errorSpan.textContent = 'Please select a pickup date.';
+        return false;
+    }
+    
+    if (pickupDateInput.value < today) {
+        // Past date selected
+        pickupDateInput.classList.add('input-error');
+        errorSpan.textContent = 'Pickup date cannot be in the past.';
+        return false;
+    }
+    
+    // Valid date
+    pickupDateInput.classList.remove('input-error');
+    errorSpan.textContent = '';
+    return true;
+}
+
+/* ========== DELIVERY ADDRESS VALIDATION ========== */
+/* Validates that delivery address contains required components for a proper address */
+function validateDeliveryAddress() {
+    const addressInput = document.getElementById('delivery-address');
+    const errorSpan = document.getElementById('delivery-address-error');
+    const address = addressInput.value.trim();
+    
+    // Check if address is empty
+    if (!address) {
+        addressInput.classList.add('input-error');
+        errorSpan.textContent = 'Please enter a delivery address.';
+        return false;
+    }
+    
+    // Minimum length check (proper addresses should be at least 20 characters)
+    if (address.length < 20) {
+        addressInput.classList.add('input-error');
+        errorSpan.textContent = 'Address is too short. Please provide a complete address.';
+        return false;
+    }
+    
+    // Check for digits (postal/zip codes, block/unit numbers)
+    const hasDigits = /\d/.test(address);
+    if (!hasDigits) {
+        addressInput.classList.add('input-error');
+        errorSpan.textContent = 'Address must include numbers (postal code, block, or unit number).';
+        return false;
+    }
+    
+    // Check for common address components using flexible patterns
+    const hasStreetOrBlock = /\b(street|st|road|rd|avenue|ave|blk|block|drive|dr|lane|ln|way)\b/i.test(address);
+    const hasPostalCode = /\b\d{5,6}\b/.test(address); // 5-6 digit postal/zip codes
+    
+    // Singapore specific patterns
+    const isSingapore = /singapore|sg\b/i.test(address);
+    
+    if (isSingapore) {
+        // Singapore address validation
+        if (!hasPostalCode) {
+            addressInput.classList.add('input-error');
+            errorSpan.textContent = 'Singapore address must include a 6-digit postal code.';
+            return false;
+        }
+    } else {
+        // International address validation - should have country name
+        const hasCountry = /\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s*$/i.test(address.trim());
+        
+        if (!hasCountry) {
+            addressInput.classList.add('input-error');
+            errorSpan.textContent = 'For international delivery, please include the country name at the end.';
+            return false;
+        }
+    }
+    
+    // Check that address has at least 2 commas or line breaks (separating different parts)
+    const separators = (address.match(/[,\n]/g) || []).length;
+    if (separators < 1) {
+        addressInput.classList.add('input-error');
+        errorSpan.textContent = 'Please separate address components with commas (e.g., street, unit, postal code).';
+        return false;
+    }
+    
+    // Valid address
+    addressInput.classList.remove('input-error');
+    errorSpan.textContent = '';
+    return true;
+}
+
 /* ========== PAGE LOAD INITIALIZATION ========== */
 /* Runs when page finishes loading */
 document.addEventListener('DOMContentLoaded', function(){
     loadCheckoutCart();  // Load cart items and calculate totals
     loadSavedCards();    // Load saved payment cards
     updateCartBadge();   // Update cart badge on load
+    
+    // Initialize pickup date with today's date (default)
+    const pickupDateInput = document.getElementById('pickup-date');
+    const today = new Date().toISOString().split('T')[0];
+    pickupDateInput.value = today;
+    pickupDateInput.setAttribute('min', today); // Prevent past dates in date picker
+    
+    // Add validation on date change
+    pickupDateInput.addEventListener('change', validatePickupDate);
+    pickupDateInput.addEventListener('input', validatePickupDate);
+    
+    // Add validation on delivery address change
+    const deliveryAddressInput = document.getElementById('delivery-address');
+    deliveryAddressInput.addEventListener('blur', validateDeliveryAddress);
+    deliveryAddressInput.addEventListener('input', function() {
+        // Clear error on input to give immediate feedback
+        if (deliveryAddressInput.value.trim().length > 0) {
+            deliveryAddressInput.classList.remove('input-error');
+            document.getElementById('delivery-address-error').textContent = '';
+        }
+    });
 });
 
 // Listen for cart updates from other tabs/windows
