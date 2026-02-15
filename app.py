@@ -5,10 +5,11 @@ import json
 from functools import wraps
 from collections import defaultdict
 from datetime import datetime, timedelta, date
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_from_directory
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from werkzeug.security import generate_password_hash, check_password_hash
 from groq import Groq
+from image_matcher import build_image_cache, get_product_image_url
 
 # === FLASK APP INITIALIZATION ===
 app = Flask(__name__)
@@ -76,7 +77,8 @@ def inject_csrf_token():
     """Make CSRF token and today's date available to all templates."""
     return dict(
         csrf_token=generate_csrf,
-        today=date.today().isoformat()
+        today=date.today().isoformat(),
+        get_product_image_url=get_product_image_url  # Add image helper
     )
 
 # === AUTHENTICATION DECORATORS ===
@@ -1304,6 +1306,25 @@ def real_time_analytics():
     """Real-time analytics dashboard for monitoring current business metrics."""
     return render_template("real_time_analytics.html", role=session.get("role"))
 
+# === PRODUCT IMAGE ROUTES ===
+@app.route('/product-image/<filename>')
+def serve_product_image(filename):
+    """Serve product images from product_images_v2 folder."""
+    images_dir = os.path.join(app.root_path, 'product_images_v2')
+    return send_from_directory(images_dir, filename)
+
+@app.route('/api/image-list')
+def api_image_list():
+    """Return list of all available product image filenames for frontend caching."""
+    images_dir = os.path.join(app.root_path, 'product_images_v2')
+    try:
+        files = [f for f in os.listdir(images_dir) 
+                 if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
+        return jsonify(files)
+    except Exception as e:
+        print(f"Error listing images: {e}")
+        return jsonify([])
+
 @app.route("/logout")
 def logout():
     """Clear user session and redirect to customer cart page."""
@@ -1312,4 +1333,10 @@ def logout():
 
 # === APPLICATION ENTRY POINT ===
 if __name__ == "__main__":
+    # Build image cache on startup for fast lookups
+    print("🖼️  Building image cache...")
+    with app.app_context():
+        build_image_cache('product_images_v2')
+    print("✅ Image cache ready!")
+    
     app.run(debug=True)  # Run Flask development server with debug mode enabled
