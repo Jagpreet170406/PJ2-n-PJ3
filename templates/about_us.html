@@ -5,199 +5,129 @@
 {% block content %}
 
 <style>
-    /* ================================================================
-       BASE BODY STYLING
-       ================================================================ */
-    
-    /* Set background to pure black and text to white */
     body {
         background-color: #000;
         color: #fff;
     }
 
-    /* ================================================================
-       HERO SECTION (Top Banner with Background Image)
-       ================================================================ */
-    
-    /* Hero section with overlay image and centered content */
     .about-hero {
-        min-height: 80vh; /* 80% of viewport height */
-        /* Layered background: dark overlay on top of image */
+        min-height: 80vh;
         background:
-            linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.75)), /* Dark overlay */
-            url("/static/preview2.jpg") center / cover no-repeat; /* Background image */
+            linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.75)),
+            url("/static/preview2.jpg") center / cover no-repeat;
         display: flex;
-        align-items: center; /* Vertically center content */
-        padding: 60px 20px; /* Top/bottom and left/right padding */
+        align-items: center;
+        padding: 60px 20px;
     }
 
-    /* ================================================================
-       HERO TYPOGRAPHY
-       ================================================================ */
-    
-    /* Main title in hero section */
     .about-title {
-        font-size: clamp(2.6rem, 5vw, 4.2rem); /* Responsive: min 2.6rem, scales with viewport, max 4.2rem */
-        font-weight: 800; /* Extra bold */
+        font-size: clamp(2.6rem, 5vw, 4.2rem);
+        font-weight: 800;
         margin-bottom: 1rem;
-        line-height: 1.1; /* Tight line spacing for large text */
+        line-height: 1.1;
     }
 
-    /* Paragraph text in hero section */
     .about-text {
         font-size: 1.1rem;
-        font-weight: 400; /* Normal weight */
-        color: rgba(255, 255, 255, 0.8); /* Slightly transparent white */
-        max-width: 800px; /* Limit line length for readability */
-        margin: 0 auto 1.5rem; /* Center horizontally, add bottom margin */
+        font-weight: 400;
+        color: rgba(255, 255, 255, 0.8);
+        max-width: 800px;
+        margin: 0 auto 1.5rem;
     }
 
-    /* ================================================================
-       JOURNEY SECTION (Timeline Area)
-       ================================================================ */
-    
-    /* Container for the journey/timeline section */
     .journey-section {
-        padding: 80px 20px; /* Top/bottom and left/right padding */
-        background-color: #0a0a0a; /* Very dark gray background */
+        padding: 80px 20px;
+        background-color: #0a0a0a;
     }
 
-    /* ================================================================
-       SECTION TITLE
-       ================================================================ */
-    
-    /* Title for major sections */
     .section-title {
-        font-size: clamp(2rem, 4vw, 3rem); /* Responsive sizing */
-        font-weight: 700; /* Bold */
+        font-size: clamp(2rem, 4vw, 3rem);
+        font-weight: 700;
         text-align: center;
-        margin-bottom: 3rem; /* Space below title */
+        margin-bottom: 3rem;
     }
 
-    /* ================================================================
-       JOURNEY TIMELINE CONTAINER
-       ================================================================ */
-    
-    /* Container for timeline items */
     .journey-timeline {
         max-width: 1200px;
-        margin: 0 auto; /* Center horizontally */
+        margin: 0 auto;
     }
 
-    /* ================================================================
-       JOURNEY ITEM (Individual Timeline Entry)
-       ================================================================ */
-    
-    /* Each timeline item - flexbox layout for image + content */
     .journey-item {
         display: flex;
-        gap: 30px; /* Space between image and text */
-        margin-bottom: 60px; /* Space between timeline items */
-        align-items: center; /* Vertically center content */
+        gap: 30px;
+        margin-bottom: 60px;
+        align-items: center;
     }
 
-    /* Alternate layout: every other item has image on right */
     .journey-item:nth-child(even) {
-        flex-direction: row-reverse; /* Swap order of image and content */
+        flex-direction: row-reverse;
     }
 
-    /* ================================================================
-       JOURNEY IMAGE
-       ================================================================ */
-    
-    /* Image container in timeline item */
     .journey-image {
-        flex: 1; /* Take up equal space */
-        min-width: 280px; /* Minimum width before wrapping */
+        flex: 1;
+        min-width: 280px;
     }
 
-    /* Actual image styling */
     .journey-image img {
         width: 100%;
-        height: 300px; /* Fixed height */
-        object-fit: cover; /* Crop image to fill space while maintaining aspect ratio */
-        border-radius: 12px; /* Rounded corners */
-        box-shadow: 0 10px 30px rgba(255, 255, 255, 0.1); /* Subtle glow effect */
+        height: 300px;
+        object-fit: cover;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(255, 255, 255, 0.1);
     }
 
-    /* ================================================================
-       JOURNEY CONTENT (Text Section)
-       ================================================================ */
-    
-    /* Content/text container in timeline item */
     .journey-content {
-        flex: 1; /* Take up equal space */
+        flex: 1;
     }
 
-    /* Year label (e.g., "1985") */
     .journey-year {
         font-size: 1.5rem;
         font-weight: 700;
-        color: #ffd700; /* Gold color */
+        color: #ffd700;
         margin-bottom: 0.5rem;
     }
 
-    /* Timeline item title (e.g., "The Beginning") */
     .journey-title {
         font-size: 1.8rem;
-        font-weight: 600; /* Semi-bold */
+        font-weight: 600;
         margin-bottom: 1rem;
     }
 
-    /* Timeline item description text */
     .journey-description {
         font-size: 1rem;
-        color: rgba(255, 255, 255, 0.75); /* Slightly transparent white */
-        line-height: 1.6; /* Good spacing for readability */
+        color: rgba(255, 255, 255, 0.75);
+        line-height: 1.6;
     }
 
-    /* ================================================================
-       RESPONSIVE LAYOUT (Mobile Devices)
-       ================================================================ */
-    
-    /* On tablets and smaller devices */
     @media (max-width: 768px) {
-        /* Stack image and content vertically instead of side-by-side */
         .journey-item,
         .journey-item:nth-child(even) {
-            flex-direction: column; /* Vertical stacking */
+            flex-direction: column;
         }
 
-        /* Image takes full width on mobile */
         .journey-image {
             min-width: 100%;
         }
     }
 </style>
 
-<!-- ====================================================================
-     HTML MARKUP
-     ==================================================================== -->
-
-<!-- ====================================================================
-     HERO SECTION (Page Header with Background)
-     ==================================================================== -->
 <div class="about-hero">
-    <div class="container"> <!-- Bootstrap container for centering -->
+    <div class="container">
         <div class="row">
-            <div class="col text-center"> <!-- Center-aligned column -->
-                <!-- Main page title -->
+            <div class="col text-center">
                 <h1 class="about-title">About Us</h1>
 
-                <!-- Introduction paragraph 1 -->
                 <p class="about-text">
                     Welcome to Chin Hon Motors, your trusted partner in automotive excellence.
                     With decades of experience, we pride ourselves on delivering top-quality
                     vehicles and exceptional customer service.
                 </p>
 
-                <!-- Introduction paragraph 2 -->
                 <p class="about-text">
                     Our mission is to provide reliable vehicles that meet diverse needs while
                     ensuring a smooth and enjoyable buying experience.
                 </p>
 
-                <!-- Introduction paragraph 3 -->
                 <p class="about-text">
                     Thank you for choosing Chin Hon Motors. We look forward to helping you find
                     the perfect vehicle for your lifestyle.
@@ -207,27 +137,15 @@
     </div>
 </div>
 
-<!-- ====================================================================
-     JOURNEY SECTION (Company Timeline)
-     ==================================================================== -->
 <div class="journey-section">
     <div class="container">
-        <!-- Section title -->
         <h2 class="section-title">Our Journey</h2>
         
-        <!-- Timeline container -->
         <div class="journey-timeline">
-            
-            <!-- ========================================================
-                 TIMELINE ITEM 1: 1985 - The Beginning
-                 ======================================================== -->
             <div class="journey-item">
-                <!-- Image on left (default) -->
                 <div class="journey-image">
                     <img src="/static/preview4.jpg" alt="The Beginning">
                 </div>
-                
-                <!-- Content on right -->
                 <div class="journey-content">
                     <div class="journey-year">1985</div>
                     <h3 class="journey-title">The Beginning</h3>
@@ -240,16 +158,10 @@
                 </div>
             </div>
 
-            <!-- ========================================================
-                 TIMELINE ITEM 2: 2000 - Expansion & Growth
-                 ======================================================== -->
-            <div class="journey-item"> <!-- nth-child(even) will flip this one -->
-                <!-- Image on right (due to nth-child(even) CSS rule) -->
+            <div class="journey-item">
                 <div class="journey-image">
                     <img src="/static/preview5.jpg" alt="Expansion & Growth">
                 </div>
-                
-                <!-- Content on left -->
                 <div class="journey-content">
                     <div class="journey-year">2000</div>
                     <h3 class="journey-title">Expansion & Growth</h3>
@@ -262,16 +174,10 @@
                 </div>
             </div>
 
-            <!-- ========================================================
-                 TIMELINE ITEM 3: 2015 - Innovation & Modernization
-                 ======================================================== -->
             <div class="journey-item">
-                <!-- Image on left (default) -->
                 <div class="journey-image">
                     <img src="/static/preview6.jpg" alt="Innovation & Modernization">
                 </div>
-                
-                <!-- Content on right -->
                 <div class="journey-content">
                     <div class="journey-year">2015</div>
                     <h3 class="journey-title">Innovation & Modernization</h3>
@@ -284,16 +190,10 @@
                 </div>
             </div>
 
-            <!-- ========================================================
-                 TIMELINE ITEM 4: 2025 - Today & Beyond
-                 ======================================================== -->
-            <div class="journey-item"> <!-- nth-child(even) will flip this one -->
-                <!-- Image on right (due to nth-child(even) CSS rule) -->
+            <div class="journey-item">
                 <div class="journey-image">
                     <img src="/static/preview7.jpg" alt="Today & Beyond">
                 </div>
-                
-                <!-- Content on left -->
                 <div class="journey-content">
                     <div class="journey-year">2025</div>
                     <h3 class="journey-title">Today & Beyond</h3>
@@ -305,9 +205,8 @@
                     </p>
                 </div>
             </div>
-            
-        </div> <!-- End journey-timeline -->
-    </div> <!-- End container -->
-</div> <!-- End journey-section -->
+        </div>
+    </div>
+</div>
 
 {% endblock %}

@@ -4,15 +4,21 @@ import os
 import json
 from functools import wraps
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from werkzeug.security import generate_password_hash, check_password_hash
+from groq import Groq
 
 # === FLASK APP INITIALIZATION ===
 app = Flask(__name__)
 app.secret_key = "chinhon_secret_key"  # Secret key for session management
 csrf = CSRFProtect(app)  # Enable CSRF protection for forms
+
+# === GROQ API SETUP ===
+# Get API key from environment variable (set in your system or .env file)
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
 # === DATABASE SETUP ===
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Get current directory
@@ -53,6 +59,13 @@ def init_db():
                 recommended_price REAL
             )
         """)
+        # Performance indexes for dashboard filtering/sorting
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_sih_date    ON sales_invoice_header(invoice_date)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_sih_cust    ON sales_invoice_header(customer_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_sil_inv     ON sales_invoice_line(invoice_no)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_sil_prod    ON sales_invoice_line(product_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_prod_name   ON products(hem_name)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_cust_code   ON customers(customer_code)")
         conn.commit()
 
 init_db()  # Initialize database on app startup
@@ -60,8 +73,11 @@ init_db()  # Initialize database on app startup
 # === CONTEXT PROCESSORS ===
 @app.context_processor
 def inject_csrf_token():
-    """Make CSRF token available to all templates."""
-    return dict(csrf_token=generate_csrf)
+    """Make CSRF token and today's date available to all templates."""
+    return dict(
+        csrf_token=generate_csrf,
+        today=date.today().isoformat()
+    )
 
 # === AUTHENTICATION DECORATORS ===
 def require_staff(f):
@@ -89,12 +105,22 @@ def cart():
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('search', '')
     category_filter = request.args.get('category', '')
+    min_price = request.args.get('min_price', type=float)
+    max_price = request.args.get('max_price', type=float)
     per_page = 24
     offset = (page - 1) * per_page
 
     with get_db() as conn:
         # Get all unique categories for filter dropdown
-        categories = conn.execute("SELECT DISTINCT category FROM inventory WHERE category IS NOT NULL").fetchall()
+        categories_raw = conn.execute("SELECT DISTINCT category FROM inventory WHERE category IS NOT NULL ORDER BY category").fetchall()
+        categories = [row[0] for row in categories_raw]
+        
+        # Get all unique origins for filter dropdown
+        origins_raw = conn.execute("SELECT DISTINCT org FROM inventory WHERE org IS NOT NULL AND org != '' ORDER BY org").fetchall()
+        origins = [row[0] for row in origins_raw]
+        
+        # Get price range for slider
+        price_range = conn.execute("SELECT MIN(sell_price), MAX(sell_price) FROM inventory WHERE qty > 0").fetchone()
         
         # Build dynamic query based on filters
         base_query = " FROM inventory WHERE qty > 0"  # Only show in-stock items
@@ -109,19 +135,70 @@ def cart():
         if category_filter:
             base_query += " AND category = ?"
             params.append(category_filter)
+        
+        # Add price range filter if provided
+        if min_price is not None:
+            base_query += " AND sell_price >= ?"
+            params.append(min_price)
+        
+        if max_price is not None:
+            base_query += " AND sell_price <= ?"
+            params.append(max_price)
 
-        # Calculate total pages for pagination
-        total_count = conn.execute("SELECT COUNT(*)" + base_query, params).fetchone()[0]
+        # Calculate total pages for pagination (count DISTINCT product names)
+        total_count = conn.execute("SELECT COUNT(DISTINCT hem_name)" + base_query, params).fetchone()[0]
         total_pages = (total_count // per_page) + (1 if total_count % per_page > 0 else 0)
 
-        # Get products for current page
-        final_query = "SELECT *" + base_query + " ORDER BY hem_name ASC LIMIT ? OFFSET ?"
+        # Get grouped products by name, showing SKU variants and total stock
+        # Sort by variant_count ASC, then by name - so single SKU products appear first
+        final_query = """
+            SELECT 
+                hem_name,
+                GROUP_CONCAT(DISTINCT sup_part_no) as sup_part_no,
+                category,
+                MIN(sell_price) as sell_price,
+                MAX(sell_price) as max_price,
+                image_url,
+                MIN(inventory_id) as inventory_id,
+                SUM(qty) as qty,
+                COUNT(*) as variant_count,
+                GROUP_CONCAT(DISTINCT org) as org,
+                MIN(sup_part_no) as first_sku
+        """ + base_query + """
+            GROUP BY hem_name
+            ORDER BY variant_count ASC, hem_name ASC 
+            LIMIT ? OFFSET ?
+        """
         params.extend([per_page, offset])
-        products = conn.execute(final_query, params).fetchall()
+        products_raw = conn.execute(final_query, params).fetchall()
+        
+        # Convert Row objects to dictionaries for JSON serialization
+        products = []
+        for row in products_raw:
+            product_dict = {
+                'id': row['inventory_id'],
+                'name': row['hem_name'],
+                'category': row['category'] or 'Uncategorized',
+                'price': float(row['sell_price']) if row['sell_price'] else 0.0,
+                'max_price': float(row['max_price']) if row['max_price'] else 0.0,
+                'image_url': row['image_url'] or '/static/placeholder.png',
+                'qty': row['qty'] or 0,
+                'variant_count': row['variant_count'] or 1,
+                'origin': row['org'] or ''
+            }
+            
+            # For single-variant products, include the SKU
+            if row['variant_count'] == 1 and row['first_sku']:
+                product_dict['sku'] = row['first_sku']
+            
+            products.append(product_dict)
 
     return render_template("cart.html", products=products, categories=categories,
+                           origins=origins,
                            current_page=page, total_pages=total_pages,
                            search_query=search_query, category_filter=category_filter,
+                           min_price=min_price, max_price=max_price,
+                           price_range=price_range,
                            role=session.get("role", "customer"))
 
 @app.route("/checkout")
@@ -216,11 +293,27 @@ def inventory():
 @csrf.exempt
 @require_staff
 def api_get_inventory():
-    """API: Retrieve all inventory items as JSON."""
+    """API: Retrieve grouped inventory items by product name to reduce duplicates."""
     try:
         with get_db() as conn:
-            items = conn.execute("SELECT * FROM inventory ORDER BY hem_name ASC").fetchall()
-            print(f"✅ Loaded {len(items)} inventory items")
+            items = conn.execute("""
+                SELECT 
+                    hem_name,
+                    GROUP_CONCAT(DISTINCT sup_part_no) as sup_part_no,
+                    category,
+                    org,
+                    loc_on_shelf,
+                    SUM(qty) as qty,
+                    MIN(sell_price) as sell_price,
+                    MAX(sell_price) as max_price,
+                    image_url,
+                    MIN(inventory_id) as inventory_id,
+                    COUNT(*) as variant_count
+                FROM inventory
+                GROUP BY hem_name
+                ORDER BY hem_name ASC
+            """).fetchall()
+            print(f"✅ Loaded {len(items)} grouped inventory items (reduced from duplicates)")
             return jsonify([dict(item) for item in items])
     except Exception as e:
         print(f"❌ Error getting inventory: {e}")
@@ -307,177 +400,192 @@ def api_delete_inventory(inventory_id):
         print(f"❌ Error deleting product: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
+@app.route("/api/product-variants", methods=["GET"])
+@csrf.exempt
+def api_get_product_variants():
+    """API: Get all SKU variants for a specific product name."""
+    product_name = request.args.get('name', '')
+    
+    if not product_name:
+        return jsonify({"error": "Product name required"}), 400
+    
+    try:
+        with get_db() as conn:
+            variants = conn.execute("""
+                SELECT inventory_id, sup_part_no, hem_name, category, 
+                       org, loc_on_shelf, qty, sell_price, image_url
+                FROM inventory
+                WHERE hem_name = ? AND qty > 0
+                ORDER BY sup_part_no ASC
+            """, (product_name,)).fetchall()
+            
+            return jsonify([dict(v) for v in variants])
+    except Exception as e:
+        print(f"❌ Error fetching variants: {e}")
+        return jsonify({"error": str(e)}), 500
+
 
 # === SALES DASHBOARD ROUTES ===
 
 @app.route("/dashboard")
 @require_staff
 def dashboard():
-    """
-    Sales dashboard showing invoices, KPIs, and trends.
-    Features:
-    - Pagination for invoice list
-    - Search across invoice numbers, products, and customers
-    - Date range filtering
-    - KPI calculations (revenue, customers, units, etc.)
-    - Monthly revenue trend chart data
-    """
-    # Get pagination and filter parameters from URL
-    page = request.args.get('page', 1, type=int)
-    per_page = 20
-    offset = (page - 1) * per_page
-    search = request.args.get('search', '').strip()
+    """Sales dashboard — optimized: SQL-level pagination, minimal joins, indexed queries."""
+    page       = request.args.get('page', 1, type=int)
+    per_page   = 20
+    offset     = (page - 1) * per_page
+    search     = request.args.get('search', '').strip()
     start_date = request.args.get('start_date', '').strip()
-    end_date = request.args.get('end_date', '').strip()
-    
+    end_date   = request.args.get('end_date', '').strip()
+
     with get_db() as conn:
-        # === BUILD WHERE CLAUSE FOR FILTERING ===
-        where_clauses = []
-        params = []
-        
-        # Search filter: searches invoice number, product name, and customer code
-        if search:
-            where_clauses.append("(h.invoice_no LIKE ? OR p.hem_name LIKE ? OR c.customer_code LIKE ?)")
-            params.extend([f'%{search}%', f'%{search}%', f'%{search}%'])
-        
-        # Date range filters
-        if start_date:
-            where_clauses.append("h.invoice_date >= ?")
-            params.append(start_date)
-        
-        if end_date:
-            where_clauses.append("h.invoice_date <= ?")
-            params.append(end_date)
-        
-        # Combine all WHERE clauses, or use "1=1" if no filters
-        where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
-        
-        # === CALCULATE KEY PERFORMANCE INDICATORS (KPIs) ===
-        kpi_query = f"""
-            SELECT 
-                COUNT(DISTINCT h.invoice_no) as total_invoices,
-                COUNT(DISTINCT h.customer_id) as total_customers,
-                COALESCE(SUM(l.total_amt), 0) as total_revenue,
-                COALESCE(SUM(l.gst_amt), 0) as total_gst,
-                COALESCE(SUM(l.qty), 0) as total_units,
-                COALESCE(AVG(l.total_amt), 0) as avg_line_value
+
+        # === BUILD FILTER: only join what each query actually needs ===
+        # For search we need products/customers; date filter only touches header.
+        # We pre-compute a set of matching invoice_nos once, then reuse it.
+
+        if search or start_date or end_date:
+            # Build a minimal subquery that returns matching invoice_nos
+            inner_clauses = []
+            inner_params  = []
+
+            if search:
+                inner_clauses.append("""(
+                    h.invoice_no LIKE ?
+                    OR EXISTS (
+                        SELECT 1 FROM sales_invoice_line l2
+                        JOIN products p2 ON p2.product_id = l2.product_id
+                        WHERE l2.invoice_no = h.invoice_no AND p2.hem_name LIKE ?
+                    )
+                    OR EXISTS (
+                        SELECT 1 FROM customers c2
+                        WHERE c2.customer_id = h.customer_id AND c2.customer_code LIKE ?
+                    )
+                )""")
+                like = f'%{search}%'
+                inner_params.extend([like, like, like])
+
+            if start_date:
+                inner_clauses.append("h.invoice_date >= ?")
+                inner_params.append(start_date)
+
+            if end_date:
+                inner_clauses.append("h.invoice_date <= ?")
+                inner_params.append(end_date)
+
+            filter_where = "WHERE " + " AND ".join(inner_clauses)
+        else:
+            filter_where  = ""
+            inner_params  = []
+
+        # === 1. COUNT + KPIs in a single pass (no Python-side aggregation) ===
+        kpi_row = conn.execute(f"""
+            SELECT
+                COUNT(DISTINCT h.invoice_no)            AS total_invoices,
+                COUNT(DISTINCT h.customer_id)           AS total_customers,
+                COALESCE(SUM(l.total_amt), 0)           AS total_revenue,
+                COALESCE(SUM(l.gst_amt),  0)            AS total_gst,
+                COALESCE(SUM(l.qty),      0)            AS total_units
             FROM sales_invoice_header h
-            LEFT JOIN sales_invoice_line l ON h.invoice_no = l.invoice_no
-            LEFT JOIN products p ON l.product_id = p.product_id
-            LEFT JOIN customers c ON h.customer_id = c.customer_id
-            WHERE {where_sql}
-        """
-        
-        stats_row = conn.execute(kpi_query, params).fetchone()
+            LEFT JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
+            {filter_where}
+        """, inner_params).fetchone()
+
+        total_count = int(kpi_row['total_invoices'] or 0)
+        total_pages = (total_count + per_page - 1) // per_page
         stats = {
-            'total_invoices': stats_row['total_invoices'] or 0,
-            'total_customers': stats_row['total_customers'] or 0,
-            'total_revenue': round(stats_row['total_revenue'] or 0, 2),
-            'total_gst': round(stats_row['total_gst'] or 0, 2),
-            'total_units': stats_row['total_units'] or 0,
-            'avg_line_value': round(stats_row['avg_line_value'] or 0, 2)
+            'total_invoices':  total_count,
+            'total_customers': int(kpi_row['total_customers'] or 0),
+            'total_revenue':   round(float(kpi_row['total_revenue'] or 0), 2),
+            'total_gst':       round(float(kpi_row['total_gst']     or 0), 2),
+            'total_units':     int(kpi_row['total_units']    or 0),
         }
-        
-        # === GET DISTINCT INVOICE NUMBERS FOR PAGINATION ===
-        # First get all matching invoice numbers
-        distinct_invoices_query = f"""
-            SELECT DISTINCT h.invoice_no
-            FROM sales_invoice_header h
-            LEFT JOIN sales_invoice_line l ON h.invoice_no = l.invoice_no
-            LEFT JOIN products p ON l.product_id = p.product_id
-            LEFT JOIN customers c ON h.customer_id = c.customer_id
-            WHERE {where_sql}
-            ORDER BY h.invoice_date DESC, h.invoice_no DESC
-        """
-        
-        all_invoice_nos = [row['invoice_no'] for row in conn.execute(distinct_invoices_query, params).fetchall()]
-        total_count = len(all_invoice_nos)
-        total_pages = (total_count // per_page) + (1 if total_count % per_page > 0 else 0)
-        
-        # Get only the invoice numbers for the current page
-        paginated_invoice_nos = all_invoice_nos[offset:offset + per_page]
-        
-        # === BUILD INVOICE DATA STRUCTURE ===
-        # Structure: {invoice_no: {header: {...}, lines: [...], totals: {...}}}
-        invoices = {}
-        
-        if paginated_invoice_nos:
-            # Create placeholders for SQL IN clause
-            invoice_placeholders = ','.join(['?' for _ in paginated_invoice_nos])
-            
-            # Get invoice headers for current page
-            headers_query = f"""
-                SELECT h.invoice_no, h.invoice_date, h.customer_id, c.customer_code, h.legend_id
+
+        # === 2. PAGINATED invoice numbers — SQL LIMIT/OFFSET, never load all rows ===
+        page_params = inner_params + [per_page, offset]
+        paginated_invoice_nos = [
+            row['invoice_no'] for row in conn.execute(f"""
+                SELECT DISTINCT h.invoice_no
                 FROM sales_invoice_header h
-                LEFT JOIN customers c ON h.customer_id = c.customer_id
-                WHERE h.invoice_no IN ({invoice_placeholders})
-            """
-            
-            headers = conn.execute(headers_query, paginated_invoice_nos).fetchall()
-            
-            # Initialize invoice structure with headers
-            for header in headers:
-                invoices[header['invoice_no']] = {
-                    'header': dict(header),
-                    'lines': [],
+                {filter_where}
+                ORDER BY h.invoice_date DESC, h.invoice_no DESC
+                LIMIT ? OFFSET ?
+            """, page_params).fetchall()
+        ]
+
+        # === 3. FETCH headers + lines only for this page's invoices ===
+        invoices = {}
+        if paginated_invoice_nos:
+            placeholders = ','.join(['?'] * len(paginated_invoice_nos))
+
+            for hdr in conn.execute(f"""
+                SELECT h.invoice_no, h.invoice_date, h.customer_id,
+                       c.customer_code, h.legend_id
+                FROM sales_invoice_header h
+                LEFT JOIN customers c ON c.customer_id = h.customer_id
+                WHERE h.invoice_no IN ({placeholders})
+            """, paginated_invoice_nos).fetchall():
+                invoices[hdr['invoice_no']] = {
+                    'header': dict(hdr),
+                    'lines':  [],
                     'totals': {'total_amt': 0, 'gst_amt': 0, 'qty': 0}
                 }
-            
-            # Get all line items for these invoices
-            lines_query = f"""
-                SELECT l.invoice_no, l.line_no, l.product_id, p.sku_no, p.hem_name, l.qty, l.total_amt, l.gst_amt
+
+            for line in conn.execute(f"""
+                SELECT l.invoice_no, l.line_no, l.product_id,
+                       p.sku_no, p.hem_name, l.qty, l.total_amt, l.gst_amt
                 FROM sales_invoice_line l
-                LEFT JOIN products p ON l.product_id = p.product_id
-                WHERE l.invoice_no IN ({invoice_placeholders})
+                LEFT JOIN products p ON p.product_id = l.product_id
+                WHERE l.invoice_no IN ({placeholders})
                 ORDER BY l.invoice_no, l.line_no
-            """
-            
-            lines = conn.execute(lines_query, paginated_invoice_nos).fetchall()
-            
-            # Populate lines and calculate per-invoice totals
-            for line in lines:
-                invoice_no = line['invoice_no']
-                if invoice_no in invoices:
-                    invoices[invoice_no]['lines'].append(dict(line))
-                    invoices[invoice_no]['totals']['total_amt'] += line['total_amt'] or 0
-                    invoices[invoice_no]['totals']['gst_amt'] += line['gst_amt'] or 0
-                    invoices[invoice_no]['totals']['qty'] += line['qty'] or 0
-            
-            # Preserve pagination order (important for consistent display)
-            ordered_invoices = {}
-            for invoice_no in paginated_invoice_nos:
-                if invoice_no in invoices:
-                    ordered_invoices[invoice_no] = invoices[invoice_no]
-            invoices = ordered_invoices
-        
-        # === GET REFERENCE DATA FOR DROPDOWNS ===
-        # Get all customers for the "Create Invoice" form
-        customers = conn.execute("SELECT customer_id, customer_code FROM customers ORDER BY customer_code").fetchall()
-        # Get top 100 products for the dropdown (limit for performance)
-        products = conn.execute("SELECT product_id, sku_no, hem_name FROM products ORDER BY hem_name LIMIT 100").fetchall()
-        
-        # === GET REVENUE TREND DATA BY MONTH ===
-        trend_query = f"""
-            SELECT substr(h.invoice_date, 1, 7) as month, COALESCE(SUM(l.total_amt), 0) as revenue
+            """, paginated_invoice_nos).fetchall():
+                inv = line['invoice_no']
+                if inv in invoices:
+                    invoices[inv]['lines'].append(dict(line))
+                    invoices[inv]['totals']['total_amt'] += line['total_amt'] or 0
+                    invoices[inv]['totals']['gst_amt']   += line['gst_amt']   or 0
+                    invoices[inv]['totals']['qty']        += line['qty']       or 0
+
+            # Restore sort order from paginated list
+            invoices = {k: invoices[k] for k in paginated_invoice_nos if k in invoices}
+
+        # === 4. TREND — only needs header + line, no products/customers join ===
+        trend_rows = conn.execute(f"""
+            SELECT substr(h.invoice_date, 1, 7)  AS month,
+                   COALESCE(SUM(l.total_amt), 0) AS revenue
             FROM sales_invoice_header h
-            LEFT JOIN sales_invoice_line l ON h.invoice_no = l.invoice_no
-            LEFT JOIN products p ON l.product_id = p.product_id
-            LEFT JOIN customers c ON h.customer_id = c.customer_id
-            WHERE {where_sql}
+            LEFT JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
+            {filter_where}
             GROUP BY month
             ORDER BY month
-        """
-        trend_rows = conn.execute(trend_query, params).fetchall()
-        trend_labels = [row['month'] if row['month'] else 'Unknown' for row in trend_rows]
-        trend_data = [round(float(row['revenue']), 2) if row['revenue'] else 0 for row in trend_rows]
-    
-    # Render dashboard template with all data
-    return render_template("dashboard.html", invoices=invoices, stats=stats,
-                           customers=customers, products=products,
-                           current_page=page, total_pages=total_pages,
-                           search=search, start_date=start_date, end_date=end_date,
-                           trend_labels=trend_labels, trend_data=trend_data,
-                           role=session.get("role"))
+        """, inner_params).fetchall()
+        trend_labels = [r['month'] or 'Unknown' for r in trend_rows]
+        trend_data   = [round(float(r['revenue'] or 0), 2) for r in trend_rows]
+
+        # === 5. Reference data for form dropdowns ===
+        customers = conn.execute(
+            "SELECT customer_id, customer_code FROM customers ORDER BY customer_code"
+        ).fetchall()
+        products = conn.execute(
+            "SELECT DISTINCT product_id, sku_no, hem_name FROM products ORDER BY hem_name"
+        ).fetchall()
+
+    return render_template("dashboard.html",
+        invoices=invoices,
+        total_revenue=stats['total_revenue'],
+        total_gst=stats['total_gst'],
+        invoice_count=stats['total_invoices'],
+        total_qty=stats['total_units'],
+        inventory=products,
+        customers=customers,
+        current_page=page,
+        total_pages=total_pages,
+        search=search,
+        start_date=start_date,
+        end_date=end_date,
+        trend_labels=trend_labels,
+        trend_data=trend_data,
+        role=session.get("role"))
 
 @app.route("/create-invoice", methods=["POST"])
 @require_staff
@@ -501,9 +609,17 @@ def create_invoice():
         flash("Invoice number is required and must be at least 3 characters!", "danger")
         return redirect(url_for("dashboard"))
     
-    # Validate invoice date (required)
+    # Validate invoice date (required, no future dates)
     if not invoice_date:
         flash("Invoice date is required!", "danger")
+        return redirect(url_for("dashboard"))
+    try:
+        parsed_date = datetime.strptime(invoice_date, "%Y-%m-%d").date()
+        if parsed_date > date.today():
+            flash("Invoice date cannot be in the future!", "danger")
+            return redirect(url_for("dashboard"))
+    except ValueError:
+        flash("Invalid date format!", "danger")
         return redirect(url_for("dashboard"))
     
     # Validate customer selection (required)
@@ -546,8 +662,9 @@ def create_invoice():
         flash("Invalid GST amount value!", "danger")
         return redirect(url_for("dashboard"))
     
-    # === INSERT INVOICE INTO DATABASE ===
+            # === INSERT INVOICE INTO DATABASE ===
     try:
+        # Use context manager (with statement) to ensure proper commit
         with get_db() as conn:
             # Check if invoice number already exists (prevent duplicates)
             existing = conn.execute("SELECT 1 FROM sales_invoice_header WHERE invoice_no = ?", (invoice_no,)).fetchone()
@@ -555,48 +672,368 @@ def create_invoice():
                 flash(f"Invoice {invoice_no} already exists!", "danger")
                 print(f"❌ Invoice {invoice_no} already exists!")
                 return redirect(url_for("dashboard"))
-            
-            # Insert invoice header
-            conn.execute("INSERT INTO sales_invoice_header (invoice_no, invoice_date, customer_id, legend_id) VALUES (?, ?, ?, ?)",
-                        (invoice_no, invoice_date, customer_id, legend_id))
+
+            # Resolve customer_code → customer_id integer
+            # The form submits customer_code text; we need the integer FK
+            cust_row = conn.execute(
+                "SELECT customer_id FROM customers WHERE customer_code = ? COLLATE NOCASE",
+                (customer_id,)
+            ).fetchone()
+            if cust_row:
+                resolved_customer_id = cust_row['customer_id']
+            else:
+                # Customer doesn't exist yet — create it on the fly
+                cur = conn.execute(
+                    "INSERT INTO customers (customer_code) VALUES (?)", (customer_id.upper(),)
+                )
+                resolved_customer_id = cur.lastrowid
+                print(f"✅ New customer created: {customer_id} → id {resolved_customer_id}")
+
+            print(f"📝 Inserting invoice {invoice_no}...")
+            print(f"   Date: {invoice_date}")
+            print(f"   Customer: {customer_id} (id={resolved_customer_id})")
+            print(f"   Legend: {legend_id}")
+            print(f"   Product ID: {product_id}")
+            print(f"   Qty: {qty}")
+            print(f"   Total: {total_amt}")
+            print(f"   GST: {gst_amt}")
+
+            # Insert invoice header with resolved integer customer_id
+            conn.execute(
+                "INSERT INTO sales_invoice_header (invoice_no, invoice_date, customer_id, legend_id) VALUES (?, ?, ?, ?)",
+                (invoice_no, invoice_date, resolved_customer_id, legend_id)
+            )
+            print(f"✅ Header inserted")
             
             # Insert first line item (line_no = 1)
             conn.execute("INSERT INTO sales_invoice_line (invoice_no, line_no, product_id, qty, total_amt, gst_amt) VALUES (?, 1, ?, ?, ?, ?)",
                         (invoice_no, product_id, qty, total_amt, gst_amt))
+            print(f"✅ Line item inserted")
+            
+            # Commit is automatic when exiting the 'with' block successfully
             conn.commit()
+            print(f"✅ COMMITTED to database")
         
-        flash(f"Invoice {invoice_no} created successfully!", "success")
-        print(f"✅ Created invoice {invoice_no}")
+        # Verify it was saved (using fresh connection)
+        with get_db() as verify_conn:
+            verify = verify_conn.execute("SELECT * FROM sales_invoice_header WHERE invoice_no = ?", (invoice_no,)).fetchone()
+            
+            if verify:
+                print(f"✅✅✅ VERIFIED: Invoice {invoice_no} is in database!")
+                flash(f"Invoice {invoice_no} created successfully!", "success")
+            else:
+                print(f"❌❌❌ VERIFICATION FAILED: Invoice {invoice_no} NOT in database after commit!")
+                flash(f"Invoice {invoice_no} creation failed - not saved!", "danger")
+            
     except Exception as e:
-        flash(f"Error creating invoice: {str(e)}", "danger")
         print(f"❌ Create invoice error: {e}")
+        print(f"   Error type: {type(e).__name__}")
+        import traceback
+        traceback.print_exc()
+        flash(f"Error creating invoice: {str(e)}", "danger")
     
     return redirect(url_for("dashboard"))
 
 @app.route("/delete-invoice/<invoice_no>", methods=["POST"])
+@csrf.exempt
 @require_staff
 def delete_invoice(invoice_no):
     """
     Delete an invoice and all its line items.
     Cascades deletion: line items first, then header.
+    Returns JSON response for AJAX handling.
     """
+    print("=" * 70)
+    print(f"🔥 DELETE REQUEST for invoice: '{invoice_no}'")
+    print(f"   Type: {type(invoice_no)}")
+    print(f"   Length: {len(invoice_no)}")
+    print(f"   Repr: {repr(invoice_no)}")
+    print("=" * 70)
+    
     try:
         with get_db() as conn:
+            # Check if invoice exists first
+            print(f"🔍 Searching for invoice '{invoice_no}' in database...")
+            existing = conn.execute("SELECT * FROM sales_invoice_header WHERE invoice_no = ?", (invoice_no,)).fetchone()
+            
+            if not existing:
+                print(f"❌ Invoice '{invoice_no}' NOT FOUND in database")
+                
+                # Show all invoices for debugging
+                all_inv = conn.execute("SELECT invoice_no FROM sales_invoice_header LIMIT 10").fetchall()
+                print(f"📋 First 10 invoices in DB:")
+                for inv in all_inv:
+                    print(f"   - '{inv[0]}'")
+                
+                return jsonify({
+                    'success': False,
+                    'message': f'Invoice {invoice_no} not found in database'
+                }), 404
+            
+            print(f"✅ Invoice found! Proceeding with deletion...")
+            
             # Delete line items first (to satisfy foreign key constraints)
-            conn.execute("DELETE FROM sales_invoice_line WHERE invoice_no=?", (invoice_no,))
+            deleted_lines = conn.execute("DELETE FROM sales_invoice_line WHERE invoice_no=?", (invoice_no,))
+            print(f"   Deleted {deleted_lines.rowcount} line items")
+            
             # Then delete the header
-            conn.execute("DELETE FROM sales_invoice_header WHERE invoice_no=?", (invoice_no,))
+            deleted_header = conn.execute("DELETE FROM sales_invoice_header WHERE invoice_no=?", (invoice_no,))
+            print(f"   Deleted {deleted_header.rowcount} header rows")
+            
+            conn.commit()
+            print(f"✅ Successfully deleted invoice '{invoice_no}'")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Invoice {invoice_no} deleted successfully'
+        })
+        
+    except Exception as e:
+        print(f"❌ Delete error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': f'Error deleting invoice: {str(e)}'
+        }), 500
+
+@app.route("/update-invoice/<invoice_no>", methods=["POST"])
+@csrf.exempt
+@require_staff
+def update_invoice(invoice_no):
+    """
+    Update an existing invoice and its line items.
+    Accepts JSON payload with invoice header and line items.
+    
+    Expected JSON structure:
+    {
+        "invoice_date": "2024-01-15",
+        "customer_id": 1,
+        "legend_id": "SGP",
+        "lines": [
+            {
+                "line_no": 1,
+                "product_id": 5,
+                "qty": 10,
+                "total_amt": 150.00,
+                "gst_amt": 12.00
+            },
+            ...
+        ]
+    }
+    """
+    try:
+        # Get JSON data from request
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False, 
+                'message': 'No data provided'
+            }), 400
+        
+        # === VALIDATE REQUIRED FIELDS ===
+        if not data.get('invoice_date'):
+            return jsonify({'success': False, 'message': 'Invoice date is required'}), 400
+
+        try:
+            parsed_date = datetime.strptime(data['invoice_date'], "%Y-%m-%d").date()
+            if parsed_date > date.today():
+                return jsonify({'success': False, 'message': 'Invoice date cannot be in the future'}), 400
+        except ValueError:
+            return jsonify({'success': False, 'message': 'Invalid date format'}), 400
+
+        if not data.get('customer_id'):
+            return jsonify({'success': False, 'message': 'Customer is required'}), 400
+        
+        if not data.get('lines') or len(data['lines']) == 0:
+            return jsonify({'success': False, 'message': 'At least one line item is required'}), 400
+        
+        # === VALIDATE LINE ITEMS ===
+        for i, line in enumerate(data['lines']):
+            # Validate product_id
+            if not line.get('product_id'):
+                return jsonify({'success': False, 'message': f'Line {i+1}: Product is required'}), 400
+            
+            # Validate quantity
+            try:
+                qty = int(line.get('qty', 0))
+                if qty < 1:
+                    return jsonify({'success': False, 'message': f'Line {i+1}: Quantity must be at least 1'}), 400
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': f'Line {i+1}: Invalid quantity'}), 400
+            
+            # Validate total amount
+            try:
+                total_amt = float(line.get('total_amt', 0))
+                if total_amt < 0:
+                    return jsonify({'success': False, 'message': f'Line {i+1}: Total amount cannot be negative'}), 400
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': f'Line {i+1}: Invalid total amount'}), 400
+            
+            # Validate GST amount
+            try:
+                gst_amt = float(line.get('gst_amt', 0))
+                if gst_amt < 0:
+                    return jsonify({'success': False, 'message': f'Line {i+1}: GST amount cannot be negative'}), 400
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': f'Line {i+1}: Invalid GST amount'}), 400
+        
+        # === UPDATE DATABASE ===
+        with get_db() as conn:
+            # Check if invoice exists
+            existing = conn.execute("SELECT 1 FROM sales_invoice_header WHERE invoice_no = ?", (invoice_no,)).fetchone()
+            if not existing:
+                return jsonify({
+                    'success': False,
+                    'message': f'Invoice {invoice_no} not found'
+                }), 404
+            
+            # Update invoice header
+            conn.execute("""
+                UPDATE sales_invoice_header 
+                SET invoice_date = ?, 
+                    customer_id = ?, 
+                    legend_id = ?
+                WHERE invoice_no = ?
+            """, (
+                data['invoice_date'],
+                data['customer_id'],
+                data.get('legend_id', ''),
+                invoice_no
+            ))
+            
+            # Delete all existing line items for this invoice
+            conn.execute("DELETE FROM sales_invoice_line WHERE invoice_no = ?", (invoice_no,))
+            
+            # Insert new line items
+            for line in data['lines']:
+                conn.execute("""
+                    INSERT INTO sales_invoice_line (
+                        invoice_no, 
+                        line_no, 
+                        product_id, 
+                        qty, 
+                        total_amt, 
+                        gst_amt
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (
+                    invoice_no,
+                    line['line_no'],
+                    line['product_id'],
+                    line['qty'],
+                    line['total_amt'],
+                    line['gst_amt']
+                ))
+            
             conn.commit()
         
-        flash(f"Invoice {invoice_no} deleted successfully!", "success")
-        print(f"✅ Deleted invoice {invoice_no}")
+        print(f"✅ Updated invoice {invoice_no}")
+        return jsonify({
+            'success': True,
+            'message': 'Invoice updated successfully'
+        })
+        
     except Exception as e:
-        flash(f"Error deleting invoice: {str(e)}", "danger")
-        print(f"❌ Delete error: {e}")
-    
-    return redirect(url_for("dashboard"))
+        print(f"❌ Update invoice error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': f'Server error: {str(e)}'
+        }), 500
 
 # === MARKET ANALYSIS ROUTES ===
+
+def generate_ai_insights(kpis, top_products, top_customers, trend_data):
+    """
+    Generate AI-powered insights and recommendations using Groq API.
+    Falls back to None if API is unavailable or fails.
+    """
+    if not groq_client:
+        return None
+    
+    try:
+        # Prepare data summary for AI (with safe checks for empty data)
+        top_product_share = (top_products[0]['revenue'] / kpis['revenue'] * 100) if top_products and kpis['revenue'] > 0 else 0
+        top_customer_share = (top_customers[0]['revenue'] / kpis['revenue'] * 100) if top_customers and kpis['revenue'] > 0 else 0
+        
+        # Build product and customer details safely
+        if top_products:
+            product_detail = f"{top_products[0]['hem_name']} (SGD {top_products[0]['revenue']:.2f}, {top_product_share:.1f}% of revenue)"
+        else:
+            product_detail = "N/A (no product data available)"
+        
+        if top_customers:
+            customer_detail = f"{top_customers[0]['customer_code']} (SGD {top_customers[0]['revenue']:.2f}, {top_customer_share:.1f}% of revenue, {top_customers[0]['orders']} orders)"
+        else:
+            customer_detail = "N/A (no customer data available)"
+        
+        data_summary = f"""
+Sales Performance Data:
+- Total Revenue: SGD {kpis['revenue']:.2f}
+- Total Orders: {kpis['orders']}
+- Units Sold: {kpis['units']:.2f}
+- Average Order Value: SGD {kpis['aov']:.2f}
+- GST Collected: SGD {kpis['gst']:.2f}
+
+Top Product: {product_detail}
+Top Customer: {customer_detail}
+
+Revenue Trend: {len(trend_data['labels'])} months of data
+"""
+
+        # Call Groq API
+        response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",  # Updated model (llama-3.1 was decommissioned)
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a business analyst. Provide CONCISE, actionable insights. Each insight should be 1-2 SHORT sentences max. Be direct and specific with numbers."
+                },
+                {
+                    "role": "user",
+                    "content": f"""Analyze this sales data and provide:
+1. SIX key strategic insights (1-2 SHORT sentences each, max 25 words)
+2. Five specific, actionable recommendations (2-3 sentences each, max 40 words)
+
+{data_summary}
+
+Format your response as JSON:
+{{
+  "insights": [
+    {{"title": "Short Title (2-4 words)", "description": "One concise sentence with a key metric or finding."}},
+    ... (6 total)
+  ],
+  "recommendations": [
+    {{"title": "Action Title (3-5 words)", "description": "Specific action with numbers/targets."}},
+    ... (5 total)
+  ]
+}}
+
+Be BRIEF and SPECIFIC. Focus on numbers and actionable insights."""
+                }
+            ],
+            temperature=0.3,  # Lower temperature for more consistent output
+            max_tokens=2000
+        )
+        
+        # Parse AI response
+        ai_text = response.choices[0].message.content
+        
+        # Try to extract JSON from response
+        import re
+        json_match = re.search(r'\{.*\}', ai_text, re.DOTALL)
+        if json_match:
+            ai_insights = json.loads(json_match.group())
+            return ai_insights
+        else:
+            return None
+            
+    except Exception as e:
+        print(f"⚠️ Groq API error: {e}")
+        return None
 
 @app.route("/market-analysis")
 @require_staff
@@ -675,89 +1112,110 @@ def market_analysis():
 
         try:
             # === CALCULATE KEY PERFORMANCE INDICATORS ===
+            # Deduplicate lines first via subquery (DISTINCT on invoice_no + line_no)
+            # to prevent double-counting if any line rows were inserted more than once.
             kpi_row = conn.execute(f"""
-                SELECT COALESCE(SUM(l.total_amt), 0) AS revenue, 
-                       COALESCE(SUM(l.gst_amt), 0) AS gst,
-                       COUNT(DISTINCT h.invoice_no) AS orders, 
-                       COALESCE(SUM(l.qty), 0) AS units
-                FROM sales_invoice_header h
-                JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
-                {where}
+                SELECT COALESCE(SUM(lines.total_amt), 0) AS revenue,
+                       COALESCE(SUM(lines.gst_amt),   0) AS gst,
+                       COUNT(DISTINCT lines.invoice_no) AS orders,
+                       COALESCE(SUM(lines.qty),        0) AS units
+                FROM (
+                    SELECT DISTINCT l.invoice_no, l.line_no,
+                           l.total_amt, l.gst_amt, l.qty
+                    FROM sales_invoice_header h
+                    JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
+                    {where}
+                ) AS lines
             """, params).fetchone()
 
             revenue = float(kpi_row["revenue"] or 0)
-            gst = float(kpi_row["gst"] or 0)
-            orders = int(kpi_row["orders"] or 0)
-            units = float(kpi_row["units"] or 0)
-            aov = (revenue / orders) if orders else 0  # Average Order Value
+            gst     = float(kpi_row["gst"]     or 0)
+            orders  = int(kpi_row["orders"]    or 0)
+            units   = float(kpi_row["units"]   or 0)
+            aov     = (revenue / orders) if orders else 0
 
             kpis = {
-                "revenue": round(revenue, 2), 
-                "gst": round(gst, 2), 
-                "orders": orders, 
-                "units": round(units, 2), 
-                "aov": round(aov, 2)
+                "revenue": round(revenue, 2),
+                "gst":     round(gst,     2),
+                "orders":  orders,
+                "units":   round(units,   2),
+                "aov":     round(aov,     2)
             }
 
             # === GET MONTHLY REVENUE TREND ===
-            # Extract year-month (YYYY-MM) and sum revenue for each month
+            # Deduplicate lines before grouping by month.
             trend_rows = conn.execute(f"""
-                SELECT substr(h.invoice_date, 1, 7) AS ym, 
-                       COALESCE(SUM(l.total_amt), 0) AS revenue
-                FROM sales_invoice_header h
-                JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
-                {where}
-                GROUP BY ym 
-                ORDER BY ym
+                SELECT lines.ym,
+                       COALESCE(SUM(lines.total_amt), 0) AS revenue
+                FROM (
+                    SELECT DISTINCT l.invoice_no, l.line_no,
+                           substr(h.invoice_date, 1, 7) AS ym,
+                           l.total_amt
+                    FROM sales_invoice_header h
+                    JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
+                    {where}
+                ) AS lines
+                GROUP BY lines.ym
+                ORDER BY lines.ym
             """, params).fetchall()
 
-            trend_labels = [r["ym"] for r in trend_rows if r["ym"]]
+            trend_labels  = [r["ym"] for r in trend_rows if r["ym"]]
             trend_revenue = [float(r["revenue"] or 0) for r in trend_rows if r["ym"]]
 
             # === GET TOP 10 PRODUCTS BY REVENUE ===
+            # Deduplicate at (invoice_no, line_no) level before aggregating per product.
             top_products_rows = conn.execute(f"""
-                SELECT l.product_id, 
-                       p.sku_no, 
+                SELECT lines.product_id,
+                       p.sku_no,
                        COALESCE(p.hem_name, 'Unknown') AS hem_name,
-                       COALESCE(SUM(l.total_amt), 0) AS revenue, 
-                       COALESCE(SUM(l.qty), 0) AS units
-                FROM sales_invoice_header h
-                JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
-                LEFT JOIN products p ON p.product_id = l.product_id
-                {where}
-                GROUP BY l.product_id, p.sku_no, hem_name 
-                ORDER BY revenue DESC 
+                       COALESCE(SUM(lines.total_amt), 0) AS revenue,
+                       COALESCE(SUM(lines.qty),       0) AS units
+                FROM (
+                    SELECT DISTINCT l.invoice_no, l.line_no,
+                           l.product_id, l.total_amt, l.qty
+                    FROM sales_invoice_header h
+                    JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
+                    {where}
+                ) AS lines
+                LEFT JOIN products p ON p.product_id = lines.product_id
+                GROUP BY lines.product_id, p.sku_no, hem_name
+                ORDER BY revenue DESC
                 LIMIT 10
             """, params).fetchall()
 
             top_products = [{
-                "product_id": r["product_id"], 
-                "sku_no": r["sku_no"], 
-                "hem_name": r["hem_name"],
-                "revenue": round(float(r["revenue"] or 0), 2), 
-                "units": round(float(r["units"] or 0), 2)
+                "product_id": r["product_id"],
+                "sku_no":     r["sku_no"],
+                "hem_name":   r["hem_name"],
+                "revenue":    round(float(r["revenue"] or 0), 2),
+                "units":      round(float(r["units"]   or 0), 2)
             } for r in top_products_rows]
 
             # === GET TOP 10 CUSTOMERS BY REVENUE ===
+            # Deduplicate at (invoice_no, line_no) level before aggregating per customer.
             top_customers_rows = conn.execute(f"""
-                SELECT h.customer_id, 
-                       COALESCE(c.customer_code, CAST(h.customer_id AS TEXT)) AS customer_code,
-                       COALESCE(SUM(l.total_amt), 0) AS revenue, 
-                       COUNT(DISTINCT h.invoice_no) AS orders
-                FROM sales_invoice_header h
-                JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
-                LEFT JOIN customers c ON c.customer_id = h.customer_id
-                {where}
-                GROUP BY h.customer_id, customer_code 
-                ORDER BY revenue DESC 
+                SELECT lines.customer_id,
+                       COALESCE(c.customer_code, CAST(lines.customer_id AS TEXT)) AS customer_code,
+                       COALESCE(SUM(lines.total_amt),      0) AS revenue,
+                       COUNT(DISTINCT lines.invoice_no)      AS orders
+                FROM (
+                    SELECT DISTINCT l.invoice_no, l.line_no,
+                           h.customer_id, l.total_amt
+                    FROM sales_invoice_header h
+                    JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
+                    {where}
+                ) AS lines
+                LEFT JOIN customers c ON c.customer_id = lines.customer_id
+                GROUP BY lines.customer_id, customer_code
+                ORDER BY revenue DESC
                 LIMIT 10
             """, params).fetchall()
 
             top_customers = [{
-                "customer_id": r["customer_id"], 
+                "customer_id":   r["customer_id"],
                 "customer_code": r["customer_code"],
-                "revenue": round(float(r["revenue"] or 0), 2), 
-                "orders": int(r["orders"] or 0)
+                "revenue":       round(float(r["revenue"] or 0), 2),
+                "orders":        int(r["orders"] or 0)
             } for r in top_customers_rows]
 
         except Exception as e:
@@ -769,13 +1227,21 @@ def market_analysis():
                 error_message=f"Query error: {str(e)}", legends=legends,
                 selected={"start": start, "end": end, "legend": legend},
                 kpis={"revenue": 0, "orders": 0, "units": 0, "aov": 0, "gst": 0},
-                trend_labels=[], trend_revenue=[], top_products=[], top_customers=[])
+                trend_labels=[], trend_revenue=[], top_products=[], top_customers=[], ai_insights=None)
+
+    # Generate AI insights (optional, falls back gracefully if unavailable)
+    ai_insights = generate_ai_insights(
+        kpis=kpis,
+        top_products=top_products,
+        top_customers=top_customers,
+        trend_data={"labels": trend_labels, "revenue": trend_revenue}
+    )
 
     # Render market analysis page with all calculated data
     return render_template("market_analysis.html", role=session.get("role"), error_message="",
         legends=legends, selected={"start": start, "end": end, "legend": legend},
         kpis=kpis, trend_labels=trend_labels, trend_revenue=trend_revenue,
-        top_products=top_products, top_customers=top_customers)
+        top_products=top_products, top_customers=top_customers, ai_insights=ai_insights)
 
 @app.route("/real-time-analytics")
 @require_staff
@@ -792,4 +1258,3 @@ def logout():
 # === APPLICATION ENTRY POINT ===
 if __name__ == "__main__":
     app.run(debug=True)  # Run Flask development server with debug mode enabled
-

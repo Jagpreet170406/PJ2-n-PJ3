@@ -62,7 +62,12 @@
             color: white;
             padding: 2px 6px;
             border-radius: 50%;
-            display: none;
+            display: none; /* Hidden by default */
+        }
+        
+        /* Show badge when it has the .show class */
+        .cart-badge.show {
+            display: inline-block;
         }
     
         /* SIDEBAR TOGGLE BUTTON - FIXED POSITION */
@@ -241,18 +246,31 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
     <script>
-        function updateCartBadge() {
+        // GLOBAL cart badge update function
+        window.updateCartBadge = function() {
             try {
                 const cart = JSON.parse(localStorage.getItem('cart')) || [];
-                const badge = document.getElementById('cart-count');
+                const badge = document.querySelector('.cart-badge');
+                
+                console.log('🔥 BASE.HTML updateCartBadge called');
+                console.log('🔥 Cart:', cart);
+                console.log('🔥 Badge element:', badge);
+                
                 if (badge) {
                     const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 0), 0);
+                    console.log('🔥 Total items:', totalItems);
+                    
+                    badge.textContent = totalItems;
+                    
                     if (totalItems > 0) {
-                        badge.innerText = totalItems;
-                        badge.style.display = 'inline-block';
+                        badge.classList.add('show');
+                        console.log('🔥 Added .show class');
                     } else {
-                        badge.style.display = 'none';
+                        badge.classList.remove('show');
+                        console.log('🔥 Removed .show class');
                     }
+                } else {
+                    console.error('❌ Badge element NOT FOUND!');
                 }
             } catch (e) { console.error(e); }
         }
@@ -291,6 +309,16 @@
                 }
             }
         });
+            } catch (e) { 
+                console.error('❌ Error in updateCartBadge:', e); 
+            }
+        };
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔥 DOMContentLoaded - calling updateCartBadge');
+            window.updateCartBadge();
+        });
+        window.addEventListener('storage', window.updateCartBadge);
     </script>
 
     {% block scripts %}{% endblock %}

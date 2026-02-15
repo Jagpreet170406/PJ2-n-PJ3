@@ -73,6 +73,21 @@ body {
     padding: 0 20px;
 }
 
+/* single-column layout — no grid needed */
+
+/* TOP ROW: Filters left | Create Invoice right */
+.top-row-grid {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 24px;
+    align-items: start;
+    margin-bottom: 24px;
+}
+
+@media (max-width: 1000px) {
+    .top-row-grid { grid-template-columns: 1fr; }
+}
+
 /* --- INVERTED THEME BELOW HERO --- */
 .section-card,
 .filters-section {
@@ -80,9 +95,13 @@ body {
     border: 1px solid rgba(255,255,255,0.14);
     border-radius: 24px;
     padding: 24px;
-    margin-bottom: 24px;
     backdrop-filter: blur(18px);
     box-shadow: 0 18px 60px rgba(0,0,0,0.35);
+}
+
+/* Cards outside the two-column grid still need bottom spacing */
+.card-shell > .section-card {
+    margin-bottom: 24px;
 }
 
 .section-header {
@@ -155,52 +174,11 @@ body {
 .kpi-value.tertiary  { color: #000000; }
 
 /* -----------------------------
-   FIX #1: FILTERS SPACING
-   - Force the 3 filter fields to sit wider apart (1 row on desktop)
-   - Avoid big empty right space
--------------------------------- */
-.filters-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr; /* Search wider, dates equal */
-    gap: 18px;
-    align-items: end;
-    margin-bottom: 14px;
-}
+/* FILTERS — use same .form-group styles as Create Invoice */
 
-@media (max-width: 900px) {
-    .filters-grid {
-        grid-template-columns: 1fr; /* stack on smaller screens */
-    }
-}
-
-/* FILTERS */
-.filter-group label {
-    display: block;
-    font-size: 0.8rem;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.75);
-    margin-bottom: 8px;
-}
-
-.filter-group input,
-.filter-group select {
-    width: 100%;
-    background: rgba(0,0,0,0.35);
-    border: 1px solid rgba(255,255,255,0.18);
-    border-radius: 12px;
-    padding: 12px 14px;
-    color: rgba(255,255,255,0.92);
-    font-size: 0.95rem;
-    box-sizing: border-box;
-}
-
-.filter-group input:focus,
-.filter-group select:focus {
-    outline: none;
-    border-color: rgba(255,255,255,0.35);
-    box-shadow: 0 0 0 4px rgba(255,255,255,0.08);
+/* Datalist inputs look identical to regular inputs */
+input[list] {
+    cursor: text;
 }
 
 /* -----------------------------
@@ -212,7 +190,7 @@ body {
 -------------------------------- */
 .form-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr)); /* 4 clean columns */
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 16px;
     margin-bottom: 16px;
     align-items: end;
@@ -243,13 +221,18 @@ body {
 .form-group input,
 .form-group select {
     width: 100%;
-    box-sizing: border-box;
-    background: rgba(0,0,0,0.35);
+    background: #000000;
     border: 1px solid rgba(255,255,255,0.18);
     border-radius: 12px;
     padding: 12px 14px;
     color: rgba(255,255,255,0.92);
     font-size: 0.95rem;
+    box-sizing: border-box;
+}
+
+.form-group select option {
+    background: #000000;
+    color: rgba(255,255,255,0.92);
 }
 
 .form-group input:focus,
@@ -259,276 +242,245 @@ body {
     box-shadow: 0 0 0 4px rgba(255,255,255,0.08);
 }
 
-/* BUTTONS */
+.form-group input.field-error,
+.form-group select.field-error {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239,68,68,0.2);
+}
+
+.field-error-msg {
+    display: none;
+    margin-top: 5px;
+    font-size: 0.75rem;
+    color: #ef4444;
+    font-weight: 600;
+}
+
+/* ADD LINE BUTTON */
 .btn {
-    padding: 12px 18px;
+    padding: 12px 22px;
     border-radius: 12px;
     border: none;
-    font-weight: 800;
     cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+    font-weight: 800;
+    font-size: 0.95rem;
+    transition: all 0.25s ease;
 }
 
 .btn-primary {
-    background: rgba(255,255,255,0.92);
+    background: rgba(255,255,255,0.92);                   /* WHITE for EDIT */
     color: #111827;
-    box-shadow: 0 10px 26px rgba(0,0,0,0.28);
+    box-shadow: 0 10px 26px rgba(0,0,0,0.15);
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
+    box-shadow: 0 16px 45px rgba(0,0,0,0.25);
     background: #ffffff;
 }
 
 .btn-secondary {
-    background: rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.10);
     color: rgba(255,255,255,0.92);
-    border: 1px solid rgba(255,255,255,0.22);
+    border: 1px solid rgba(255,255,255,0.18);
 }
 
 .btn-secondary:hover {
+    background: rgba(255,255,255,0.16);
+    border-color: rgba(255,255,255,0.28);
+}
+
+.btn-success {
+    background: #10b981;                                  /* GREEN for CREATE */
+    color: white;
+    box-shadow: 0 10px 26px rgba(16,185,129,0.25);
+}
+
+.btn-success:hover {
     transform: translateY(-2px);
-    background: rgba(255,255,255,0.24);
+    box-shadow: 0 16px 45px rgba(16,185,129,0.35);
+    background: #059669;
 }
 
 .btn-danger {
     background: #ef4444;
-    color: #fff;
-    padding: 8px 12px;
-    font-size: 0.85rem;
-    border-radius: 10px;
+    color: white;
 }
 
-.btn-danger:hover { background: #dc2626; }
+.btn-danger:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+}
 
 .btn-cancel {
-    background: rgba(255,255,255,0.18);
-    color: rgba(255,255,255,0.92);
-    border: 1px solid rgba(255,255,255,0.22);
-}
-
-.btn-cancel:hover { background: rgba(255,255,255,0.24); }
-
-/* TABLE */
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 12px;
-    font-size: 0.92rem;
-    overflow: hidden;
-    border-radius: 16px;
-}
-
-.data-table thead {
     background: rgba(255,255,255,0.10);
-    border-bottom: 1px solid rgba(255,255,255,0.18);
+    color: rgba(255,255,255,0.85);
+    border: 1px solid rgba(255,255,255,0.14);
 }
 
-.data-table th {
-    padding: 14px 14px;
-    text-align: left;
-    font-size: 0.75rem;
-    font-weight: 800;
-    color: rgba(255,255,255,0.75);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+.btn-cancel:hover {
+    background: rgba(255,255,255,0.16);
 }
 
-.data-table td {
-    padding: 14px 14px;
-    border-bottom: 1px solid rgba(255,255,255,0.10);
-    color: rgba(255,255,255,0.88);
+/* CHART CONTAINER */
+.chart-container {
+    padding: 20px;
+    background: rgba(0,0,0,0.22);
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.12);
+    margin-bottom: 16px;
 }
 
-.data-table tbody tr:hover {
-    background: rgba(255,255,255,0.06);
+/* INVOICE LIST */
+.invoice-list {
+    margin-top: 16px;
 }
 
-.actions-cell {
-    display: flex;
-    gap: 0.5rem;
-}
-
-/* INVOICE GROUP */
-.invoice-group {
+.invoice-item {
+    background: rgba(0,0,0,0.22);
     border: 1px solid rgba(255,255,255,0.14);
     border-radius: 16px;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
     overflow: hidden;
-    background: rgba(0,0,0,0.22);
+    transition: all 0.25s ease;
 }
 
-.invoice-header-row {
-    background: rgba(255,255,255,0.06);
-    padding: 16px;
-    display: grid;
-    grid-template-columns: 2fr 1.5fr 1.5fr 1fr 1fr 1fr 1fr 100px;
-    gap: 12px;
-    align-items: center;
+.invoice-item:hover {
+    border-color: rgba(255,255,255,0.25);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+}
+
+.invoice-header {
+    padding: 18px;
     cursor: pointer;
-    transition: background 0.2s ease;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr) 160px;
+    gap: 14px;
+    align-items: center;
+    transition: background 0.2s;
 }
 
-.invoice-header-row:hover {
-    background: rgba(255,255,255,0.10);
+.invoice-header:hover {
+    background: rgba(255,255,255,0.04);
 }
 
 .invoice-lines {
-    display: none;
-    background: rgba(0,0,0,0.24);
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    background: rgba(0,0,0,0.15);
 }
 
-.invoice-lines.show { display: block; }
+.invoice-lines.show {
+    max-height: 2000px;
+    transition: max-height 0.5s ease-in;
+}
 
 .line-item {
-    padding: 12px 16px;
-    border-top: 1px solid rgba(255,255,255,0.10);
+    padding: 14px 18px;
     display: grid;
-    grid-template-columns: 3fr 1fr 1fr 1fr 100px;
-    gap: 12px;
+    grid-template-columns: 2fr repeat(3, 1fr) 60px;
+    gap: 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
     align-items: center;
-    font-size: 0.88rem;
 }
 
-/* ALERTS */
-.alert {
-    padding: 14px 16px;
-    border-radius: 14px;
-    margin-bottom: 16px;
-    border: 1px solid rgba(255,255,255,0.14);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    animation: slideIn 0.3s ease-out;
-    backdrop-filter: blur(14px);
+.line-item:last-child {
+    border-bottom: none;
 }
 
-@keyframes slideIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to   { opacity: 1; transform: translateY(0); }
+@media (max-width: 900px) {
+    .invoice-header { grid-template-columns: 1fr 1fr; }
+    .line-item { grid-template-columns: 1fr 1fr; }
 }
-
-.alert-success {
-    background: rgba(16, 185, 129, 0.12);
-    color: #34d399;
-}
-
-.alert-danger {
-    background: rgba(239, 68, 68, 0.12);
-    color: #fca5a5;
-}
-
-.alert-close {
-    background: none;
-    border: none;
-    color: inherit;
-    cursor: pointer;
-    font-size: 1.5rem;
-    padding: 0;
-    margin-left: 1rem;
-    opacity: 0.7;
-    transition: opacity 0.2s;
-}
-
-.alert-close:hover { opacity: 1; }
 
 /* PAGINATION */
 .pagination {
     display: flex;
+    gap: 8px;
     justify-content: center;
-    gap: 0.5rem;
-    margin-top: 18px;
+    margin-top: 24px;
     flex-wrap: wrap;
 }
 
-.pagination a, .pagination span {
-    padding: 8px 12px;
+.pagination a,
+.pagination span {
+    padding: 10px 16px;
+    border-radius: 10px;
     background: rgba(255,255,255,0.10);
-    border: 1px solid rgba(255,255,255,0.14);
-    border-radius: 12px;
-    color: rgba(255,255,255,0.92);
+    color: rgba(255,255,255,0.85);
     text-decoration: none;
+    font-weight: 700;
     transition: all 0.2s;
+    border: 1px solid rgba(255,255,255,0.14);
 }
 
 .pagination a:hover {
     background: rgba(255,255,255,0.16);
+    transform: translateY(-1px);
 }
 
-.pagination .active {
+.pagination span.active {
     background: rgba(255,255,255,0.92);
     color: #111827;
-    border-color: rgba(255,255,255,0.92);
 }
 
 /* EMPTY STATE */
 .empty-state {
     text-align: center;
-    padding: 3rem 1rem;
-    color: rgba(255,255,255,0.7);
+    padding: 60px 20px;
+    color: rgba(255,255,255,0.65);
+}
+
+/* ACTIONS CELL */
+.actions-cell {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
 }
 
 /* MODAL */
 .modal {
     display: none;
     position: fixed;
-    z-index: 1000;
-    left: 0;
     top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.80);
-    animation: fadeIn 0.2s ease-out;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-}
-
-.modal.show {
-    display: flex;
+    background: rgba(0, 0, 0, 0.75);
+    z-index: 1000;
     align-items: center;
     justify-content: center;
 }
 
+.modal.show { display: flex; }
+
 .modal-content {
     background: rgba(15, 15, 15, 0.92);
+    padding: 26px;
+    border-radius: 20px;
     border: 1px solid rgba(255,255,255,0.14);
-    border-radius: 18px;
-    padding: 24px;
-    max-width: 520px;
+    max-width: 500px;
     width: 92%;
-    animation: slideUp 0.3s ease-out;
-    backdrop-filter: blur(18px);
-}
-
-@keyframes slideUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
+    box-shadow: 0 20px 80px rgba(0,0,0,0.35);
+    color: rgba(255,255,255,0.92);
 }
 
 .modal-header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 16px;
 }
 
 .modal-title {
-    font-size: 1.2rem;
+    font-size: 1.35rem;
     font-weight: 900;
     margin: 0;
+    color: #ef4444;  /* RED for delete confirmation */
 }
 
 .modal-body {
-    margin-bottom: 16px;
-    color: rgba(255,255,255,0.75);
+    margin-bottom: 20px;
     line-height: 1.6;
+    color: rgba(255,255,255,0.75);
 }
 
 .modal-footer {
@@ -537,173 +489,305 @@ body {
     justify-content: flex-end;
 }
 
-/* CHART */
-.chart-wrap {
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.14);
-    border-radius: 18px;
-    padding: 16px;
+/* ====== BIG NOTIFICATION (matching Inventory.html) ====== */
+.big-notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background: rgba(15, 15, 15, 0.96);
+    border: 2px solid rgba(255,255,255,0.20);
+    border-radius: 24px;
+    padding: 50px 70px;
+    text-align: center;
+    font-size: 32px;
+    font-weight: 900;
+    color: #ef4444;
+    z-index: 9999;
+    box-shadow: 0 30px 90px rgba(0,0,0,0.60);
+    backdrop-filter: blur(20px);
+    opacity: 0;
+    pointer-events: none;
+    min-width: 400px;
 }
+
+.big-notification.success {
+    color: #10b981;
+    border-color: rgba(16,185,129,0.35);
+}
+
+.big-notification.warning {
+    color: #f59e0b;
+    border-color: rgba(245,158,11,0.35);
+}
+
+.big-notification.show {
+    animation: bigPopIn 0.45s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
+}
+
+.big-notification.hide {
+    animation: bigPopOut 0.35s ease-in forwards;
+}
+
+@keyframes bigPopIn {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+    50% { transform: translate(-50%, -50%) scale(1.1); }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+@keyframes bigPopOut {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+}
+
+.notification-icon {
+    font-size: 80px;
+    display: block;
+    margin-bottom: 20px;
+}
+
+/* Edit Modal Line Items */
+.edit-line-item {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr auto;
+    gap: 12px;
+    align-items: center;
+}
+
+.edit-line-item:last-child {
+    margin-bottom: 0;
+}
+
+.edit-line-item .form-group {
+    margin-bottom: 0;
+}
+
+.edit-line-item label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.65);
+    margin-bottom: 6px;
+}
+
+.edit-line-item input,
+.edit-line-item select {
+    width: 100%;
+    background: rgba(0,0,0,0.40);
+    border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: rgba(255,255,255,0.92);
+    font-size: 0.9rem;
+    box-sizing: border-box;
+}
+
+.edit-line-item input:focus,
+.edit-line-item select:focus {
+    outline: none;
+    border-color: rgba(255,255,255,0.35);
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.08);
+}
+
+.remove-line-btn {
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-weight: 800;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.remove-line-btn:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(239,68,68,0.35);
+}
+
+.add-line-btn {
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    cursor: pointer;
+    font-weight: 800;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    margin-top: 12px;
+    width: 100%;
+}
+
+.add-line-btn:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(16,185,129,0.35);
+}
+
+@media (max-width: 800px) {
+    .edit-line-item {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+}
+
 </style>
 
 <div class="page-wrap">
-    <!-- HERO HEADER -->
+    <!-- Hero Header -->
     <div class="hero">
         <h1>Enterprise Sales Dashboard</h1>
-        <p>Invoice management, revenue tracking, and operational insights</p>
+        <p>Real-time sales insights and invoice management</p>
     </div>
 
     <div class="card-shell">
-
-        <!-- Flash Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}" id="flash-message">
-                        <span>{{ message }}</span>
-                        <button class="alert-close" onclick="this.parentElement.style.display='none'">&times;</button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        <!-- KPI Cards -->
-        <div class="kpi-grid">
-            <div class="kpi-card">
-                <div class="kpi-label">Total Invoices</div>
-                <div class="kpi-value">{{ "{:,}".format(stats.total_invoices) }}</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">Total Revenue</div>
-                <div class="kpi-value secondary">S$ {{ "{:,.2f}".format(stats.total_revenue) }}</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">Total GST</div>
-                <div class="kpi-value tertiary">S$ {{ "{:,.2f}".format(stats.total_gst) }}</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">Units Sold</div>
-                <div class="kpi-value">{{ "{:,}".format(stats.total_units) }}</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">Unique Customers</div>
-                <div class="kpi-value secondary">{{ "{:,}".format(stats.total_customers) }}</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">Avg Line Value</div>
-                <div class="kpi-value tertiary">S$ {{ "{:,.2f}".format(stats.avg_line_value) }}</div>
-            </div>
-        </div>
-
-        <!-- Sales Trend -->
+        <!-- KPIs -->
         <div class="section-card">
-            <div class="section-header">
-                <h2 class="section-title">Sales Trend</h2>
-            </div>
-            <div class="chart-wrap">
-                <canvas id="salesTrendChart" style="max-height: 320px;"></canvas>
+            <h2 class="section-title">Key Metrics</h2>
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-label">TOTAL REVENUE</div>
+                    <div class="kpi-value">S$ {{ "{:,.2f}".format(total_revenue) }}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">TOTAL GST</div>
+                    <div class="kpi-value secondary">S$ {{ "{:,.2f}".format(total_gst) }}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">INVOICES</div>
+                    <div class="kpi-value tertiary">{{ invoice_count }}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">UNITS SOLD</div>
+                    <div class="kpi-value">{{ total_qty }}</div>
+                </div>
             </div>
         </div>
 
-        <!-- Filters Section -->
-        <div class="filters-section">
-            <div class="section-header" style="margin-bottom: 12px;">
-                <h2 class="section-title">Filters</h2>
-            </div>
-
-            <form method="GET" action="{{ url_for('dashboard') }}">
-                <div class="filters-grid">
-                    <div class="filter-group">
-                        <label>Search (Invoice/Product/Customer)</label>
-                        <input type="text" name="search" value="{{ search }}" placeholder="Search...">
-                    </div>
-                    <div class="filter-group">
-                        <label>Start Date</label>
-                        <input type="date" name="start_date" value="{{ start_date }}">
-                    </div>
-                    <div class="filter-group">
-                        <label>End Date</label>
-                        <input type="date" name="end_date" value="{{ end_date }}">
-                    </div>
-                </div>
-                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                    <button type="submit" class="btn btn-primary">Apply Filters</button>
-                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Clear Filters</a>
-                </div>
-            </form>
-        </div>
-
-        <!-- Add New Invoice Form -->
+        <!-- Sales Trend Chart -->
+        {% if trend_labels and trend_data %}
         <div class="section-card">
-            <div class="section-header">
-                <h2 class="section-title">Create New Invoice</h2>
+            <h2 class="section-title">Sales Trend</h2>
+            <div class="chart-container">
+                <canvas id="salesTrendChart" height="80"></canvas>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- TOP ROW: Filters (left) + Create Invoice (right) -->
+        <div class="top-row-grid">
+
+            <!-- FILTERS CARD -->
+            <div class="section-card">
+                <h2 class="section-title" style="margin-bottom: 20px;">Filters</h2>
+                <form method="GET" action="{{ url_for('dashboard') }}">
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label for="search">SEARCH</label>
+                        <input type="text" id="search" name="search" placeholder="Invoice # or Customer" value="{{ search or '' }}">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label for="start_date">START DATE</label>
+                        <input type="date" id="start_date" name="start_date" value="{{ start_date or '' }}">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="end_date">END DATE</label>
+                        <input type="date" id="end_date" name="end_date" value="{{ end_date or '' }}">
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="submit" class="btn btn-primary">Apply Filters</button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary" style="text-decoration: none; display: inline-block;">Clear</a>
+                    </div>
+                </form>
             </div>
 
-            <form method="POST" action="{{ url_for('create_invoice') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Invoice No *</label>
-                        <input type="text" name="invoice_no" required placeholder="INV-2025-001">
-                    </div>
-                    <div class="form-group">
-                        <label>Invoice Date *</label>
-                        <input type="date" name="invoice_date" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Customer *</label>
-                        <select name="customer_id" required>
-                            <option value="">Select Customer</option>
-                            {% for customer in customers %}
-                            <option value="{{ customer.customer_id }}">{{ customer.customer_code }} (ID: {{ customer.customer_id }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Legend</label>
-                        <input type="text" name="legend_id" value="SGP" placeholder="SGP">
-                    </div>
+            <!-- RIGHT COLUMN: Create Invoice + Invoice List stacked -->
+            <div style="display: flex; flex-direction: column; gap: 24px;">
 
-                    <div class="form-group">
-                        <label>Product *</label>
-                        <select name="product_id" required>
-                            <option value="">Select Product</option>
-                            {% for product in products %}
-                            <option value="{{ product.product_id }}">{{ product.hem_name }}</option>
-                            {% endfor %}
-                        </select>
+            <!-- CREATE INVOICE CARD -->
+            <div class="section-card">
+                <h2 class="section-title" style="margin-bottom: 20px;">Create Invoice</h2>
+                <form method="POST" action="{{ url_for('create_invoice') }}" id="invoiceForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="invoice_no">INVOICE #</label>
+                            <input type="text" id="invoice_no" name="invoice_no" required placeholder="INV-001" minlength="3">
+                        </div>
+                        <div class="form-group">
+                            <label for="invoice_date">DATE</label>
+                            <input type="date" id="invoice_date" name="invoice_date" required max="{{ today }}">
+                            <span class="field-error-msg" id="invoice_date_err">Date cannot be in the future.</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="customer_id_input">CUSTOMER ID</label>
+                            <input type="text" id="customer_id_input" name="customer_id" required placeholder="Type or select customer..." list="customer_list" autocomplete="off">
+                            <datalist id="customer_list">
+                                {% for customer in customers %}
+                                <option value="{{ customer.customer_code }}">{{ customer.customer_code }}</option>
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <div class="form-group">
+                            <label for="legend_id">LEGEND ID</label>
+                            <input type="text" id="legend_id" name="legend_id" placeholder="Auto-fills from Customer ID">
+                        </div>
+                        <div class="form-group">
+                            <label for="product_input">PRODUCT</label>
+                            <input type="text" id="product_input" name="product_display" required placeholder="Type or select product..." list="product_list" autocomplete="off">
+                            <input type="hidden" id="product_id" name="product_id">
+                            <datalist id="product_list">
+                                {% for product in inventory %}
+                                <option value="{{ product.hem_name }}{% if product.sku_no %} ({{ product.sku_no }}){% endif %}" data-id="{{ product.product_id }}">
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <div class="form-group">
+                            <label for="qty">QUANTITY</label>
+                            <input type="number" id="qty" name="qty" required min="1" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="total_amt">TOTAL AMOUNT (S$)</label>
+                            <input type="number" id="total_amt" name="total_amt" required min="0" step="0.01" value="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="gst_amt">GST AMOUNT (S$)</label>
+                            <input type="number" id="gst_amt" name="gst_amt" required min="0" step="0.01" value="0.00">
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Quantity *</label>
-                        <input type="number" name="qty" required min="1" value="1">
+                    <div style="margin-top: 20px;">
+                        <button type="submit" class="btn btn-success">Create Invoice</button>
                     </div>
-                    <div class="form-group">
-                        <label>Total Amount (S$) *</label>
-                        <input type="number" step="0.01" name="total_amt" required min="0" placeholder="100.00">
-                    </div>
-                    <div class="form-group">
-                        <label>GST Amount (S$) *</label>
-                        <input type="number" step="0.01" name="gst_amt" required min="0" placeholder="9.00">
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-primary">Create Invoice</button>
-            </form>
-        </div>
+                </form>
+            </div>
 
-        <!-- Invoice List -->
-        <div class="section-card">
+            <!-- INVOICE LIST — under Create Invoice -->
+            <div class="section-card">
             <div class="section-header">
-                <h2 class="section-title">Invoice List</h2>
+                <h2 class="section-title">Recent Invoices</h2>
             </div>
 
             {% if invoices %}
                 {% for invoice_no, invoice_data in invoices.items() %}
-                <div class="invoice-group">
-                    <div class="invoice-header-row" onclick="toggleInvoice('{{ invoice_no }}')">
+                <div class="invoice-item">
+                    <div class="invoice-header" onclick="toggleInvoice('{{ invoice_no }}')">
                         <div>
-                            <strong>{{ invoice_no }}</strong>
-                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.55); margin-top: 0.25rem;">{{ invoice_data.header.invoice_date }}</div>
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Invoice</div>
+                            <div><strong>{{ invoice_no }}</strong></div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Date</div>
+                            <div>{{ invoice_data.header.invoice_date }}</div>
                         </div>
                         <div>
                             <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Customer</div>
@@ -730,10 +814,11 @@ body {
                             <div>{{ invoice_data.totals.qty }}</div>
                         </div>
                         <div class="actions-cell" onclick="event.stopPropagation();">
+                            <button type="button" class="btn btn-primary" onclick="editInvoice('{{ invoice_no }}')">Edit</button>
                             <button type="button" class="btn btn-danger" onclick="showDeleteModal('{{ invoice_no }}')">Delete</button>
                         </div>
                     </div>
-                    
+
                     <div class="invoice-lines" id="lines-{{ invoice_no }}">
                         {% for line in invoice_data.lines %}
                         <div class="line-item">
@@ -766,7 +851,6 @@ body {
                     {% if current_page > 1 %}
                         <a href="{{ url_for('dashboard', page=current_page-1, search=search, start_date=start_date, end_date=end_date) }}">← Prev</a>
                     {% endif %}
-                    
                     {% for p in range(1, total_pages + 1) %}
                         {% if p == current_page %}
                             <span class="active">{{ p }}</span>
@@ -776,7 +860,6 @@ body {
                             <span>...</span>
                         {% endif %}
                     {% endfor %}
-                    
                     {% if current_page < total_pages %}
                         <a href="{{ url_for('dashboard', page=current_page+1, search=search, start_date=start_date, end_date=end_date) }}">Next →</a>
                     {% endif %}
@@ -789,7 +872,61 @@ body {
                 </div>
             {% endif %}
         </div>
+        <!-- END RIGHT COLUMN -->
 
+        </div>
+        <!-- END TOP ROW -->
+
+    </div>
+</div>
+<div id="editModal" class="modal">
+    <div class="modal-content" style="max-width: 700px; text-align: left;">
+        <div class="modal-header">
+            <h2 class="modal-title" style="color: #f59e0b;">Edit Invoice</h2>
+        </div>
+        <div class="modal-body">
+            <form id="editInvoiceForm">
+                <input type="hidden" id="edit_invoice_no" name="invoice_no">
+                
+                <!-- Header Fields -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label for="edit_invoice_date" style="display: block; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.75); margin-bottom: 8px;">DATE</label>
+                        <input type="date" id="edit_invoice_date" name="invoice_date" required max="{{ today }}" style="width: 100%; background: #000000; border: 1px solid rgba(255,255,255,0.18); border-radius: 12px; padding: 12px 14px; color: rgba(255,255,255,0.92); font-size: 0.95rem; box-sizing: border-box;">
+                        <span class="field-error-msg" id="edit_invoice_date_err">Date cannot be in the future.</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_customer_id" style="display: block; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.75); margin-bottom: 8px;">CUSTOMER</label>
+                        <select id="edit_customer_id" name="customer_id" required style="width: 100%; background: #000000; border: 1px solid rgba(255,255,255,0.18); border-radius: 12px; padding: 12px 14px; color: rgba(255,255,255,0.92); font-size: 0.95rem; box-sizing: border-box;">
+                            <option value="">Select Customer</option>
+                            {% for customer in customers %}
+                            <option value="{{ customer.customer_id }}">{{ customer.customer_code }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label for="edit_legend_id" style="display: block; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.75); margin-bottom: 8px;">LEGEND ID</label>
+                        <input type="text" id="edit_legend_id" name="legend_id" placeholder="SGP" style="width: 100%; background: #000000; border: 1px solid rgba(255,255,255,0.18); border-radius: 12px; padding: 12px 14px; color: rgba(255,255,255,0.92); font-size: 0.95rem; box-sizing: border-box;">
+                    </div>
+                </div>
+
+                <!-- Line Items Section -->
+                <div style="background: rgba(0,0,0,0.25); border-radius: 16px; padding: 20px; margin-bottom: 20px;">
+                    <h3 style="font-size: 1rem; font-weight: 800; color: rgba(255,255,255,0.85); margin: 0 0 16px 0;">Line Items</h3>
+                    <div id="editLineItems">
+                        <!-- Line items will be dynamically loaded here -->
+                    </div>
+                </div>
+
+                <div class="modal-footer" style="justify-content: space-between;">
+                    <button type="button" class="btn btn-cancel" onclick="hideEditModal()">Cancel</button>
+                    <button type="submit" class="btn" style="background: #f59e0b; color: white; box-shadow: 0 10px 26px rgba(245,158,11,0.25);">Update Invoice</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -810,21 +947,267 @@ body {
     </div>
 </div>
 
+<!-- BIG NOTIFICATION (matching Inventory.html) -->
+<div id="bigNotification" class="big-notification"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+// Global CSRF token (used by update-invoice fetch)
+const csrfToken = '{{ csrf_token() }}';
+
+// Show BIG NOTIFICATION
+// NOTIFICATIONS: 🟢 GREEN = Save/Create, 🟠 AMBER = Update, 🔴 RED = Delete/Error
+// BUTTONS: 🔵 BLUE = Edit, 🔴 RED = Delete
+function showBigNotification(message, type = 'error') {
+    const bigNotification = document.getElementById('bigNotification');
+    let icon = '✖';
+    let className = 'big-notification';
+    
+    if (type === 'success' || type === true) {
+        icon = '✓';
+        className = 'big-notification success';
+    } else if (type === 'warning' || type === 'update') {
+        icon = '✎';
+        className = 'big-notification warning';
+    }
+    
+    bigNotification.innerHTML = `<span class="notification-icon">${icon}</span>${message}`;
+    bigNotification.className = className;
+
+    void bigNotification.offsetWidth;
+
+    bigNotification.classList.add('show');
+
+    setTimeout(() => {
+        bigNotification.classList.remove('show');
+        bigNotification.classList.add('hide');
+        setTimeout(() => {
+            bigNotification.classList.remove('hide');
+            bigNotification.className = 'big-notification';
+        }, 400);
+    }, 2500);
+}
+
+// Check for flash messages from server and show as big notification
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            {% if category == 'success' %}
+                showBigNotification('{{ message }}', 'success');
+            {% elif category == 'warning' %}
+                showBigNotification('{{ message }}', 'warning');
+            {% else %}
+                showBigNotification('{{ message }}', 'error');
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
 // Toggle invoice lines
 function toggleInvoice(invoiceNo) {
     const linesDiv = document.getElementById('lines-' + invoiceNo);
     linesDiv.classList.toggle('show');
 }
 
+// Edit invoice function
+let currentEditingInvoice = null;
+let invoiceData = {}; // Store all invoice data from the page
+
+// Parse invoice data from the page on load
+document.addEventListener('DOMContentLoaded', function() {
+    // Build invoice data object from the rendered invoices
+    {% for invoice_no, invoice_data in invoices.items() %}
+    invoiceData['{{ invoice_no }}'] = {
+        header: {
+            invoice_no: '{{ invoice_no }}',
+            invoice_date: '{{ invoice_data.header.invoice_date }}',
+            customer_id: '{{ invoice_data.header.customer_id }}',
+            customer_code: '{{ invoice_data.header.customer_code }}',
+            legend_id: '{{ invoice_data.header.legend_id or "" }}'
+        },
+        lines: [
+            {% for line in invoice_data.lines %}
+            {
+                line_no: {{ line.line_no }},
+                product_id: {{ line.product_id }},
+                hem_name: '{{ line.hem_name }}',
+                sku_no: '{{ line.sku_no or "" }}',
+                qty: {{ line.qty }},
+                total_amt: {{ line.total_amt }},
+                gst_amt: {{ line.gst_amt }}
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ]
+    };
+    {% endfor %}
+});
+
+function editInvoice(invoiceNo) {
+    currentEditingInvoice = invoiceNo;
+    const invoice = invoiceData[invoiceNo];
+    
+    if (!invoice) {
+        showBigNotification('INVOICE NOT FOUND', 'error');
+        return;
+    }
+    
+    // Populate header fields
+    document.getElementById('edit_invoice_no').value = invoice.header.invoice_no;
+    document.getElementById('edit_invoice_date').value = invoice.header.invoice_date;
+    document.getElementById('edit_customer_id').value = invoice.header.customer_id;
+    document.getElementById('edit_legend_id').value = invoice.header.legend_id;
+    
+    // Populate line items
+    const lineItemsContainer = document.getElementById('editLineItems');
+    lineItemsContainer.innerHTML = '';
+    
+    invoice.lines.forEach((line, index) => {
+        addEditLineItem(line, index);
+    });
+    
+    // Add "Add Line" button
+    const addLineBtn = document.createElement('button');
+    addLineBtn.type = 'button';
+    addLineBtn.className = 'add-line-btn';
+    addLineBtn.textContent = '+ Add Line Item';
+    addLineBtn.onclick = () => addEditLineItem(null, invoice.lines.length);
+    lineItemsContainer.appendChild(addLineBtn);
+    
+    // Show modal
+    document.getElementById('editModal').classList.add('show');
+}
+
+function addEditLineItem(lineData, index) {
+    const lineItemsContainer = document.getElementById('editLineItems');
+    const addBtn = lineItemsContainer.querySelector('.add-line-btn');
+    
+    const lineDiv = document.createElement('div');
+    lineDiv.className = 'edit-line-item';
+    lineDiv.innerHTML = `
+        <div class="form-group">
+            <label>PRODUCT</label>
+            <select name="line_product_${index}" required>
+                <option value="">Select Product</option>
+                {% for product in inventory %}
+                <option value="{{ product.product_id }}" ${lineData && lineData.product_id == {{ product.product_id }} ? 'selected' : ''}>{{ product.hem_name }}{% if product.sku_no %} ({{ product.sku_no }}){% endif %}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>QUANTITY</label>
+            <input type="number" name="line_qty_${index}" required min="1" value="${lineData ? lineData.qty : 1}">
+        </div>
+        <div class="form-group">
+            <label>TOTAL (S$)</label>
+            <input type="number" name="line_total_${index}" required min="0" step="0.01" value="${lineData ? lineData.total_amt.toFixed(2) : '0.00'}">
+        </div>
+        <div class="form-group">
+            <label>GST (S$)</label>
+            <input type="number" name="line_gst_${index}" required min="0" step="0.01" value="${lineData ? lineData.gst_amt.toFixed(2) : '0.00'}">
+        </div>
+        <div>
+            <label style="opacity: 0;">.</label>
+            <button type="button" class="remove-line-btn" onclick="this.parentElement.parentElement.remove()">✕</button>
+        </div>
+    `;
+    
+    if (addBtn) {
+        lineItemsContainer.insertBefore(lineDiv, addBtn);
+    } else {
+        lineItemsContainer.appendChild(lineDiv);
+    }
+}
+
+function hideEditModal() {
+    document.getElementById('editModal').classList.remove('show');
+    currentEditingInvoice = null;
+}
+
+// Handle edit form submission
+document.getElementById('editInvoiceForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    if (!currentEditingInvoice) return;
+    
+    const formData = new FormData(e.target);
+    const lineItems = [];
+    
+    // Collect all line items
+    const lineItemDivs = document.querySelectorAll('.edit-line-item');
+    lineItemDivs.forEach((div, index) => {
+        const productSelect = div.querySelector(`select[name^="line_product_"]`);
+        const qtyInput = div.querySelector(`input[name^="line_qty_"]`);
+        const totalInput = div.querySelector(`input[name^="line_total_"]`);
+        const gstInput = div.querySelector(`input[name^="line_gst_"]`);
+        
+        if (productSelect && qtyInput && totalInput && gstInput) {
+            lineItems.push({
+                product_id: parseInt(productSelect.value),
+                qty: parseInt(qtyInput.value),
+                total_amt: parseFloat(totalInput.value),
+                gst_amt: parseFloat(gstInput.value),
+                line_no: index + 1
+            });
+        }
+    });
+    
+    if (lineItems.length === 0) {
+        showBigNotification('ADD AT LEAST ONE LINE ITEM', 'error');
+        return;
+    }
+    
+    const invoiceData = {
+        invoice_no: formData.get('invoice_no'),
+        invoice_date: formData.get('invoice_date'),
+        customer_id: parseInt(formData.get('customer_id')),
+        legend_id: formData.get('legend_id'),
+        lines: lineItems
+    };
+    
+    try {
+        const response = await fetch(`/update-invoice/${currentEditingInvoice}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify(invoiceData)
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+                hideEditModal();
+                showBigNotification('INVOICE UPDATED!', 'warning');
+                // Reload page after a short delay
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showBigNotification('UPDATE FAILED: ' + result.message, 'error');
+            }
+        } else {
+            showBigNotification('UPDATE FAILED', 'error');
+        }
+    } catch (error) {
+        console.error('Error updating invoice:', error);
+        showBigNotification('UPDATE FAILED', 'error');
+    }
+});
+
+// Close edit modal when clicking outside
+document.getElementById('editModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideEditModal();
+    }
+});
+
 // Delete Modal Functions
 let currentInvoiceToDelete = null;
-const csrfToken = '{{ csrf_token() }}';
 
 function showDeleteModal(invoiceNo) {
-    currentInvoiceToDelete = invoiceNo;
-    document.getElementById('deleteInvoiceNo').textContent = invoiceNo;
+    currentInvoiceToDelete = String(invoiceNo).trim();
+    document.getElementById('deleteInvoiceNo').textContent = currentInvoiceToDelete;
     document.getElementById('deleteModal').classList.add('show');
 }
 
@@ -833,21 +1216,43 @@ function hideDeleteModal() {
     currentInvoiceToDelete = null;
 }
 
-function confirmDelete() {
-    if (!currentInvoiceToDelete) return;
-    
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/delete-invoice/' + currentInvoiceToDelete;
-    
-    const csrfInput = document.createElement('input');
-    csrfInput.type = 'hidden';
-    csrfInput.name = 'csrf_token';
-    csrfInput.value = csrfToken;
-    
-    form.appendChild(csrfInput);
-    document.body.appendChild(form);
-    form.submit();
+async function confirmDelete() {
+    if (!currentInvoiceToDelete) {
+        showBigNotification('ERROR: No invoice selected', 'error');
+        return;
+    }
+
+    // Save to local var FIRST — hideDeleteModal() sets currentInvoiceToDelete = null
+    const invoiceToDelete = currentInvoiceToDelete;
+    hideDeleteModal();
+
+    try {
+        const response = await fetch(`/delete-invoice/${invoiceToDelete}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+            if (response.status === 404) {
+                showBigNotification('INVOICE NOT FOUND', 'error');
+            } else {
+                showBigNotification(`DELETE FAILED: ${response.status}`, 'error');
+            }
+            return;
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+            showBigNotification('INVOICE DELETED!', false);
+            setTimeout(() => { window.location.reload(); }, 1500);
+        } else {
+            showBigNotification('FAILED TO DELETE: ' + result.message, 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting invoice:', error);
+        showBigNotification('FAILED TO DELETE INVOICE', 'error');
+    }
 }
 
 // Close modal when clicking outside
@@ -858,16 +1263,104 @@ window.onclick = function(event) {
     }
 }
 
-// Auto-hide flash messages after 5 seconds
-setTimeout(() => {
-    const flashMessage = document.getElementById('flash-message');
-    if (flashMessage) {
-        flashMessage.style.animation = 'slideIn 0.3s ease-out reverse';
-        setTimeout(() => {
-            flashMessage.style.display = 'none';
-        }, 300);
+// === CREATE INVOICE: Customer → Legend auto-fill + Product ID resolution ===
+
+// Live date validation — inline field error, no big notification
+function setDateError(input, errId, hasError) {
+    const err = document.getElementById(errId);
+    if (hasError) {
+        input.classList.add('field-error');
+        if (err) err.style.display = 'block';
+    } else {
+        input.classList.remove('field-error');
+        if (err) err.style.display = 'none';
     }
-}, 5000);
+}
+
+function validateInvoiceDate(input, errId) {
+    if (!input.value) { setDateError(input, errId, false); return true; }
+    if (input.value > '{{ today }}') {
+        setDateError(input, errId, true);
+        return false;
+    }
+    setDateError(input, errId, false);
+    return true;
+}
+
+const invoiceDateInput     = document.getElementById('invoice_date');
+const editInvoiceDateInput = document.getElementById('edit_invoice_date');
+
+if (invoiceDateInput) {
+    invoiceDateInput.addEventListener('change', function() {
+        validateInvoiceDate(this, 'invoice_date_err');
+    });
+}
+if (editInvoiceDateInput) {
+    editInvoiceDateInput.addEventListener('change', function() {
+        validateInvoiceDate(this, 'edit_invoice_date_err');
+    });
+}
+
+// Build product lookup map from datalist: display text → product_id
+const productList = document.getElementById('product_list');
+const productMap = {};
+if (productList) {
+    Array.from(productList.options).forEach(opt => {
+        productMap[opt.value.trim()] = opt.getAttribute('data-id');
+    });
+}
+
+// Customer input → auto-fill Legend with first 3 chars (uppercase)
+const customerInput = document.getElementById('customer_id_input');
+const legendInput   = document.getElementById('legend_id');
+if (customerInput && legendInput) {
+    customerInput.addEventListener('input', function() {
+        const val = this.value.trim();
+        legendInput.value = val.length >= 3 ? val.substring(0, 3).toUpperCase() : val.toUpperCase();
+    });
+}
+
+// Product input → resolve hidden product_id when user picks/types
+const productInput  = document.getElementById('product_input');
+const productIdHidden = document.getElementById('product_id');
+if (productInput && productIdHidden) {
+    productInput.addEventListener('change', function() {
+        const typed = this.value.trim();
+        productIdHidden.value = productMap[typed] || '';
+    });
+    productInput.addEventListener('input', function() {
+        const typed = this.value.trim();
+        productIdHidden.value = productMap[typed] || '';
+    });
+}
+
+// Invoice form submission handler
+const invoiceForm = document.getElementById('invoiceForm');
+if (invoiceForm) {
+    invoiceForm.addEventListener('submit', function(e) {
+        // Block if date is in the future
+        if (invoiceDateInput && !validateInvoiceDate(invoiceDateInput, 'invoice_date_err')) {
+            e.preventDefault();
+            invoiceDateInput.focus();
+            return;
+        }
+        // Ensure product_id resolved before submit
+        if (productInput && productIdHidden && !productIdHidden.value) {
+            const typed = productInput.value.trim();
+            productIdHidden.value = productMap[typed] || '';
+            if (!productIdHidden.value) {
+                e.preventDefault();
+                productInput.classList.add('field-error');
+                return;
+            }
+        }
+        const submitButton = invoiceForm.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = 'Creating Invoice...';
+        }
+    });
+}
 
 // Sales Trend Chart
 const ctx = document.getElementById('salesTrendChart')?.getContext('2d');
