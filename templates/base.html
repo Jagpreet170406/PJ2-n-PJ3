@@ -89,6 +89,7 @@
             transition: background 0.2s ease;
             font-size: 1.2rem;
         }
+
     
         .sidebar-toggle:hover {
             background: #333;
@@ -293,6 +294,7 @@
                 localStorage.setItem('sidebarCollapsed', isCollapsed);
             }
         }
+        //html, body { overflow-x: hidden; }
 
         // Restore sidebar state on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -322,5 +324,33 @@
     </script>
 
     {% block scripts %}{% endblock %}
+    <script>
+        // Sidebar toggle functionality (ONE source of truth)
+        function toggleSidebar() {
+          const sidebar = document.getElementById('adminSidebar');
+          const mainContent = document.getElementById('mainContent');
+      
+          if (!sidebar || !mainContent) return;
+      
+          sidebar.classList.toggle('collapsed');
+          mainContent.classList.toggle('expanded');
+      
+          localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+        }
+      
+        // Restore sidebar state
+        document.addEventListener('DOMContentLoaded', function () {
+          const sidebar = document.getElementById('adminSidebar');
+          const mainContent = document.getElementById('mainContent');
+          if (!sidebar || !mainContent) return;
+      
+          const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+          if (isCollapsed) {
+            sidebar.classList.add('collapsed');
+            mainContent.classList.add('expanded');
+          }
+        });
+      </script>
+      
 </body>
 </html>

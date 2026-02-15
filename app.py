@@ -249,7 +249,173 @@ def order_success():
 def contact():
     """Contact information page for customers."""
     return render_template("contact.html", role="customer")
+@app.route("/orders")
+@require_staff
+def orders():
+    """Staff orders management page - view and manage all customer orders."""
+    page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('search', '')
+    status_filter = request.args.get('status', '')
+    per_page = 20
+    offset = (page - 1) * per_page
+    
+    with get_db() as conn:
+        # Build query with filters
+        base_query = "FROM transactions t"
+        where_clauses = []
+        params = []
+        
+        if search_query:
+            where_clauses.append("(t.username LIKE ? OR t.payment_type LIKE ?)")
+            params.extend([f'%{search_query}%', f'%{search_query}%'])
+        
+        if status_filter:
+            where_clauses.append("t.payment_type LIKE ?")
+            params.append(f'%{status_filter}%')
+        
+        where_sql = " WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+        
+        # Get total count for pagination
+        total_count = conn.execute(f"SELECT COUNT(*) {base_query} {where_sql}", params).fetchone()[0]
+        total_pages = (total_count // per_page) + (1 if total_count % per_page > 0 else 0)
+        
+        # Get orders for current page
+        orders = conn.execute(f"""
+            SELECT t.transaction_id, t.username, t.payment_type, t.amount, t.created_at
+            {base_query} {where_sql}
+            ORDER BY t.created_at DESC
+            LIMIT ? OFFSET ?
+        """, params + [per_page, offset]).fetchall()
+        
+        # Get summary statistics
+        stats = conn.execute(f"""
+            SELECT 
+                COUNT(*) as total_orders,
+                COALESCE(SUM(amount), 0) as total_revenue,
+                COALESCE(AVG(amount), 0) as avg_order_value
+            {base_query} {where_sql}
+        """, params).fetchone()
+    
+    return render_template("orders.html",
+                         orders=[dict(row) for row in orders],
+                         current_page=page,
+                         total_pages=total_pages,
+                         search_query=search_query,
+                         status_filter=status_filter,
+                         total_orders=stats['total_orders'],
+                         total_revenue=round(float(stats['total_revenue']), 2),
+                         avg_order_value=round(float(stats['avg_order_value']), 2),
+                         role=session.get("role"))
 
+@app.route("/feedback")
+@require_staff
+def feedback():
+    """Staff feedback management page - view customer feedback and reviews."""
+    page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('search', '')
+    rating_filter = request.args.get('rating', type=int)
+    per_page = 20
+    offset = (page - 1) * per_page
+    
+    with get_db() as conn:
+        # Check if feedback table exists, create if not
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS feedback (
+                feedback_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL,
+                email TEXT,
+                rating INTEGER CHECK(rating >= 1 AND rating <= 5),
+                message TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Build query with filters
+        base_query = "FROM feedback f"
+        where_clauses = []
+        params = []
+        
+        if search_query:
+            where_clauses.append("(f.username LIKE ? OR f.email LIKE ? OR f.message LIKE ?)")
+            params.extend([f'%{search_query}%', f'%{search_query}%', f'%{search_query}%'])
+        
+        if rating_filter:
+            where_clauses.append("f.rating = ?")
+            params.append(rating_filter)
+        
+        where_sql = " WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+        
+        # Get total count for pagination
+        total_count = conn.execute(f"SELECT COUNT(*) {base_query} {where_sql}", params).fetchone()[0]
+        total_pages = (total_count // per_page) + (1 if total_count % per_page > 0 else 0)
+        
+        # Get feedback for current page
+        feedback_list = conn.execute(f"""
+            SELECT f.feedback_id, f.username, f.email, f.rating, f.message, f.created_at
+            {base_query} {where_sql}
+            ORDER BY f.created_at DESC
+            LIMIT ? OFFSET ?
+        """, params + [per_page, offset]).fetchall()
+        
+        # Get summary statistics
+        stats = conn.execute(f"""
+            SELECT 
+                COUNT(*) as total_feedback,
+                COALESCE(AVG(rating), 0) as avg_rating,
+                COUNT(CASE WHEN rating = 5 THEN 1 END) as five_star,
+                COUNT(CASE WHEN rating = 4 THEN 1 END) as four_star,
+                COUNT(CASE WHEN rating = 3 THEN 1 END) as three_star,
+                COUNT(CASE WHEN rating <= 2 THEN 1 END) as low_rating
+            {base_query} {where_sql}
+        """, params).fetchone()
+    
+    return render_template("feedback.html",
+                         feedback=[dict(row) for row in feedback_list],
+                         current_page=page,
+                         total_pages=total_pages,
+                         search_query=search_query,
+                         rating_filter=rating_filter,
+                         total_feedback=stats['total_feedback'],
+                         avg_rating=round(float(stats['avg_rating']), 2),
+                         five_star=stats['five_star'],
+                         four_star=stats['four_star'],
+                         three_star=stats['three_star'],
+                         low_rating=stats['low_rating'],
+                         role=session.get("role"))
+
+@app.route("/submit-feedback", methods=["POST"])
+@csrf.exempt
+def submit_feedback():
+    """API endpoint for customers to submit feedback."""
+    data = request.get_json()
+    
+    if not data:
+        return jsonify({"success": False, "message": "No data received"}), 400
+    
+    username = session.get("username", "Guest")
+    email = data.get('email', '').strip()
+    rating = data.get('rating', 0)
+    message = data.get('message', '').strip()
+    
+    # Validate inputs
+    if not message:
+        return jsonify({"success": False, "message": "Feedback message is required"}), 400
+    
+    if not rating or rating < 1 or rating > 5:
+        return jsonify({"success": False, "message": "Rating must be between 1 and 5"}), 400
+    
+    try:
+        with get_db() as conn:
+            conn.execute("""
+                INSERT INTO feedback (username, email, rating, message)
+                VALUES (?, ?, ?, ?)
+            """, (username, email, rating, message))
+            conn.commit()
+        
+        return jsonify({"success": True, "message": "Feedback submitted successfully"})
+    except Exception as e:
+        print(f"❌ Feedback submission error: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
 @app.route("/staff-login", methods=["GET", "POST"])
 def staff_login():
     """Staff login page - validates credentials and creates session."""

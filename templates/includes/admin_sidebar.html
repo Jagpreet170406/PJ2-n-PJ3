@@ -1,15 +1,20 @@
 <aside class="admin-sidebar" id="adminSidebar">
-    <div class="admin-sidebar-title">Employee Sidebar</div>
-
-    <a href="#">
-        <span class="sidebar-icon"></span>
-        <span>Orders</span>
-    </a>
-    <a href="#">
-        <span class="sidebar-icon"></span>
-        <span>Feedback</span>
-    </a>
+    <!-- Add spacing div to push content down -->
+    <div style="height: 60px;"></div>
     
-    <div class="sidebar-divider"></div>
-    
+    <div class="admin-sidebar-header">
+      <div class="admin-sidebar-title">Employee Panel</div>
+    </div>
+  
+    <div class="admin-sidebar-body">
+      <a href="{{ url_for('orders') }}">
+        <span class="sidebar-text">Orders</span>
+      </a>
+  
+      <a href="{{ url_for('feedback') }}">
+        <span class="sidebar-text">Feedback</span>
+      </a>
+  
+      <div class="sidebar-divider"></div>
+    </div>
 </aside>
