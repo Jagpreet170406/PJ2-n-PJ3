@@ -1,0 +1,511 @@
+{% extends "base.html" %}
+
+{% block title %}Customer Feedback{% endblock %}
+
+{% block content %}
+
+<style>
+/* PAGE BASE - matches dashboard */
+html, body {
+    background: #000000;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+body {
+    color: #fff;
+    font-family: 'Inter', -apple-system, sans-serif;
+}
+
+/* WRAPPER */
+.page-wrap {
+    min-height: 100vh;
+    padding-top: 100px;
+    padding-bottom: 60px;
+    position: relative;
+    background: #000000;
+}
+
+.page-wrap::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: #000000;
+    z-index: 0;
+}
+
+.page-wrap > * { position: relative; z-index: 1; }
+
+/* HERO */
+.hero {
+    max-width: 1400px;
+    margin: 0 auto 30px;
+    padding: 30px 20px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.hero h1 {
+    font-weight: 900;
+    font-size: 3.2rem;
+    letter-spacing: -0.03em;
+    margin: 0 0 10px;
+    background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero p {
+    color: rgba(255,255,255,0.85);
+    font-size: 1.15rem;
+    margin: 0;
+}
+
+/* CONTAINER */
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* SECTION CARD */
+.section-card {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 24px;
+    padding: 24px;
+    backdrop-filter: blur(18px);
+    box-shadow: 0 18px 60px rgba(0,0,0,0.35);
+    margin-bottom: 24px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.section-title {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: rgba(255,255,255,0.92);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.section-title::before {
+    content: "";
+    width: 4px;
+    height: 22px;
+    background: rgba(255,255,255,0.85);
+    border-radius: 2px;
+}
+
+/* STATS GRID */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    background: rgba(0,0,0,0.30);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255,255,255,0.25);
+}
+
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: #fff;
+    margin-bottom: 8px;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(255,255,255,0.65);
+    font-weight: 700;
+}
+
+/* SEARCH BAR */
+.search-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.search-input {
+    flex: 1;
+    min-width: 250px;
+    padding: 12px 16px;
+    background: rgba(0,0,0,0.30);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 12px;
+    color: rgba(255,255,255,0.92);
+    font-size: 0.95rem;
+}
+
+.search-input::placeholder {
+    color: rgba(255,255,255,0.45);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: rgba(255,255,255,0.35);
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.08);
+}
+
+.filter-select {
+    padding: 12px 16px;
+    background: rgba(0,0,0,0.30);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 12px;
+    color: rgba(255,255,255,0.92);
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: rgba(255,255,255,0.35);
+}
+
+.btn {
+    padding: 12px 22px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-weight: 800;
+    font-size: 0.95rem;
+    transition: all 0.25s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background: rgba(255,255,255,0.92);
+    color: #111827;
+    box-shadow: 0 10px 26px rgba(0,0,0,0.15);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 45px rgba(0,0,0,0.25);
+}
+
+.btn-secondary {
+    background: rgba(255,255,255,0.10);
+    color: rgba(255,255,255,0.92);
+    border: 1px solid rgba(255,255,255,0.18);
+}
+
+.btn-secondary:hover {
+    background: rgba(255,255,255,0.16);
+}
+
+/* FEEDBACK GRID */
+.feedback-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 20px;
+}
+
+.feedback-card {
+    background: rgba(0,0,0,0.30);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    padding: 20px;
+    transition: all 0.3s;
+}
+
+.feedback-card:hover {
+    border-color: rgba(255,255,255,0.25);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+
+.feedback-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+}
+
+.feedback-user {
+    font-weight: 800;
+    color: #fff;
+    font-size: 1rem;
+}
+
+.feedback-email {
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.55);
+    margin-top: 2px;
+}
+
+.feedback-rating {
+    display: flex;
+    gap: 4px;
+}
+
+.star {
+    color: #fbbf24;
+    font-size: 1.2rem;
+}
+
+.star.empty {
+    color: rgba(255,255,255,0.15);
+}
+
+.feedback-message {
+    color: rgba(255,255,255,0.85);
+    line-height: 1.6;
+    margin-bottom: 12px;
+    font-size: 0.95rem;
+}
+
+.feedback-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.55);
+}
+
+/* PAGINATION */
+.pagination {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 24px;
+    flex-wrap: wrap;
+}
+
+.pagination a,
+.pagination span {
+    padding: 10px 16px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.10);
+    color: rgba(255,255,255,0.85);
+    text-decoration: none;
+    font-weight: 700;
+    transition: all 0.2s;
+    border: 1px solid rgba(255,255,255,0.14);
+}
+
+.pagination a:hover {
+    background: rgba(255,255,255,0.16);
+    transform: translateY(-1px);
+}
+
+.pagination span.active {
+    background: rgba(255,255,255,0.92);
+    color: #111827;
+}
+
+/* EMPTY STATE */
+.empty-state {
+    text-align: center;
+    padding: 80px 20px;
+}
+
+.empty-icon {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+}
+
+.empty-state h3 {
+    font-size: 1.5rem;
+    color: rgba(255,255,255,0.85);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: rgba(255,255,255,0.55);
+    font-size: 1rem;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .hero h1 {
+        font-size: 2.2rem;
+    }
+
+    .feedback-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+</style>
+
+<div class="page-wrap">
+    <!-- Hero Header -->
+    <div class="hero">
+        <h1>💬 Customer Feedback</h1>
+        <p>Monitor customer satisfaction and reviews</p>
+    </div>
+
+    <div class="container">
+        <!-- Stats Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">{{ total_feedback }}</div>
+                <div class="stat-label">Total Feedback</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ "%.1f"|format(avg_rating) }}★</div>
+                <div class="stat-label">Average Rating</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ five_star }}</div>
+                <div class="stat-label">5-Star Reviews</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ four_star }}</div>
+                <div class="stat-label">4-Star Reviews</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ three_star }}</div>
+                <div class="stat-label">3-Star Reviews</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ low_rating }}</div>
+                <div class="stat-label">Low Ratings</div>
+            </div>
+        </div>
+
+        <!-- Search & Filter -->
+        <div class="section-card">
+            <form method="GET" action="{{ url_for('feedback') }}" class="search-bar">
+                <input type="text" 
+                       name="search" 
+                       class="search-input" 
+                       placeholder="Search by customer, email, or message..." 
+                       value="{{ search_query }}">
+                
+                <select name="rating" class="filter-select">
+                    <option value="">All Ratings</option>
+                    <option value="5" {% if rating_filter == 5 %}selected{% endif %}>5 Stars</option>
+                    <option value="4" {% if rating_filter == 4 %}selected{% endif %}>4 Stars</option>
+                    <option value="3" {% if rating_filter == 3 %}selected{% endif %}>3 Stars</option>
+                    <option value="2" {% if rating_filter == 2 %}selected{% endif %}>2 Stars</option>
+                    <option value="1" {% if rating_filter == 1 %}selected{% endif %}>1 Star</option>
+                </select>
+                
+                <button type="submit" class="btn btn-primary">Search</button>
+                {% if search_query or rating_filter %}
+                <a href="{{ url_for('feedback') }}" class="btn btn-secondary">Clear</a>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Feedback List -->
+        <div class="section-card">
+            <div class="section-header">
+                <h2 class="section-title">Customer Reviews</h2>
+                <div style="color: rgba(255,255,255,0.65); font-size: 0.9rem;">
+                    Showing {{ feedback|length }} reviews
+                </div>
+            </div>
+
+            {% if feedback %}
+            <div class="feedback-grid">
+                {% for item in feedback %}
+                <div class="feedback-card">
+                    <div class="feedback-header">
+                        <div>
+                            <div class="feedback-user">{{ item.username }}</div>
+                            {% if item.email %}
+                            <div class="feedback-email">{{ item.email }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="feedback-rating">
+                            {% for i in range(1, 6) %}
+                                {% if i <= item.rating %}
+                                <span class="star">★</span>
+                                {% else %}
+                                <span class="star empty">★</span>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="feedback-message">
+                        "{{ item.message }}"
+                    </div>
+                    
+                    <div class="feedback-footer">
+                        <span>ID: #{{ item.feedback_id }}</span>
+                        <span>{{ item.created_at[:16] if item.created_at else 'N/A' }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if total_pages > 1 %}
+            <div class="pagination">
+                {% if current_page > 1 %}
+                    <a href="{{ url_for('feedback', page=current_page-1, search=search_query, rating=rating_filter) }}">← Prev</a>
+                {% endif %}
+                {% for p in range(1, total_pages + 1) %}
+                    {% if p == current_page %}
+                        <span class="active">{{ p }}</span>
+                    {% elif p == 1 or p == total_pages or (p >= current_page - 2 and p <= current_page + 2) %}
+                        <a href="{{ url_for('feedback', page=p, search=search_query, rating=rating_filter) }}">{{ p }}</a>
+                    {% elif p == current_page - 3 or p == current_page + 3 %}
+                        <span>...</span>
+                    {% endif %}
+                {% endfor %}
+                {% if current_page < total_pages %}
+                    <a href="{{ url_for('feedback', page=current_page+1, search=search_query, rating=rating_filter) }}">Next →</a>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% else %}
+            <!-- Empty State -->
+            <div class="empty-state">
+                <div class="empty-icon">💭</div>
+                <h3>No Feedback Yet</h3>
+                <p>Customer feedback will appear here once submitted</p>
+                {% if search_query or rating_filter %}
+                <p style="margin-top: 1rem;">
+                    <a href="{{ url_for('feedback') }}" class="btn btn-secondary">Clear Filters</a>
+                </p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,102 +1,529 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>User Management</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-<div class="container mt-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>User Management Panel</h2>
-        <div>
-            <a href="{{ url_for('home') }}" class="btn btn-outline-secondary btn-sm">Home</a>
-            <a href="{{ url_for('logout') }}" class="btn btn-danger btn-sm">Logout</a>
+{% extends "base.html" %}
+
+{% block title %}User Management{% endblock %}
+
+{% block content %}
+
+<style>
+/* PAGE BASE - matches dashboard */
+html, body {
+    background: #000000;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+body {
+    color: #fff;
+    font-family: 'Inter', -apple-system, sans-serif;
+}
+
+/* WRAPPER */
+.page-wrap {
+    min-height: 100vh;
+    padding-top: 100px;
+    padding-bottom: 60px;
+    position: relative;
+    background: #000000;
+}
+
+.page-wrap::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: #000000;
+    z-index: 0;
+}
+
+.page-wrap > * { position: relative; z-index: 1; }
+
+/* HERO */
+.hero {
+    max-width: 1400px;
+    margin: 0 auto 30px;
+    padding: 30px 20px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.hero h1 {
+    font-weight: 900;
+    font-size: 3.2rem;
+    letter-spacing: -0.03em;
+    margin: 0 0 10px;
+    background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero p {
+    color: rgba(255,255,255,0.85);
+    font-size: 1.15rem;
+    margin: 0;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+/* CONTAINER */
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* SECTION CARD */
+.section-card {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 24px;
+    padding: 24px;
+    backdrop-filter: blur(18px);
+    box-shadow: 0 18px 60px rgba(0,0,0,0.35);
+    margin-bottom: 24px;
+}
+
+.section-header {
+    margin-bottom: 1.5rem;
+}
+
+.section-title {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: rgba(255,255,255,0.92);
+    margin: 0 0 0.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.section-title::before {
+    content: "";
+    width: 4px;
+    height: 22px;
+    background: rgba(255,255,255,0.85);
+    border-radius: 2px;
+}
+
+.section-subtitle {
+    color: rgba(255,255,255,0.65);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* ALERT */
+.alert {
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    border: 1px solid;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.alert-info {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: #60a5fa;
+}
+
+.alert-close {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+/* FORM GRID */
+.form-grid {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1.5fr 1fr;
+    gap: 16px;
+    align-items: end;
+}
+
+@media (max-width: 1024px) {
+    .form-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.form-group {
+    min-width: 0;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 8px;
+}
+
+.form-input,
+.form-select {
+    width: 100%;
+    background: rgba(0,0,0,0.30);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: rgba(255,255,255,0.92);
+    font-size: 0.95rem;
+    box-sizing: border-box;
+}
+
+.form-input::placeholder {
+    color: rgba(255,255,255,0.45);
+}
+
+.form-input:focus,
+.form-select:focus {
+    outline: none;
+    border-color: rgba(255,255,255,0.35);
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.08);
+}
+
+.form-select option {
+    background: #1a1a1a;
+    color: rgba(255,255,255,0.92);
+}
+
+/* BUTTONS */
+.btn {
+    padding: 12px 22px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-weight: 800;
+    font-size: 0.95rem;
+    transition: all 0.25s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 10px 26px rgba(16,185,129,0.25);
+    width: 100%;
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 45px rgba(16,185,129,0.35);
+}
+
+.btn-primary {
+    background: rgba(255,255,255,0.92);
+    color: #111827;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+}
+
+.btn-danger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(239,68,68,0.35);
+}
+
+.btn-secondary {
+    background: rgba(255,255,255,0.10);
+    color: rgba(255,255,255,0.92);
+    border: 1px solid rgba(255,255,255,0.18);
+}
+
+.btn-secondary:hover {
+    background: rgba(255,255,255,0.16);
+}
+
+.btn-sm {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+}
+
+/* USERS TABLE */
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.users-table thead {
+    background: rgba(0,0,0,0.30);
+}
+
+.users-table th {
+    padding: 16px;
+    text-align: left;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.65);
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+
+.users-table td {
+    padding: 18px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.85);
+}
+
+.users-table tbody tr {
+    transition: all 0.2s;
+}
+
+.users-table tbody tr:hover {
+    background: rgba(255,255,255,0.04);
+}
+
+.users-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.username-cell {
+    font-weight: 800;
+    color: #fff;
+    font-size: 1rem;
+}
+
+/* STATUS BADGE */
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: inline-block;
+}
+
+.status-active {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.status-inactive {
+    background: rgba(107, 114, 128, 0.15);
+    color: #9ca3af;
+    border: 1px solid rgba(107, 114, 128, 0.25);
+}
+
+/* ROLE SELECT */
+.role-select {
+    background: rgba(0,0,0,0.30);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: rgba(255,255,255,0.92);
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.role-select:focus {
+    outline: none;
+    border-color: rgba(255,255,255,0.35);
+}
+
+/* ACTIONS CELL */
+.actions-cell {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+/* EMPTY STATE */
+.empty-state {
+    text-align: center;
+    padding: 80px 20px;
+}
+
+.empty-icon {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+}
+
+.empty-state h3 {
+    font-size: 1.5rem;
+    color: rgba(255,255,255,0.85);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: rgba(255,255,255,0.55);
+    font-size: 1rem;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .hero h1 {
+        font-size: 2.2rem;
+    }
+
+    .users-table {
+        display: block;
+        overflow-x: auto;
+    }
+
+    .actions-cell {
+        flex-direction: column;
+    }
+}
+</style>
+
+<div class="page-wrap">
+    <!-- Hero Header -->
+    <div class="hero">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <h1>👥 User Management</h1>
+                <p>Manage staff accounts, roles, and permissions</p>
+            </div>
+            <div class="hero-actions">
+                <a href="{{ url_for('home') }}" class="btn btn-secondary">← Back to Home</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
+            </div>
         </div>
     </div>
 
-    {% if message %}
-        <div class="alert alert-info alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <div class="container">
+        <!-- Alert Message -->
+        {% if message %}
+        <div class="alert alert-info">
+            <span>{{ message }}</span>
+            <button class="alert-close" onclick="this.parentElement.style.display='none'">×</button>
         </div>
-    {% endif %}
+        {% endif %}
 
-    <div class="card mb-4 shadow-sm border-0">
-        <div class="card-header bg-primary text-white py-3">
-            <h5 class="card-title mb-0">Add New User</h5>
-        </div>
-        <div class="card-body">
-            <form method="POST" class="row g-3">
+        <!-- Add New User -->
+        <div class="section-card">
+            <div class="section-header">
+                <h2 class="section-title">Add New User</h2>
+                <p class="section-subtitle">Create a new staff account with role assignment</p>
+            </div>
+
+            <form method="POST">
                 <input type="hidden" name="action" value="add">
-                <div class="col-md-4">
-                    <label class="form-label small text-muted">Username</label>
-                    <input type="text" name="username" class="form-control" placeholder="e.g. jsmith" required>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small text-muted">Password</label>
-                    <input type="password" name="password" class="form-control" placeholder="Password" required>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small text-muted">Assign Role</label>
-                    <select name="role" class="form-select">
-                        <option value="employee">Employee</option>
-                        <option value="admin">Admin</option>
-                        <option value="superowner">Superowner</option>
-                    </select>
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-success w-100">Add User</button>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Username</label>
+                        <input type="text" name="username" class="form-input" placeholder="e.g. jsmith" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" name="password" class="form-input" placeholder="Enter password" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Assign Role</label>
+                        <select name="role" class="form-select">
+                            <option value="employee">Employee</option>
+                            <option value="admin">Admin</option>
+                            <option value="superowner">Superowner</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-success">Add User</button>
+                    </div>
                 </div>
             </form>
         </div>
-    </div>
 
-    <div class="table-responsive">
-        <table class="table table-hover bg-white shadow-sm align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th class="ps-3">Username</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th class="text-end pe-3">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for user in users %}
-                <tr>
-                    <td class="ps-3 fw-bold">{{ user.username }}</td>
-                    <td>
-                        <form method="POST" class="d-inline">
-                            <input type="hidden" name="action" value="change_role">
-                            <input type="hidden" name="username" value="{{ user.username }}">
-                            <select name="new_role" onchange="this.form.submit()" class="form-select form-select-sm d-inline-block w-auto">
-                                <option value="employee" {% if user.role == 'employee' %}selected{% endif %}>Employee</option>
-                                <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
-                                <option value="superowner" {% if user.role == 'superowner' %}selected{% endif %}>Superowner</option>
-                            </select>
-                        </form>
-                    </td>
-                    <td>
-                        <span class="badge {{ 'bg-success' if user.active else 'bg-secondary' }}">
-                            {{ 'Active' if user.active else 'Inactive' }}
-                        </span>
-                    </td>
-                    <td class="text-end pe-3">
-                        <form method="POST" class="d-inline">
-                            <input type="hidden" name="username" value="{{ user.username }}">
-                            <button type="submit" name="action" value="toggle" class="btn btn-sm btn-outline-primary">Toggle Status</button>
-                            <button type="submit" name="action" value="delete" class="btn btn-sm btn-outline-danger" 
-                                    onclick="return confirm('Confirm delete user: {{ user.username }}?')">Delete</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <!-- Users List -->
+        <div class="section-card">
+            <div class="section-header">
+                <h2 class="section-title">All Users</h2>
+                <p class="section-subtitle">Manage existing staff accounts and permissions</p>
+            </div>
+
+            {% if users %}
+            <div style="overflow-x: auto;">
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>
+                                <span class="username-cell">{{ user.username }}</span>
+                            </td>
+                            <td>
+                                <form method="POST" style="display: inline;">
+                                    <input type="hidden" name="action" value="change_role">
+                                    <input type="hidden" name="username" value="{{ user.username }}">
+                                    <select name="new_role" onchange="this.form.submit()" class="role-select">
+                                        <option value="employee" {% if user.role == 'employee' %}selected{% endif %}>Employee</option>
+                                        <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                                        <option value="superowner" {% if user.role == 'superowner' %}selected{% endif %}>Superowner</option>
+                                    </select>
+                                </form>
+                            </td>
+                            <td>
+                                <span class="status-badge {{ 'status-active' if user.active else 'status-inactive' }}">
+                                    {{ 'Active' if user.active else 'Inactive' }}
+                                </span>
+                            </td>
+                            <td>
+                                <form method="POST" class="actions-cell">
+                                    <input type="hidden" name="username" value="{{ user.username }}">
+                                    <button type="submit" name="action" value="toggle" class="btn btn-primary btn-sm">
+                                        Toggle Status
+                                    </button>
+                                    <button type="submit" name="action" value="delete" class="btn btn-danger btn-sm" 
+                                            onclick="return confirm('Confirm delete user: {{ user.username }}?')">
+                                        Delete
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <!-- Empty State -->
+            <div class="empty-state">
+                <div class="empty-icon">👤</div>
+                <h3>No Users Yet</h3>
+                <p>Add your first staff member using the form above</p>
+            </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+{% endblock %}

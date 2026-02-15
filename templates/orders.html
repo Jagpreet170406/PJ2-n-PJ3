@@ -1,0 +1,704 @@
+{% extends "base.html" %}
+
+{% block title %}Orders Management{% endblock %}
+
+{% block content %}
+
+<style>
+/* PAGE BASE - matches dashboard.html */
+html, body {
+    background: #000000;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+body {
+    color: #fff;
+    font-family: 'Inter', -apple-system, sans-serif;
+}
+
+/* WRAPPER */
+.page-wrap {
+    min-height: 100vh;
+    padding-top: 100px;
+    padding-bottom: 60px;
+    position: relative;
+    background: #000000;
+}
+
+.page-wrap::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: #000000;
+    z-index: 0;
+}
+
+.page-wrap > * { position: relative; z-index: 1; }
+
+/* HERO - matches dashboard */
+.hero {
+    max-width: 1400px;
+    margin: 0 auto 30px;
+    padding: 30px 20px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.hero h1 {
+    font-weight: 900;
+    font-size: 3.2rem;
+    letter-spacing: -0.03em;
+    margin: 0 0 10px;
+    background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero p {
+    color: rgba(255,255,255,0.85);
+    font-size: 1.15rem;
+    margin: 0;
+}
+
+/* MAIN CONTAINER */
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* SECTION CARD - matches dashboard */
+.section-card {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 24px;
+    padding: 24px;
+    backdrop-filter: blur(18px);
+    box-shadow: 0 18px 60px rgba(0,0,0,0.35);
+    margin-bottom: 24px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.section-title {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: rgba(255,255,255,0.92);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.section-title::before {
+    content: "";
+    width: 4px;
+    height: 22px;
+    background: rgba(255,255,255,0.85);
+    border-radius: 2px;
+}
+
+/* TABS - Workflow status tabs */
+.tabs-container {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+}
+
+.tabs-container::-webkit-scrollbar {
+    height: 6px;
+}
+
+.tabs-container::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.05);
+    border-radius: 3px;
+}
+
+.tabs-container::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.15);
+    border-radius: 3px;
+}
+
+.tab-btn {
+    padding: 12px 24px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.75);
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.tab-btn:hover {
+    background: rgba(255,255,255,0.10);
+    border-color: rgba(255,255,255,0.25);
+    color: rgba(255,255,255,0.92);
+}
+
+.tab-btn.active {
+    background: rgba(255,255,255,0.92);
+    color: #111827;
+    border-color: rgba(255,255,255,0.92);
+}
+
+/* SEARCH BAR */
+.search-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.search-input {
+    flex: 1;
+    min-width: 250px;
+    padding: 12px 16px;
+    background: rgba(0,0,0,0.30);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 12px;
+    color: rgba(255,255,255,0.92);
+    font-size: 0.95rem;
+}
+
+.search-input::placeholder {
+    color: rgba(255,255,255,0.45);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: rgba(255,255,255,0.35);
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.08);
+}
+
+.btn {
+    padding: 12px 22px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-weight: 800;
+    font-size: 0.95rem;
+    transition: all 0.25s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background: rgba(255,255,255,0.92);
+    color: #111827;
+    box-shadow: 0 10px 26px rgba(0,0,0,0.15);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 45px rgba(0,0,0,0.25);
+    background: #ffffff;
+}
+
+.btn-secondary {
+    background: rgba(255,255,255,0.10);
+    color: rgba(255,255,255,0.92);
+    border: 1px solid rgba(255,255,255,0.18);
+}
+
+.btn-secondary:hover {
+    background: rgba(255,255,255,0.16);
+    border-color: rgba(255,255,255,0.28);
+}
+
+/* ORDERS GRID - Card layout instead of table */
+.orders-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+.order-card {
+    background: rgba(0,0,0,0.30);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    padding: 20px;
+    transition: all 0.3s;
+}
+
+.order-card:hover {
+    border-color: rgba(255,255,255,0.25);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+
+.order-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+}
+
+.order-customer {
+    color: rgba(255,255,255,0.65);
+    font-size: 0.9rem;
+    margin-top: 4px;
+}
+
+.order-card-details {
+    margin-bottom: 16px;
+}
+
+.order-detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    font-size: 0.9rem;
+}
+
+.detail-label {
+    color: rgba(255,255,255,0.55);
+    font-weight: 600;
+}
+
+.order-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    flex: 1;
+    min-width: 140px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: none;
+    font-weight: 800;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+.btn-start {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+}
+
+.btn-start:hover {
+    box-shadow: 0 6px 20px rgba(59,130,246,0.4);
+}
+
+.btn-ready {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+}
+
+.btn-ready:hover {
+    box-shadow: 0 6px 20px rgba(16,185,129,0.4);
+}
+
+.btn-deliver {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+}
+
+.btn-deliver:hover {
+    box-shadow: 0 6px 20px rgba(139,92,246,0.4);
+}
+
+.btn-complete {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    color: white;
+}
+
+.btn-complete:hover {
+    box-shadow: 0 6px 20px rgba(34,197,94,0.4);
+}
+
+.btn-reject,
+.btn-cancel {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+}
+
+.btn-reject:hover,
+.btn-cancel:hover {
+    box-shadow: 0 6px 20px rgba(239,68,68,0.4);
+}
+
+.btn-restart {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+}
+
+.btn-restart:hover {
+    box-shadow: 0 6px 20px rgba(245,158,11,0.4);
+}
+
+/* ORDER ID - make it stand out */
+.order-id {
+    font-weight: 800;
+    color: #fff;
+    font-size: 1rem;
+}
+
+/* AMOUNT - highlight in green */
+.order-amount {
+    font-weight: 800;
+    color: #10b981;
+    font-size: 1.05rem;
+}
+
+/* STATUS BADGES */
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: inline-block;
+}
+
+.status-incoming {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.status-progress {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.status-ready {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.status-delivery {
+    background: rgba(139, 92, 246, 0.15);
+    color: #a78bfa;
+    border: 1px solid rgba(139, 92, 246, 0.25);
+}
+
+.status-completed {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.status-issues {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+/* EMPTY STATE */
+.empty-state {
+    text-align: center;
+    padding: 80px 20px;
+}
+
+.empty-icon {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+}
+
+.empty-state h3 {
+    font-size: 1.5rem;
+    color: rgba(255,255,255,0.85);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: rgba(255,255,255,0.55);
+    font-size: 1rem;
+}
+
+/* PAGINATION - matches dashboard */
+.pagination {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 24px;
+    flex-wrap: wrap;
+}
+
+.pagination a,
+.pagination span {
+    padding: 10px 16px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.10);
+    color: rgba(255,255,255,0.85);
+    text-decoration: none;
+    font-weight: 700;
+    transition: all 0.2s;
+    border: 1px solid rgba(255,255,255,0.14);
+}
+
+.pagination a:hover {
+    background: rgba(255,255,255,0.16);
+    transform: translateY(-1px);
+}
+
+.pagination span.active {
+    background: rgba(255,255,255,0.92);
+    color: #111827;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .hero h1 {
+        font-size: 2.2rem;
+    }
+
+    .orders-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tabs-container {
+        justify-content: flex-start;
+    }
+
+    .tab-btn {
+        font-size: 0.85rem;
+        padding: 10px 18px;
+    }
+
+    .action-btn {
+        min-width: 100%;
+    }
+}
+</style>
+
+<div class="page-wrap">
+    <!-- Hero Header -->
+    <div class="hero">
+        <h1>Orders Management</h1>
+        <p>Track and manage customer orders across all workflow stages</p>
+    </div>
+
+    <div class="container">
+        <!-- Workflow Tabs -->
+        <div class="tabs-container">
+            {% for tab in tabs %}
+            <a href="{{ url_for('orders', tab=tab, search=search_query) }}" 
+               class="tab-btn {% if tab == active_tab %}active{% endif %}">
+                {{ tab }}
+            </a>
+            {% endfor %}
+        </div>
+
+        <!-- Search Section -->
+        <div class="section-card">
+            <form method="GET" action="{{ url_for('orders') }}" class="search-bar">
+                <input type="hidden" name="tab" value="{{ active_tab }}">
+                <input type="text" 
+                       name="search" 
+                       class="search-input" 
+                       placeholder="Search by order ID, customer, or payment type..." 
+                       value="{{ search_query }}">
+                <button type="submit" class="btn btn-primary">Search</button>
+                {% if search_query %}
+                <a href="{{ url_for('orders', tab=active_tab) }}" class="btn btn-secondary">Clear</a>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Orders List -->
+        <div class="section-card">
+            <div class="section-header">
+                <h2 class="section-title">{{ active_tab }} Orders</h2>
+                <div style="color: rgba(255,255,255,0.65); font-size: 0.9rem;">
+                    Showing {{ orders|length }} orders
+                </div>
+            </div>
+
+            {% if orders %}
+            <div class="orders-grid">
+                {% for order in orders %}
+                <div class="order-card">
+                    <div class="order-card-header">
+                        <div>
+                            <span class="order-id">#{{ order.transaction_id }}</span>
+                            <div class="order-customer">{{ order.username }}</div>
+                        </div>
+                        <div class="order-amount">S$ {{ "{:,.2f}".format(order.amount) }}</div>
+                    </div>
+                    
+                    <div class="order-card-details">
+                        <div class="order-detail-row">
+                            <span class="detail-label">Payment:</span>
+                            <span>{{ order.payment_type }}</span>
+                        </div>
+                        <div class="order-detail-row">
+                            <span class="detail-label">Date:</span>
+                            <span>{{ order.created_at[:16] if order.created_at else 'N/A' }}</span>
+                        </div>
+                    </div>
+
+                    <div class="order-actions">
+                        {% if active_tab == 'Incoming' %}
+                            <button class="action-btn btn-start" onclick="updateOrderStatus({{ order.transaction_id }}, 'In Progress')">
+                                Start Packing
+                            </button>
+                            <button class="action-btn btn-reject" onclick="updateOrderStatus({{ order.transaction_id }}, 'Issues')">
+                                Reject
+                            </button>
+                        {% elif active_tab == 'In Progress' %}
+                            <button class="action-btn btn-ready" onclick="updateOrderStatus({{ order.transaction_id }}, 'Ready')">
+                                Done Packing
+                            </button>
+                            <button class="action-btn btn-reject" onclick="updateOrderStatus({{ order.transaction_id }}, 'Issues')">
+                                Issue Found
+                            </button>
+                        {% elif active_tab == 'Ready' %}
+                            <button class="action-btn btn-deliver" onclick="updateOrderStatus({{ order.transaction_id }}, 'Out for Delivery')">
+                                Out for Delivery
+                            </button>
+                        {% elif active_tab == 'Out for Delivery' %}
+                            <button class="action-btn btn-complete" onclick="updateOrderStatus({{ order.transaction_id }}, 'Completed')">
+                                Mark Completed
+                            </button>
+                        {% elif active_tab == 'Issues' %}
+                            <button class="action-btn btn-restart" onclick="updateOrderStatus({{ order.transaction_id }}, 'Incoming')">
+                                Restart Order
+                            </button>
+                            <button class="action-btn btn-cancel" onclick="cancelOrder({{ order.transaction_id }})">
+                                Cancel Order
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if total_pages > 1 %}
+            <div class="pagination">
+                {% if current_page > 1 %}
+                    <a href="{{ url_for('orders', tab=active_tab, page=current_page-1, search=search_query) }}">← Prev</a>
+                {% endif %}
+                {% for p in range(1, total_pages + 1) %}
+                    {% if p == current_page %}
+                        <span class="active">{{ p }}</span>
+                    {% elif p == 1 or p == total_pages or (p >= current_page - 2 and p <= current_page + 2) %}
+                        <a href="{{ url_for('orders', tab=active_tab, page=p, search=search_query) }}">{{ p }}</a>
+                    {% elif p == current_page - 3 or p == current_page + 3 %}
+                        <span>...</span>
+                    {% endif %}
+                {% endfor %}
+                {% if current_page < total_pages %}
+                    <a href="{{ url_for('orders', tab=active_tab, page=current_page+1, search=search_query) }}">Next →</a>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% else %}
+            <!-- Empty State -->
+            <div class="empty-state">
+                <!--<div class="empty-icon">📭</div> -->
+                <h3>No {{ active_tab }} Orders</h3>
+                <p>There are currently no orders in the {{ active_tab }} stage.</p>
+                {% if search_query %}
+                <p style="margin-top: 1rem;">
+                    <a href="{{ url_for('orders', tab=active_tab) }}" class="btn btn-secondary">Clear Search</a>
+                </p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Update order status (move to different workflow stage)
+async function updateOrderStatus(orderId, newStatus) {
+    if (!confirm(`Move order #${orderId} to "${newStatus}"?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/update-order-status/${orderId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: newStatus })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Show success message
+            alert(`Order #${orderId} moved to "${newStatus}"`);
+            // Reload page to reflect changes
+            window.location.reload();
+        } else {
+            alert(`Failed to update order: ${result.message}`);
+        }
+    } catch (error) {
+        console.error('Error updating order:', error);
+        alert('Failed to update order status');
+    }
+}
+
+// Cancel order (delete from system)
+async function cancelOrder(orderId) {
+    if (!confirm(`Are you sure you want to CANCEL order #${orderId}? This action cannot be undone.`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/cancel-order/${orderId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert(`Order #${orderId} has been cancelled`);
+            window.location.reload();
+        } else {
+            alert(`Failed to cancel order: ${result.message}`);
+        }
+    } catch (error) {
+        console.error('Error cancelling order:', error);
+        alert('Failed to cancel order');
+    }
+}
+</script>
+
+{% endblock %}

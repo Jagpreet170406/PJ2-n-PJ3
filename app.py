@@ -13,17 +13,16 @@ from image_matcher import build_image_cache, get_product_image_url
 
 # === FLASK APP INITIALIZATION ===
 app = Flask(__name__)
-app.secret_key = "chinhon_secret_key"  # Secret key for session management
-csrf = CSRFProtect(app)  # Enable CSRF protection for forms
+app.secret_key = "chinhon_secret_key"
+csrf = CSRFProtect(app)
 
 # === GROQ API SETUP ===
-# Get API key from environment variable (set in your system or .env file)
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
 # === DATABASE SETUP ===
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Get current directory
-DB = os.path.join(BASE_DIR, "database.db")  # Path to SQLite database
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB = os.path.join(BASE_DIR, "database.db")
 
 def get_db():
     """Create and return a database connection with dict-like row access."""
@@ -34,7 +33,6 @@ def get_db():
 def init_db():
     """Initialize database tables if they don't exist."""
     with get_db() as conn:
-        # Table for storing user credit card information
         conn.execute("""
             CREATE TABLE IF NOT EXISTS user_cards (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,7 +43,6 @@ def init_db():
                 name TEXT
             )
         """)
-        # Table for storing sales analytics data
         conn.execute("""
             CREATE TABLE IF NOT EXISTS sales_data (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,7 +57,17 @@ def init_db():
                 recommended_price REAL
             )
         """)
-        # Performance indexes for dashboard filtering/sorting
+        # Create orders table
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS orders (
+                order_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL,
+                payment_type TEXT,
+                amount REAL,
+                status TEXT DEFAULT 'Incoming',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_sih_date    ON sales_invoice_header(invoice_date)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_sih_cust    ON sales_invoice_header(customer_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_sil_inv     ON sales_invoice_line(invoice_no)")
@@ -69,7 +76,7 @@ def init_db():
         conn.execute("CREATE INDEX IF NOT EXISTS idx_cust_code   ON customers(customer_code)")
         conn.commit()
 
-init_db()  # Initialize database on app startup
+init_db()
 
 # === CONTEXT PROCESSORS ===
 @app.context_processor
@@ -78,7 +85,7 @@ def inject_csrf_token():
     return dict(
         csrf_token=generate_csrf,
         today=date.today().isoformat(),
-        get_product_image_url=get_product_image_url  # Add image helper
+        get_product_image_url=get_product_image_url
     )
 
 # === AUTHENTICATION DECORATORS ===
@@ -103,7 +110,6 @@ def root():
 @app.route("/cart")
 def cart():
     """Customer-facing product catalog with pagination, search, and filtering."""
-    # Get pagination and filter parameters from URL
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('search', '')
     category_filter = request.args.get('category', '')
@@ -113,32 +119,25 @@ def cart():
     offset = (page - 1) * per_page
 
     with get_db() as conn:
-        # Get all unique categories for filter dropdown
         categories_raw = conn.execute("SELECT DISTINCT category FROM inventory WHERE category IS NOT NULL ORDER BY category").fetchall()
         categories = [row[0] for row in categories_raw]
         
-        # Get all unique origins for filter dropdown
         origins_raw = conn.execute("SELECT DISTINCT org FROM inventory WHERE org IS NOT NULL AND org != '' ORDER BY org").fetchall()
         origins = [row[0] for row in origins_raw]
         
-        # Get price range for slider
         price_range = conn.execute("SELECT MIN(sell_price), MAX(sell_price) FROM inventory WHERE qty > 0").fetchone()
         
-        # Build dynamic WHERE clause based on active filters
-        where_clause = " WHERE qty > 0"  # Only show in-stock items
+        where_clause = " WHERE qty > 0"
         params = []
 
-        # Add search filter if provided
         if search_query:
             where_clause += " AND (hem_name LIKE ? OR sup_part_no LIKE ?)"
             params.extend([f'%{search_query}%', f'%{search_query}%'])
 
-        # Add category filter if provided
         if category_filter:
             where_clause += " AND category = ?"
             params.append(category_filter)
 
-        # Add price range filter if provided
         if min_price is not None:
             where_clause += " AND sell_price >= ?"
             params.append(min_price)
@@ -147,17 +146,6 @@ def cart():
             where_clause += " AND sell_price <= ?"
             params.append(max_price)
 
-        # ------------------------------------------------------------------
-        # BUCKETED POOL: 200 products max (50 per SKU-count tier)
-        #   Bucket 1 → exactly 1 SKU variant
-        #   Bucket 2 → exactly 2 SKU variants
-        #   Bucket 3 → exactly 3 SKU variants
-        #   Bucket 4 → 4 or more SKU variants
-        # The UNION ALL builds a fixed 200-row pool; pagination then slices it.
-        # Each params list is duplicated because the same WHERE clause is used
-        # in all four sub-queries.
-        # ------------------------------------------------------------------
-        # SQLite requires each UNION ALL branch wrapped in a subselect for ORDER BY + LIMIT
         bucket_core = """
             SELECT
                 hem_name,
@@ -201,17 +189,12 @@ def cart():
             b4=make_bucket("COUNT(*) > 3"),
         )
 
-        # params repeated once per sub-query (4 buckets)
         pool_params = params * 4
-
         all_pooled = conn.execute(pool_query, pool_params).fetchall()
-
-        # Pagination over the capped 200-product pool
         total_count = len(all_pooled)
         total_pages = (total_count // per_page) + (1 if total_count % per_page > 0 else 0)
         products_raw = all_pooled[offset: offset + per_page]
         
-        # Convert Row objects to dictionaries for JSON serialization
         products = []
         for row in products_raw:
             product_dict = {
@@ -226,7 +209,6 @@ def cart():
                 'origin': row['org'] or ''
             }
             
-            # For single-variant products, include the SKU
             if row['variant_count'] == 1 and row['first_sku']:
                 product_dict['sku'] = row['first_sku']
             
@@ -240,38 +222,103 @@ def cart():
                            price_range=price_range,
                            role=session.get("role", "customer"))
 
+@app.route("/manage_users", methods=["GET", "POST"])
+@require_staff
+def manage_users():
+    """Manage Users page - CRUD operations for user accounts."""
+    message = None
+
+    if request.method == "POST":
+        action = request.form.get("action")
+        username = request.form.get("username", "").strip()
+
+        with get_db() as conn:
+            if action == "add":
+                password = request.form.get("password", "").strip()
+                role = request.form.get("role", "employee").strip()
+                
+                if not username or not password:
+                    message = "Username and password are required."
+                else:
+                    existing = conn.execute("SELECT 1 FROM users WHERE username = ?", (username,)).fetchone()
+                    if existing:
+                        message = f"User '{username}' already exists."
+                    else:
+                        hashed_pw = generate_password_hash(password)
+                        conn.execute(
+                            "INSERT INTO users (username, password_hash, role, active) VALUES (?, ?, ?, 1)",
+                            (username, hashed_pw, role)
+                        )
+                        conn.commit()
+                        message = f"User '{username}' added successfully."
+
+            elif action == "change_role":
+                new_role = request.form.get("new_role", "employee").strip()
+                conn.execute("UPDATE users SET role = ? WHERE username = ?", (new_role, username))
+                conn.commit()
+                message = f"Role updated for '{username}'."
+
+            elif action == "toggle":
+                conn.execute("UPDATE users SET active = NOT active WHERE username = ?", (username,))
+                conn.commit()
+                message = f"Status toggled for '{username}'."
+
+            elif action == "delete":
+                conn.execute("DELETE FROM users WHERE username = ?", (username,))
+                conn.commit()
+                message = f"User '{username}' deleted."
+
+    with get_db() as conn:
+        users = conn.execute("SELECT username, role, active FROM users ORDER BY username").fetchall()
+
+    return render_template(
+        "manage_users.html",
+        users=[dict(u) for u in users],
+        message=message,
+        role=session.get("role")
+    )
+
 @app.route("/checkout")
 def checkout():
     """Checkout page where customers finalize their orders."""
     return render_template("checkout.html", role=session.get("role", "customer"), user_cards=[])
 
 @app.route("/process-payment", methods=["POST"])
-@csrf.exempt  # Exempt from CSRF for API-style endpoint
+@csrf.exempt
 def process_payment():
-    """Process payment submission and save transaction to database."""
+    """Process payment submission and save transaction + order to database."""
     data = request.get_json()
     if not data:
         return jsonify({"success": False, "message": "No data received"})
 
-    # Extract payment details from request
     cart_items = data.get('cart', [])
     payment_method = data.get('payment_method', 'Credit Card')
     total_amount = data.get('total_amount', 0)
     fulfillment = data.get('fulfillment', 'pickup')
     username = session.get("username", "Guest")
 
-    # Validate cart is not empty
     if not cart_items:
         return jsonify({"success": False, "message": "Cart is empty"})
 
     try:
-        # Save transaction to database
         with get_db() as conn:
             payment_label = f"{payment_method} ({fulfillment})"
-            conn.execute("INSERT INTO transactions (username, payment_type, amount) VALUES (?, ?, ?)",
-                        (username, payment_label, total_amount))
+            
+            # Insert into transactions
+            conn.execute(
+                "INSERT INTO transactions (username, payment_type, amount) VALUES (?, ?, ?)",
+                (username, payment_label, total_amount)
+            )
+            
+            # Insert into orders table with status
+            conn.execute(
+                "INSERT INTO orders (username, payment_type, amount, status) VALUES (?, ?, ?, ?)",
+                (username, payment_label, total_amount, 'Incoming')
+            )
+            
             conn.commit()
-            print(f"✅ Payment processed: {payment_label} - S${total_amount} for {username}")
+            print(f"✅ Payment processed and order created: {payment_label} - S${total_amount} for {username}")
+        
         return jsonify({"success": True, "message": "Payment successful"})
     except Exception as e:
         print(f"❌ Payment error: {e}")
@@ -280,71 +327,139 @@ def process_payment():
 @app.route("/order-success")
 def order_success():
     """Order confirmation page after successful payment."""
-    method = request.args.get('method', 'pickup')  # delivery or pickup
-    date = request.args.get('date', '')  # delivery address or pickup date
+    method = request.args.get('method', 'pickup')
+    date = request.args.get('date', '')
     return render_template("order_success.html", method=method, date=date, role="customer")
 
 @app.route("/contact")
 def contact():
     """Contact information page for customers."""
     return render_template("contact.html", role="customer")
+
 @app.route("/orders")
 @require_staff
 def orders():
-    """Staff orders management page - view and manage all customer orders."""
-    page = request.args.get('page', 1, type=int)
-    search_query = request.args.get('search', '')
-    status_filter = request.args.get('status', '')
+    """Staff Orders page with proper orders table."""
+    
+    tabs = ["Incoming", "In Progress", "Ready", "Out for Delivery", "Completed", "Issues"]
+    active_tab = request.args.get("tab", "Incoming").strip()
+    
+    if active_tab not in tabs:
+        active_tab = "Incoming"
+    
+    page = request.args.get("page", 1, type=int)
+    search_query = request.args.get("search", "").strip()
     per_page = 20
     offset = (page - 1) * per_page
     
     with get_db() as conn:
-        # Build query with filters
-        base_query = "FROM transactions t"
-        where_clauses = []
-        params = []
+        where_clauses = ["status = ?"]
+        params = [active_tab]
         
         if search_query:
-            where_clauses.append("(t.username LIKE ? OR t.payment_type LIKE ?)")
-            params.extend([f'%{search_query}%', f'%{search_query}%'])
+            where_clauses.append("(username LIKE ? OR payment_type LIKE ?)")
+            like = f"%{search_query}%"
+            params.extend([like, like])
         
-        if status_filter:
-            where_clauses.append("t.payment_type LIKE ?")
-            params.append(f'%{status_filter}%')
+        where_sql = " WHERE " + " AND ".join(where_clauses)
         
-        where_sql = " WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+        total_count = conn.execute(
+            f"SELECT COUNT(*) FROM orders {where_sql}",
+            params
+        ).fetchone()[0]
         
-        # Get total count for pagination
-        total_count = conn.execute(f"SELECT COUNT(*) {base_query} {where_sql}", params).fetchone()[0]
-        total_pages = (total_count // per_page) + (1 if total_count % per_page > 0 else 0)
+        total_pages = (total_count + per_page - 1) // per_page
         
-        # Get orders for current page
-        orders = conn.execute(f"""
-            SELECT t.transaction_id, t.username, t.payment_type, t.amount, t.created_at
-            {base_query} {where_sql}
-            ORDER BY t.created_at DESC
+        rows = conn.execute(
+            f"""
+            SELECT order_id as transaction_id, username, payment_type, amount, status, created_at
+            FROM orders
+            {where_sql}
+            ORDER BY created_at DESC
             LIMIT ? OFFSET ?
-        """, params + [per_page, offset]).fetchall()
-        
-        # Get summary statistics
-        stats = conn.execute(f"""
-            SELECT 
-                COUNT(*) as total_orders,
-                COALESCE(SUM(amount), 0) as total_revenue,
-                COALESCE(AVG(amount), 0) as avg_order_value
-            {base_query} {where_sql}
-        """, params).fetchone()
+            """,
+            params + [per_page, offset]
+        ).fetchall()
     
-    return render_template("orders.html",
-                         orders=[dict(row) for row in orders],
-                         current_page=page,
-                         total_pages=total_pages,
-                         search_query=search_query,
-                         status_filter=status_filter,
-                         total_orders=stats['total_orders'],
-                         total_revenue=round(float(stats['total_revenue']), 2),
-                         avg_order_value=round(float(stats['avg_order_value']), 2),
-                         role=session.get("role"))
+    return render_template(
+        "orders.html",
+        tabs=tabs,
+        active_tab=active_tab,
+        orders=[dict(r) for r in rows],
+        current_page=page,
+        total_pages=total_pages,
+        search_query=search_query,
+        role=session.get("role"),
+    )
+
+@app.route("/api/update-order-status/<int:order_id>", methods=["POST"])
+@csrf.exempt
+@require_staff
+def update_order_status(order_id):
+    """API: Update order status (move between workflow stages)."""
+    try:
+        data = request.get_json()
+        new_status = data.get('status', '').strip()
+        
+        if not new_status:
+            return jsonify({"success": False, "message": "Status is required"}), 400
+        
+        valid_statuses = ["Incoming", "In Progress", "Ready", "Out for Delivery", "Completed", "Issues"]
+        if new_status not in valid_statuses:
+            return jsonify({"success": False, "message": "Invalid status"}), 400
+        
+        with get_db() as conn:
+            order = conn.execute(
+                "SELECT * FROM orders WHERE order_id = ?",
+                (order_id,)
+            ).fetchone()
+            
+            if not order:
+                return jsonify({"success": False, "message": "Order not found"}), 404
+            
+            conn.execute(
+                "UPDATE orders SET status = ? WHERE order_id = ?",
+                (new_status, order_id)
+            )
+            conn.commit()
+            
+            print(f"✅ Order #{order_id} status updated to: {new_status}")
+            return jsonify({
+                "success": True,
+                "message": f"Order moved to {new_status}"
+            })
+            
+    except Exception as e:
+        print(f"❌ Error updating order status: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route("/api/cancel-order/<int:order_id>", methods=["DELETE"])
+@csrf.exempt
+@require_staff
+def cancel_order(order_id):
+    """API: Cancel/delete an order from the system."""
+    try:
+        with get_db() as conn:
+            order = conn.execute(
+                "SELECT * FROM orders WHERE order_id = ?",
+                (order_id,)
+            ).fetchone()
+            
+            if not order:
+                return jsonify({"success": False, "message": "Order not found"}), 404
+            
+            conn.execute("DELETE FROM orders WHERE order_id = ?", (order_id,))
+            conn.commit()
+            
+            print(f"✅ Order #{order_id} cancelled and deleted")
+            return jsonify({
+                "success": True,
+                "message": "Order cancelled successfully"
+            })
+            
+    except Exception as e:
+        print(f"❌ Error cancelling order: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/feedback")
 @require_staff
@@ -357,7 +472,6 @@ def feedback():
     offset = (page - 1) * per_page
     
     with get_db() as conn:
-        # Check if feedback table exists, create if not
         conn.execute("""
             CREATE TABLE IF NOT EXISTS feedback (
                 feedback_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -369,7 +483,6 @@ def feedback():
             )
         """)
         
-        # Build query with filters
         base_query = "FROM feedback f"
         where_clauses = []
         params = []
@@ -384,11 +497,9 @@ def feedback():
         
         where_sql = " WHERE " + " AND ".join(where_clauses) if where_clauses else ""
         
-        # Get total count for pagination
         total_count = conn.execute(f"SELECT COUNT(*) {base_query} {where_sql}", params).fetchone()[0]
         total_pages = (total_count // per_page) + (1 if total_count % per_page > 0 else 0)
         
-        # Get feedback for current page
         feedback_list = conn.execute(f"""
             SELECT f.feedback_id, f.username, f.email, f.rating, f.message, f.created_at
             {base_query} {where_sql}
@@ -396,7 +507,6 @@ def feedback():
             LIMIT ? OFFSET ?
         """, params + [per_page, offset]).fetchall()
         
-        # Get summary statistics
         stats = conn.execute(f"""
             SELECT 
                 COUNT(*) as total_feedback,
@@ -436,7 +546,6 @@ def submit_feedback():
     rating = data.get('rating', 0)
     message = data.get('message', '').strip()
     
-    # Validate inputs
     if not message:
         return jsonify({"success": False, "message": "Feedback message is required"}), 400
     
@@ -455,10 +564,10 @@ def submit_feedback():
     except Exception as e:
         print(f"❌ Feedback submission error: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
+
 @app.route("/staff-login", methods=["GET", "POST"])
 def staff_login():
     """Staff login page - validates credentials and creates session."""
-    # Redirect if already logged in as staff
     if session.get("role") in ["employee", "admin", "superowner"]:
         return redirect(url_for("home"))
 
@@ -467,7 +576,6 @@ def staff_login():
         with get_db() as conn:
             user = conn.execute("SELECT * FROM users WHERE username=?", (u,)).fetchone()
 
-        # Verify password and create session
         if user and check_password_hash(user['password_hash'], p):
             session.update({"username": u, "role": user['role']})
             return redirect(url_for("home"))
@@ -476,7 +584,7 @@ def staff_login():
     return render_template("staff_login.html", role="customer")
 
 @app.route("/home")
-@require_staff  # Only accessible to staff
+@require_staff
 def home():
     """Staff home/dashboard page."""
     return render_template("home.html", role=session.get("role"))
@@ -501,8 +609,6 @@ def api_get_inventory():
     """API: Retrieve grouped inventory items by product name to reduce duplicates."""
     try:
         with get_db() as conn:
-            # Bucketed pool: 50 products per SKU-count tier → max 200 total
-            # Bucket 1 = exactly 1 SKU, Bucket 2 = exactly 2, Bucket 3 = exactly 3, Bucket 4 = 4+
             bucket_select = """
                 SELECT
                     hem_name,
@@ -519,7 +625,6 @@ def api_get_inventory():
                 FROM inventory
                 GROUP BY hem_name
             """
-            # SQLite requires each UNION ALL branch wrapped in a subselect for ORDER BY + LIMIT
             def inv_bucket(vc_condition):
                 inner = bucket_select + " HAVING " + vc_condition + " ORDER BY hem_name ASC LIMIT 50"
                 return "SELECT * FROM (" + inner + ") AS bkt"
@@ -551,7 +656,6 @@ def api_create_inventory():
     """API: Create a new inventory item with validation."""
     data = request.get_json()
     
-    # Extract and sanitize input data
     sup_part_no = (data.get('sup_part_no') or '').strip()
     hem_name = (data.get('hem_name') or '').strip()
     category = data.get('category', 'Lubricants')
@@ -583,7 +687,6 @@ def api_update_inventory(inventory_id):
     """API: Update an existing inventory item."""
     data = request.get_json()
     
-    # Extract and sanitize input
     sup_part_no = (data.get('sup_part_no') or '').strip()
     hem_name = (data.get('hem_name') or '').strip()
     category = data.get('category', 'Lubricants')
@@ -647,7 +750,6 @@ def api_get_product_variants():
         print(f"❌ Error fetching variants: {e}")
         return jsonify({"error": str(e)}), 500
 
-
 # === SALES DASHBOARD ROUTES ===
 
 @app.route("/dashboard")
@@ -663,12 +765,7 @@ def dashboard():
 
     with get_db() as conn:
 
-        # === BUILD FILTER: only join what each query actually needs ===
-        # For search we need products/customers; date filter only touches header.
-        # We pre-compute a set of matching invoice_nos once, then reuse it.
-
         if search or start_date or end_date:
-            # Build a minimal subquery that returns matching invoice_nos
             inner_clauses = []
             inner_params  = []
 
@@ -701,7 +798,6 @@ def dashboard():
             filter_where  = ""
             inner_params  = []
 
-        # === 1. COUNT + KPIs in a single pass (no Python-side aggregation) ===
         kpi_row = conn.execute(f"""
             SELECT
                 COUNT(DISTINCT h.invoice_no)            AS total_invoices,
@@ -724,7 +820,6 @@ def dashboard():
             'total_units':     int(kpi_row['total_units']    or 0),
         }
 
-        # === 2. PAGINATED invoice numbers — SQL LIMIT/OFFSET, never load all rows ===
         page_params = inner_params + [per_page, offset]
         paginated_invoice_nos = [
             row['invoice_no'] for row in conn.execute(f"""
@@ -736,7 +831,6 @@ def dashboard():
             """, page_params).fetchall()
         ]
 
-        # === 3. FETCH headers + lines only for this page's invoices ===
         invoices = {}
         if paginated_invoice_nos:
             placeholders = ','.join(['?'] * len(paginated_invoice_nos))
@@ -769,10 +863,8 @@ def dashboard():
                     invoices[inv]['totals']['gst_amt']   += line['gst_amt']   or 0
                     invoices[inv]['totals']['qty']        += line['qty']       or 0
 
-            # Restore sort order from paginated list
             invoices = {k: invoices[k] for k in paginated_invoice_nos if k in invoices}
 
-        # === 4. TREND — only needs header + line, no products/customers join ===
         trend_rows = conn.execute(f"""
             SELECT substr(h.invoice_date, 1, 7)  AS month,
                    COALESCE(SUM(l.total_amt), 0) AS revenue
@@ -785,7 +877,6 @@ def dashboard():
         trend_labels = [r['month'] or 'Unknown' for r in trend_rows]
         trend_data   = [round(float(r['revenue'] or 0), 2) for r in trend_rows]
 
-        # === 5. Reference data for form dropdowns ===
         customers = conn.execute(
             "SELECT customer_id, customer_code FROM customers ORDER BY customer_code"
         ).fetchall()
@@ -813,26 +904,17 @@ def dashboard():
 @app.route("/create-invoice", methods=["POST"])
 @require_staff
 def create_invoice():
-    """
-    Create a new sales invoice with header and line items.
-    Performs extensive server-side validation on all fields.
-    """
-    # Get form data from POST request
+    """Create a new sales invoice with header and line items."""
     invoice_no = request.form.get("invoice_no", "").strip()
     invoice_date = request.form.get("invoice_date", "").strip()
     customer_id = request.form.get("customer_id", "").strip()
     legend_id = request.form.get("legend_id", "SGP").strip()
     product_id = request.form.get("product_id", "").strip()
     
-    # === EXTENSIVE SERVER-SIDE VALIDATION ===
-    # Even though client-side validation exists, always validate on server
-    
-    # Validate invoice number (required, min 3 characters)
     if not invoice_no or len(invoice_no) < 3:
         flash("Invoice number is required and must be at least 3 characters!", "danger")
         return redirect(url_for("dashboard"))
     
-    # Validate invoice date (required, no future dates)
     if not invoice_date:
         flash("Invoice date is required!", "danger")
         return redirect(url_for("dashboard"))
@@ -845,17 +927,14 @@ def create_invoice():
         flash("Invalid date format!", "danger")
         return redirect(url_for("dashboard"))
     
-    # Validate customer selection (required)
     if not customer_id:
         flash("Customer selection is required!", "danger")
         return redirect(url_for("dashboard"))
     
-    # Validate product selection (required)
     if not product_id:
         flash("Product selection is required!", "danger")
         return redirect(url_for("dashboard"))
     
-    # Validate quantity (must be positive integer)
     try:
         qty = int(request.form.get("qty", 0))
         if qty <= 0:
@@ -865,7 +944,6 @@ def create_invoice():
         flash("Invalid quantity value!", "danger")
         return redirect(url_for("dashboard"))
     
-    # Validate total amount (must be non-negative number)
     try:
         total_amt = float(request.form.get("total_amt", 0))
         if total_amt < 0:
@@ -875,7 +953,6 @@ def create_invoice():
         flash("Invalid total amount value!", "danger")
         return redirect(url_for("dashboard"))
     
-    # Validate GST amount (must be non-negative number)
     try:
         gst_amt = float(request.form.get("gst_amt", 0))
         if gst_amt < 0:
@@ -885,19 +962,14 @@ def create_invoice():
         flash("Invalid GST amount value!", "danger")
         return redirect(url_for("dashboard"))
     
-            # === INSERT INVOICE INTO DATABASE ===
     try:
-        # Use context manager (with statement) to ensure proper commit
         with get_db() as conn:
-            # Check if invoice number already exists (prevent duplicates)
             existing = conn.execute("SELECT 1 FROM sales_invoice_header WHERE invoice_no = ?", (invoice_no,)).fetchone()
             if existing:
                 flash(f"Invoice {invoice_no} already exists!", "danger")
                 print(f"❌ Invoice {invoice_no} already exists!")
                 return redirect(url_for("dashboard"))
 
-            # Resolve customer_code → customer_id integer
-            # The form submits customer_code text; we need the integer FK
             cust_row = conn.execute(
                 "SELECT customer_id FROM customers WHERE customer_code = ? COLLATE NOCASE",
                 (customer_id,)
@@ -905,7 +977,6 @@ def create_invoice():
             if cust_row:
                 resolved_customer_id = cust_row['customer_id']
             else:
-                # Customer doesn't exist yet — create it on the fly
                 cur = conn.execute(
                     "INSERT INTO customers (customer_code) VALUES (?)", (customer_id.upper(),)
                 )
@@ -921,23 +992,19 @@ def create_invoice():
             print(f"   Total: {total_amt}")
             print(f"   GST: {gst_amt}")
 
-            # Insert invoice header with resolved integer customer_id
             conn.execute(
                 "INSERT INTO sales_invoice_header (invoice_no, invoice_date, customer_id, legend_id) VALUES (?, ?, ?, ?)",
                 (invoice_no, invoice_date, resolved_customer_id, legend_id)
             )
             print(f"✅ Header inserted")
             
-            # Insert first line item (line_no = 1)
             conn.execute("INSERT INTO sales_invoice_line (invoice_no, line_no, product_id, qty, total_amt, gst_amt) VALUES (?, 1, ?, ?, ?, ?)",
                         (invoice_no, product_id, qty, total_amt, gst_amt))
             print(f"✅ Line item inserted")
             
-            # Commit is automatic when exiting the 'with' block successfully
             conn.commit()
             print(f"✅ COMMITTED to database")
         
-        # Verify it was saved (using fresh connection)
         with get_db() as verify_conn:
             verify = verify_conn.execute("SELECT * FROM sales_invoice_header WHERE invoice_no = ?", (invoice_no,)).fetchone()
             
@@ -961,11 +1028,7 @@ def create_invoice():
 @csrf.exempt
 @require_staff
 def delete_invoice(invoice_no):
-    """
-    Delete an invoice and all its line items.
-    Cascades deletion: line items first, then header.
-    Returns JSON response for AJAX handling.
-    """
+    """Delete an invoice and all its line items."""
     print("=" * 70)
     print(f"🔥 DELETE REQUEST for invoice: '{invoice_no}'")
     print(f"   Type: {type(invoice_no)}")
@@ -975,14 +1038,12 @@ def delete_invoice(invoice_no):
     
     try:
         with get_db() as conn:
-            # Check if invoice exists first
             print(f"🔍 Searching for invoice '{invoice_no}' in database...")
             existing = conn.execute("SELECT * FROM sales_invoice_header WHERE invoice_no = ?", (invoice_no,)).fetchone()
             
             if not existing:
                 print(f"❌ Invoice '{invoice_no}' NOT FOUND in database")
                 
-                # Show all invoices for debugging
                 all_inv = conn.execute("SELECT invoice_no FROM sales_invoice_header LIMIT 10").fetchall()
                 print(f"📋 First 10 invoices in DB:")
                 for inv in all_inv:
@@ -995,11 +1056,9 @@ def delete_invoice(invoice_no):
             
             print(f"✅ Invoice found! Proceeding with deletion...")
             
-            # Delete line items first (to satisfy foreign key constraints)
             deleted_lines = conn.execute("DELETE FROM sales_invoice_line WHERE invoice_no=?", (invoice_no,))
             print(f"   Deleted {deleted_lines.rowcount} line items")
             
-            # Then delete the header
             deleted_header = conn.execute("DELETE FROM sales_invoice_header WHERE invoice_no=?", (invoice_no,))
             print(f"   Deleted {deleted_header.rowcount} header rows")
             
@@ -1024,29 +1083,8 @@ def delete_invoice(invoice_no):
 @csrf.exempt
 @require_staff
 def update_invoice(invoice_no):
-    """
-    Update an existing invoice and its line items.
-    Accepts JSON payload with invoice header and line items.
-    
-    Expected JSON structure:
-    {
-        "invoice_date": "2024-01-15",
-        "customer_id": 1,
-        "legend_id": "SGP",
-        "lines": [
-            {
-                "line_no": 1,
-                "product_id": 5,
-                "qty": 10,
-                "total_amt": 150.00,
-                "gst_amt": 12.00
-            },
-            ...
-        ]
-    }
-    """
+    """Update an existing invoice and its line items."""
     try:
-        # Get JSON data from request
         data = request.get_json()
         
         if not data:
@@ -1055,7 +1093,6 @@ def update_invoice(invoice_no):
                 'message': 'No data provided'
             }), 400
         
-        # === VALIDATE REQUIRED FIELDS ===
         if not data.get('invoice_date'):
             return jsonify({'success': False, 'message': 'Invoice date is required'}), 400
 
@@ -1072,13 +1109,10 @@ def update_invoice(invoice_no):
         if not data.get('lines') or len(data['lines']) == 0:
             return jsonify({'success': False, 'message': 'At least one line item is required'}), 400
         
-        # === VALIDATE LINE ITEMS ===
         for i, line in enumerate(data['lines']):
-            # Validate product_id
             if not line.get('product_id'):
                 return jsonify({'success': False, 'message': f'Line {i+1}: Product is required'}), 400
             
-            # Validate quantity
             try:
                 qty = int(line.get('qty', 0))
                 if qty < 1:
@@ -1086,7 +1120,6 @@ def update_invoice(invoice_no):
             except (ValueError, TypeError):
                 return jsonify({'success': False, 'message': f'Line {i+1}: Invalid quantity'}), 400
             
-            # Validate total amount
             try:
                 total_amt = float(line.get('total_amt', 0))
                 if total_amt < 0:
@@ -1094,7 +1127,6 @@ def update_invoice(invoice_no):
             except (ValueError, TypeError):
                 return jsonify({'success': False, 'message': f'Line {i+1}: Invalid total amount'}), 400
             
-            # Validate GST amount
             try:
                 gst_amt = float(line.get('gst_amt', 0))
                 if gst_amt < 0:
@@ -1102,9 +1134,7 @@ def update_invoice(invoice_no):
             except (ValueError, TypeError):
                 return jsonify({'success': False, 'message': f'Line {i+1}: Invalid GST amount'}), 400
         
-        # === UPDATE DATABASE ===
         with get_db() as conn:
-            # Check if invoice exists
             existing = conn.execute("SELECT 1 FROM sales_invoice_header WHERE invoice_no = ?", (invoice_no,)).fetchone()
             if not existing:
                 return jsonify({
@@ -1112,7 +1142,6 @@ def update_invoice(invoice_no):
                     'message': f'Invoice {invoice_no} not found'
                 }), 404
             
-            # Update invoice header
             conn.execute("""
                 UPDATE sales_invoice_header 
                 SET invoice_date = ?, 
@@ -1126,10 +1155,8 @@ def update_invoice(invoice_no):
                 invoice_no
             ))
             
-            # Delete all existing line items for this invoice
             conn.execute("DELETE FROM sales_invoice_line WHERE invoice_no = ?", (invoice_no,))
             
-            # Insert new line items
             for line in data['lines']:
                 conn.execute("""
                     INSERT INTO sales_invoice_line (
@@ -1170,19 +1197,14 @@ def update_invoice(invoice_no):
 # === MARKET ANALYSIS ROUTES ===
 
 def generate_ai_insights(kpis, top_products, top_customers, trend_data):
-    """
-    Generate AI-powered insights and recommendations using Groq API.
-    Falls back to None if API is unavailable or fails.
-    """
+    """Generate AI-powered insights and recommendations using Groq API."""
     if not groq_client:
         return None
     
     try:
-        # Prepare data summary for AI (with safe checks for empty data)
         top_product_share = (top_products[0]['revenue'] / kpis['revenue'] * 100) if top_products and kpis['revenue'] > 0 else 0
         top_customer_share = (top_customers[0]['revenue'] / kpis['revenue'] * 100) if top_customers and kpis['revenue'] > 0 else 0
         
-        # Build product and customer details safely
         if top_products:
             product_detail = f"{top_products[0]['hem_name']} (SGD {top_products[0]['revenue']:.2f}, {top_product_share:.1f}% of revenue)"
         else:
@@ -1207,9 +1229,8 @@ Top Customer: {customer_detail}
 Revenue Trend: {len(trend_data['labels'])} months of data
 """
 
-        # Call Groq API
         response = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",  # Updated model (llama-3.1 was decommissioned)
+            model="llama-3.3-70b-versatile",
             messages=[
                 {
                     "role": "system",
@@ -1238,14 +1259,12 @@ Format your response as JSON:
 Be BRIEF and SPECIFIC. Focus on numbers and actionable insights."""
                 }
             ],
-            temperature=0.3,  # Lower temperature for more consistent output
+            temperature=0.3,
             max_tokens=2000
         )
         
-        # Parse AI response
         ai_text = response.choices[0].message.content
         
-        # Try to extract JSON from response
         import re
         json_match = re.search(r'\{.*\}', ai_text, re.DOTALL)
         if json_match:
@@ -1261,36 +1280,22 @@ Be BRIEF and SPECIFIC. Focus on numbers and actionable insights."""
 @app.route("/market-analysis")
 @require_staff
 def market_analysis():
-    """
-    Market analysis page with comprehensive business intelligence.
-    Features:
-    - KPIs (revenue, orders, units sold, average order value, GST)
-    - Monthly revenue trend visualization
-    - Top 10 products by revenue
-    - Top 10 customers by revenue
-    - Filtering by date range and legend (region/entity)
-    """
-    # Get filter parameters from URL
+    """Market analysis page with comprehensive business intelligence."""
     start = request.args.get("start", "").strip()
     end = request.args.get("end", "").strip()
     legend = request.args.get("legend", "").strip()
 
     with get_db() as conn:
-        # === VERIFY SALES TABLES EXIST ===
-        # Check if required tables have data before proceeding
         try:
             conn.execute("SELECT 1 FROM sales_invoice_header LIMIT 1;").fetchone()
             conn.execute("SELECT 1 FROM sales_invoice_line LIMIT 1;").fetchone()
         except Exception as e:
-            # Return error page if tables don't exist or are empty
             return render_template("market_analysis.html", role=session.get("role"),
                 error_message=f"Sales tables not found or empty. Error: {str(e)}",
                 legends=[], selected={"start": start, "end": end, "legend": legend},
                 kpis={"revenue": 0, "orders": 0, "units": 0, "aov": 0, "gst": 0},
                 trend_labels=[], trend_revenue=[], top_products=[], top_customers=[])
 
-        # === GET AVAILABLE LEGENDS FOR FILTER ===
-        # Legends represent different regions or business entities
         try:
             legends = [r["legend_id"] for r in conn.execute(
                 "SELECT DISTINCT legend_id FROM sales_invoice_header WHERE legend_id IS NOT NULL AND legend_id != '' ORDER BY legend_id"
@@ -1298,45 +1303,34 @@ def market_analysis():
         except Exception as e:
             legends = []
 
-        # === SET DEFAULT DATE RANGE IF NOT PROVIDED ===
-        # Default to last 365 days of data
         try:
-            # Get the min and max dates from the database
             max_date_row = conn.execute("SELECT MAX(invoice_date) AS m FROM sales_invoice_header WHERE invoice_date IS NOT NULL").fetchone()
             min_date_row = conn.execute("SELECT MIN(invoice_date) AS m FROM sales_invoice_header WHERE invoice_date IS NOT NULL").fetchone()
             max_date = max_date_row["m"] if max_date_row else None
             min_date = min_date_row["m"] if min_date_row else None
             
-            # Set end date to most recent invoice if not provided
             if not end and max_date:
                 end = max_date
             
-            # Set start date to 365 days before end date
             if not start and end:
                 start_row = conn.execute("SELECT date(?, '-365 day') AS d", (end,)).fetchone()
                 start = start_row["d"] if start_row else min_date or ""
             elif not start and min_date:
                 start = min_date
         except Exception as e:
-            # Fallback to current date if database query fails
             if not end:
                 end = datetime.now().strftime("%Y-%m-%d")
             if not start:
                 start = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
 
-        # === BUILD WHERE CLAUSE FOR FILTERING ===
         where = "WHERE h.invoice_date >= ? AND h.invoice_date <= ?"
         params = [start, end]
 
-        # Add legend filter if specified
         if legend:
             where += " AND h.legend_id = ?"
             params.append(legend)
 
         try:
-            # === CALCULATE KEY PERFORMANCE INDICATORS ===
-            # Deduplicate lines first via subquery (DISTINCT on invoice_no + line_no)
-            # to prevent double-counting if any line rows were inserted more than once.
             kpi_row = conn.execute(f"""
                 SELECT COALESCE(SUM(lines.total_amt), 0) AS revenue,
                        COALESCE(SUM(lines.gst_amt),   0) AS gst,
@@ -1365,8 +1359,6 @@ def market_analysis():
                 "aov":     round(aov,     2)
             }
 
-            # === GET MONTHLY REVENUE TREND ===
-            # Deduplicate lines before grouping by month.
             trend_rows = conn.execute(f"""
                 SELECT lines.ym,
                        COALESCE(SUM(lines.total_amt), 0) AS revenue
@@ -1385,8 +1377,6 @@ def market_analysis():
             trend_labels  = [r["ym"] for r in trend_rows if r["ym"]]
             trend_revenue = [float(r["revenue"] or 0) for r in trend_rows if r["ym"]]
 
-            # === GET TOP 10 PRODUCTS BY REVENUE ===
-            # Deduplicate at (invoice_no, line_no) level before aggregating per product.
             top_products_rows = conn.execute(f"""
                 SELECT lines.product_id,
                        p.sku_no,
@@ -1414,8 +1404,6 @@ def market_analysis():
                 "units":      round(float(r["units"]   or 0), 2)
             } for r in top_products_rows]
 
-            # === GET TOP 10 CUSTOMERS BY REVENUE ===
-            # Deduplicate at (invoice_no, line_no) level before aggregating per customer.
             top_customers_rows = conn.execute(f"""
                 SELECT lines.customer_id,
                        COALESCE(c.customer_code, CAST(lines.customer_id AS TEXT)) AS customer_code,
@@ -1442,7 +1430,6 @@ def market_analysis():
             } for r in top_customers_rows]
 
         except Exception as e:
-            # If any query fails, log the error and return empty data
             print(f"Database query error: {e}")
             import traceback
             traceback.print_exc()
@@ -1452,7 +1439,6 @@ def market_analysis():
                 kpis={"revenue": 0, "orders": 0, "units": 0, "aov": 0, "gst": 0},
                 trend_labels=[], trend_revenue=[], top_products=[], top_customers=[], ai_insights=None)
 
-    # Generate AI insights (optional, falls back gracefully if unavailable)
     ai_insights = generate_ai_insights(
         kpis=kpis,
         top_products=top_products,
@@ -1460,7 +1446,6 @@ def market_analysis():
         trend_data={"labels": trend_labels, "revenue": trend_revenue}
     )
 
-    # Render market analysis page with all calculated data
     return render_template("market_analysis.html", role=session.get("role"), error_message="",
         legends=legends, selected={"start": start, "end": end, "legend": legend},
         kpis=kpis, trend_labels=trend_labels, trend_revenue=trend_revenue,
@@ -1499,10 +1484,9 @@ def logout():
 
 # === APPLICATION ENTRY POINT ===
 if __name__ == "__main__":
-    # Build image cache on startup for fast lookups
     print("🖼️  Building image cache...")
     with app.app_context():
         build_image_cache('product_images_v2')
     print("✅ Image cache ready!")
     
-    app.run(debug=True)  # Run Flask development server with debug mode enabled
+    app.run(debug=True)
