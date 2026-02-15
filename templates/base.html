@@ -13,49 +13,47 @@
     >
 
     <style>
-        /* --- BACK TO ORIGINAL NAV STYLING --- */
         .custom-navbar {
             background-color: #1a1a1a;
-            padding: 1rem 0; /* Original padding */
+            padding: 1rem 0;
             border-bottom: 1px solid #2a2a2a;
         }
-
+    
         .navbar-brand {
             font-weight: 700;
             color: white !important;
             padding: 0;
         }
-
+    
         .navbar-brand img {
             display: block;
             height: 40px;
             width: auto;
             background: transparent;
         }
-
+    
         .navbar-nav .nav-link {
             color: #e0e0e0 !important;
             margin: 0 0.3rem;
         }
-
+    
         .navbar-nav .nav-link:hover {
             background-color: #333;
             border-radius: 5px;
         }
-
-        /* --- COMPACT CART BUTTON --- */
+    
         .cart-btn {
             border: 2px solid #007bff !important;
             border-radius: 20px !important;
-            padding: 5px 15px !important; /* Back to original slim padding */
+            padding: 5px 15px !important;
             transition: all 0.3s ease;
         }
-
+    
         .cart-btn:hover {
             background-color: #007bff !important;
             color: white !important;
         }
-
+    
         .cart-badge {
             font-size: 0.75rem;
             vertical-align: top;
@@ -71,13 +69,137 @@
         .cart-badge.show {
             display: inline-block;
         }
-
-        /* --- DASHBOARD & ANALYSIS STYLING --- */
+    
+        /* SIDEBAR TOGGLE BUTTON - FIXED POSITION */
+        .sidebar-toggle {
+            position: fixed;
+            top: 100px;
+            left: 10px;
+            z-index: 10000;
+            background: #252525;
+            border: 1px solid #2a2a2a;
+            color: #fff;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            font-size: 1.2rem;
+        }
+    
+        .sidebar-toggle:hover {
+            background: #333;
+        }
+    
+        /* SIDEBAR STYLES - Claude-inspired */
+        .admin-sidebar {
+            width: 260px;
+            height: calc(100vh - 90px);
+            position: fixed;
+            top: 90px;
+            left: 0;
+            background: #171717;
+            border-right: 1px solid #2a2a2a;
+            padding: 24px 12px;
+            z-index: 9999;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+        }
+    
+        .admin-sidebar.collapsed {
+            transform: translateX(-260px);
+        }
+    
+        .admin-sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+    
+        .admin-sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+    
+        .admin-sidebar::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 3px;
+        }
+    
+        .admin-sidebar-title {
+            color: #888;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 16px;
+            padding: 0 12px;
+        }
+    
+        .admin-sidebar a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #d1d1d1;
+            text-decoration: none;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 2px;
+            transition: all 0.15s ease;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+    
+        .admin-sidebar a:hover {
+            background: #252525;
+            color: #fff;
+        }
+    
+        .admin-sidebar a:active {
+            background: #2a2a2a;
+        }
+    
+        .sidebar-icon {
+            font-size: 1.1rem;
+            width: 20px;
+            text-align: center;
+            opacity: 0.85;
+        }
+    
+        .sidebar-divider {
+            height: 1px;
+            background: #2a2a2a;
+            margin: 16px 0;
+        }
+    
+        .sidebar-logout {
+            margin-top: auto;
+        }
+    
+        .sidebar-logout:hover {
+            background: #2a1515 !important;
+            color: #ff6b6b !important;
+        }
+    
+        /* MAIN CONTENT AREA */
+        .admin-main {
+            margin-left: 260px;
+            width: calc(100% - 260px);
+            min-height: calc(100vh - 90px);
+            transition: all 0.3s ease;
+        }
+    
+        .admin-main.expanded {
+            margin-left: 0;
+            width: 100%;
+        }
+    
         .analysis-page { padding: 30px; background: #ffffff; color: #111; }
         .metric-card { border: 1px solid #ddd; padding: 16px; border-radius: 8px; background: #f9f9f9; }
         .alert { margin-top: 10px; border-radius: 8px; }
-
-        /* Dropdown fixes */
+    
         .dropdown-menu { background-color: #222; }
         .dropdown-item { color: #ddd; }
         .dropdown-item:hover { background-color: #333; color: white; }
@@ -89,11 +211,18 @@
 
     {% if role in ['employee', 'admin', 'superowner'] %}
         {% include 'includes/admin_navbar.html' %}
+        
+        <!-- Sidebar Toggle Button -->
+        <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">
+            ☰
+        </button>
+        
+        {% include 'includes/admin_sidebar.html' %}
     {% else %}
         {% include 'includes/customer_navbar.html' %}
     {% endif %}
 
-    <div class="container-fluid mt-4">
+    <div class="{% if role in ['employee', 'admin', 'superowner'] %}admin-main{% else %}container-fluid mt-4{% endif %}" id="mainContent">
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             {% for category, message in messages %}
@@ -143,6 +272,43 @@
                 } else {
                     console.error('❌ Badge element NOT FOUND!');
                 }
+            } catch (e) { console.error(e); }
+        }
+        document.addEventListener('DOMContentLoaded', updateCartBadge);
+        window.addEventListener('storage', updateCartBadge);
+
+        // Sidebar toggle functionality
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.admin-sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const toggleBtn = document.getElementById('sidebarToggle');
+            
+            if (sidebar && mainContent && toggleBtn) {
+                sidebar.classList.toggle('collapsed');
+                mainContent.classList.toggle('expanded');
+                toggleBtn.classList.toggle('shifted');
+                
+                // Save state to localStorage
+                const isCollapsed = sidebar.classList.contains('collapsed');
+                localStorage.setItem('sidebarCollapsed', isCollapsed);
+            }
+        }
+
+        // Restore sidebar state on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (isCollapsed) {
+                const sidebar = document.querySelector('.admin-sidebar');
+                const mainContent = document.getElementById('mainContent');
+                const toggleBtn = document.getElementById('sidebarToggle');
+                
+                if (sidebar && mainContent && toggleBtn) {
+                    sidebar.classList.add('collapsed');
+                    mainContent.classList.add('expanded');
+                    toggleBtn.classList.add('shifted');
+                }
+            }
+        });
             } catch (e) { 
                 console.error('❌ Error in updateCartBadge:', e); 
             }
