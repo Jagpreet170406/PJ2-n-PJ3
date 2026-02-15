@@ -74,7 +74,6 @@ def require_staff(f):
     return decorated_function
 
 # === ROUTING ===
-
 @app.route("/")
 def root():
     """Root route - redirects based on user role."""

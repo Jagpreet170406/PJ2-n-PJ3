@@ -692,27 +692,27 @@
       <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); border-radius: 16px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.25);">
         {% if top_products|length > 0 %}
         <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.10);">
-          <h4 style="font-weight: 800; color: rgba(255,255,255,0.92); margin-bottom: 8px;">1. Focus on Top Performers</h4>
+          <h4 style="font-weight: 800; color: rgba(255,255,255,0.92); margin-bottom: 8px;">Focus on Top Performers</h4>
           <p style="color: rgba(255,255,255,0.70); margin: 0; line-height: 1.6;">Your top product "{{ top_products[0].hem_name }}" generated SGD {{ "%.2f"|format(top_products[0].revenue) }}. Ensure adequate stock levels and consider expanding this product line.</p>
         </div>
         {% endif %}
 
         {% if top_customers|length > 0 %}
         <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.10);">
-          <h4 style="font-weight: 800; color: rgba(255,255,255,0.92); margin-bottom: 8px;">2. Strengthen Customer Relationships</h4>
+          <h4 style="font-weight: 800; color: rgba(255,255,255,0.92); margin-bottom: 8px;">Strengthen Customer Relationships</h4>
           <p style="color: rgba(255,255,255,0.70); margin: 0; line-height: 1.6;">Customer {{ top_customers[0].customer_code }} placed {{ top_customers[0].orders }} orders worth SGD {{ "%.2f"|format(top_customers[0].revenue) }}. Implement a VIP program to retain your best customers.</p>
         </div>
         {% endif %}
 
         {% if kpis.aov < 300 %}
         <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.10);">
-          <h4 style="font-weight: 800; color: rgba(255,255,255,0.92); margin-bottom: 8px;">3. Increase Average Order Value</h4>
+          <h4 style="font-weight: 800; color: rgba(255,255,255,0.92); margin-bottom: 8px;">Increase Average Order Value</h4>
           <p style="color: rgba(255,255,255,0.70); margin: 0; line-height: 1.6;">Current AOV is SGD {{ "%.2f"|format(kpis.aov) }}. Introduce product bundles or minimum order incentives to increase this to SGD {{ "%.2f"|format(kpis.aov * 1.3) }}+.</p>
         </div>
         {% endif %}
 
         <div>
-          <h4 style="font-weight: 800; color: rgba(255,255,255,0.92); margin-bottom: 8px;">4. Analyze Seasonal Patterns</h4>
+          <h4 style="font-weight: 800; color: rgba(255,255,255,0.92); margin-bottom: 8px;">Analyze Seasonal Patterns</h4>
           <p style="color: rgba(255,255,255,0.70); margin: 0; line-height: 1.6;">Review the revenue trend chart to identify peak periods. Prepare inventory and marketing campaigns 2-3 months before seasonal spikes.</p>
         </div>
       </div>
