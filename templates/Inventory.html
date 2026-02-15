@@ -729,11 +729,11 @@ body {
             <input type="text" id="productPartNo" placeholder="e.g., SP-12345">
             <div class="error-message" id="errorPartNo"></div>
 
-            <label for="productName">Product Name * (Min 3 chars)</label>
+            <label for="productName"><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> Product Name (Min 3 chars)</label>
             <input type="text" id="productName" required minlength="3">
             <div class="error-message" id="errorName"></div>
 
-            <label for="productCategory">Category *</label>
+            <label for="productCategory"><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> Category</label>
             <select id="productCategory" required>
                 <option value="Lubricants">Lubricants</option>
                 <option value="Engine Oil">Engine Oil</option>
@@ -746,11 +746,11 @@ body {
             </select>
             <div class="error-message" id="errorCategory"></div>
 
-            <label for="productStock">Stock Quantity * (Min 0)</label>
+            <label for="productStock"><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> Stock Quantity (Min 0)</label>
             <input type="number" id="productStock" required min="0" value="0">
             <div class="error-message" id="errorStock"></div>
 
-            <label for="productPrice">Selling Price (SGD) * (Min 0.01)</label>
+            <label for="productPrice"><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> Selling Price (SGD) (Min 0.01)</label>
             <input type="number" id="productPrice" required min="0.01" step="0.01" value="0.00">
             <div class="error-message" id="errorPrice"></div>
 
@@ -783,6 +783,87 @@ body {
 <div id="bigNotification" class="big-notification"></div>
 
 <script>
+// ============================================================================
+// IMAGE MAPPING - Dynamically match products to images  
+// ============================================================================
+const IMAGE_MAP = {};
+
+// Build image map on page load
+async function buildImageMap() {
+    try {
+        const response = await fetch('/api/image-list');
+        const imageFiles = await response.json();
+        
+        imageFiles.forEach(filename => {
+            // Extract description from filename
+            const match = filename.match(/^[^_]+_(.+)\.(jpg|jpeg|png)$/i);
+            if (match) {
+                const desc = match[1].toUpperCase()
+                    .replace(/_/g, ' ')
+                    .replace(/,/g, ' ')
+                    .replace(/[^A-Z0-9\s]/g, ' ')
+                    .trim()
+                    .split(/\s+/)
+                    .filter(w => w.length >= 3);
+                
+                // Store full description
+                IMAGE_MAP[desc.join(' ')] = filename;
+                
+                // Store by keywords for partial matching
+                desc.forEach(word => {
+                    if (!IMAGE_MAP[word]) IMAGE_MAP[word] = [];
+                    if (!IMAGE_MAP[word].includes(filename)) {
+                        IMAGE_MAP[word].push(filename);
+                    }
+                });
+            }
+        });
+        console.log(`✅ Image map built: ${Object.keys(IMAGE_MAP).length} entries`);
+    } catch (error) {
+        console.error('Failed to build image map:', error);
+    }
+}
+
+// Get image URL for a product name
+function getProductImageUrl(productName) {
+    if (!productName) return '/static/placeholder.png';
+    
+    const searchTerm = productName.toUpperCase()
+        .replace(/[^A-Z0-9\s]/g, ' ')
+        .trim()
+        .split(/\s+/)
+        .filter(w => w.length >= 3);
+    
+    // Try exact match
+    const exactKey = searchTerm.join(' ');
+    if (IMAGE_MAP[exactKey] && typeof IMAGE_MAP[exactKey] === 'string') {
+        return `/product-image/${IMAGE_MAP[exactKey]}`;
+    }
+    
+    // Try keyword matching
+    const candidates = {};
+    searchTerm.forEach(word => {
+        if (IMAGE_MAP[word] && Array.isArray(IMAGE_MAP[word])) {
+            IMAGE_MAP[word].forEach(img => {
+                candidates[img] = (candidates[img] || 0) + 1;
+            });
+        }
+    });
+    
+    // Return best match (at least 2 keywords)
+    if (Object.keys(candidates).length > 0) {
+        const sorted = Object.entries(candidates).sort((a, b) => b[1] - a[1]);
+        if (sorted[0][1] >= 2) {
+            return `/product-image/${sorted[0][0]}`;
+        }
+    }
+    
+    return '/static/placeholder.png';
+}
+
+// ============================================================================
+// EXISTING CODE
+// ============================================================================
 let allProducts = [];
 let filteredProducts = [];
 let currentPage = 1;
@@ -915,6 +996,11 @@ function updateStats() {
 // Load products from database
 async function loadProducts() {
     try {
+        // Build image map first (only once)
+        if (Object.keys(IMAGE_MAP).length === 0) {
+            await buildImageMap();
+        }
+        
         const response = await fetch('/api/inventory');
 
         if (!response.ok) {
@@ -1008,9 +1094,17 @@ function renderProducts() {
             ? `SGD ${parseFloat(product.sell_price).toFixed(2)} - ${parseFloat(product.max_price).toFixed(2)}`
             : `SGD ${parseFloat(product.sell_price).toFixed(2)}`;
 
+        // Get image URL for product
+        const imageUrl = getProductImageUrl(product.hem_name);
+        
         return `
             <div class="card">
-                <div class="img-placeholder">${product.image_url ? `<img src="${product.image_url}" style="max-width:100%; max-height:100%; object-fit:contain;">` : 'No Image'}</div>
+                <div class="img-placeholder">
+                    <img src="${imageUrl}" 
+                         alt="${product.hem_name}" 
+                         style="width:100%; height:100%; object-fit:contain;"
+                         onerror="if(this.src!='/static/placeholder.png'){this.src='/static/placeholder.png';}">
+                </div>
                 <div><strong>${product.hem_name}</strong></div>
                 ${variantInfo}
                 ${skuDisplay ? `<small style="color: rgba(255,255,255,0.65);">SKU: ${skuDisplay}</small><br>` : ''}

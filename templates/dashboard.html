@@ -721,16 +721,16 @@ input[list] {
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="form-grid">
                         <div class="form-group">
-                            <label for="invoice_no">INVOICE #</label>
+                            <label for="invoice_no"><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> INVOICE #</label>
                             <input type="text" id="invoice_no" name="invoice_no" required placeholder="INV-001" minlength="3">
                         </div>
                         <div class="form-group">
-                            <label for="invoice_date">DATE</label>
+                            <label for="invoice_date"><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> DATE</label>
                             <input type="date" id="invoice_date" name="invoice_date" required max="{{ today }}">
                             <span class="field-error-msg" id="invoice_date_err">Date cannot be in the future.</span>
                         </div>
                         <div class="form-group">
-                            <label for="customer_id_input">CUSTOMER ID</label>
+                            <label for="customer_id_input"><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> CUSTOMER ID</label>
                             <input type="text" id="customer_id_input" name="customer_id" required placeholder="Type or select customer..." list="customer_list" autocomplete="off">
                             <datalist id="customer_list">
                                 {% for customer in customers %}
@@ -743,7 +743,7 @@ input[list] {
                             <input type="text" id="legend_id" name="legend_id" placeholder="Auto-fills from Customer ID">
                         </div>
                         <div class="form-group">
-                            <label for="product_input">PRODUCT</label>
+                            <label for="product_input"><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> PRODUCT</label>
                             <input type="text" id="product_input" name="product_display" required placeholder="Type or select product..." list="product_list" autocomplete="off">
                             <input type="hidden" id="product_id" name="product_id">
                             <datalist id="product_list">
@@ -753,15 +753,15 @@ input[list] {
                             </datalist>
                         </div>
                         <div class="form-group">
-                            <label for="qty">QUANTITY</label>
+                            <label for="qty"><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> QUANTITY</label>
                             <input type="number" id="qty" name="qty" required min="1" value="1">
                         </div>
                         <div class="form-group">
-                            <label for="total_amt">TOTAL AMOUNT (S$)</label>
+                            <label for="total_amt"><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> TOTAL AMOUNT (S$)</label>
                             <input type="number" id="total_amt" name="total_amt" required min="0" step="0.01" value="0.00">
                         </div>
                         <div class="form-group">
-                            <label for="gst_amt">GST AMOUNT (S$)</label>
+                            <label for="gst_amt"><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> GST AMOUNT (S$)</label>
                             <input type="number" id="gst_amt" name="gst_amt" required min="0" step="0.01" value="0.00">
                         </div>
                     </div>
@@ -891,12 +891,12 @@ input[list] {
                 <!-- Header Fields -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
                     <div class="form-group">
-                        <label for="edit_invoice_date" style="display: block; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.75); margin-bottom: 8px;">DATE</label>
+                        <label for="edit_invoice_date" style="display: block; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.75); margin-bottom: 8px;"><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> DATE</label>
                         <input type="date" id="edit_invoice_date" name="invoice_date" required max="{{ today }}" style="width: 100%; background: #000000; border: 1px solid rgba(255,255,255,0.18); border-radius: 12px; padding: 12px 14px; color: rgba(255,255,255,0.92); font-size: 0.95rem; box-sizing: border-box;">
                         <span class="field-error-msg" id="edit_invoice_date_err">Date cannot be in the future.</span>
                     </div>
                     <div class="form-group">
-                        <label for="edit_customer_id" style="display: block; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.75); margin-bottom: 8px;">CUSTOMER</label>
+                        <label for="edit_customer_id" style="display: block; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.75); margin-bottom: 8px;"><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> CUSTOMER</label>
                         <select id="edit_customer_id" name="customer_id" required style="width: 100%; background: #000000; border: 1px solid rgba(255,255,255,0.18); border-radius: 12px; padding: 12px 14px; color: rgba(255,255,255,0.92); font-size: 0.95rem; box-sizing: border-box;">
                             <option value="">Select Customer</option>
                             {% for customer in customers %}

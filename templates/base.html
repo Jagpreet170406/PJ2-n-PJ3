@@ -230,7 +230,7 @@
               <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show" role="alert">
                 {{ message }}
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                  <span aria-hidden="true">&times;</span>
+                  <span aria-hidden="times;">&times;</span>
                 </button>
               </div>
             {% endfor %}
@@ -247,7 +247,9 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
     <script>
-        // GLOBAL cart badge update function
+        // ========================================
+        // GLOBAL CART BADGE UPDATE FUNCTION
+        // ========================================
         window.updateCartBadge = function() {
             try {
                 const cart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -265,20 +267,36 @@
                     
                     if (totalItems > 0) {
                         badge.classList.add('show');
-                        console.log('🔥 Added .show class');
+                        console.log('🔥 Added .show class - BADGE SHOULD BE VISIBLE NOW!');
                     } else {
                         badge.classList.remove('show');
-                        console.log('🔥 Removed .show class');
+                        console.log('🔥 Removed .show class - badge hidden');
                     }
                 } else {
-                    console.error('❌ Badge element NOT FOUND!');
+                    console.error('❌ Badge element NOT FOUND! Make sure navbar has .cart-badge class');
                 }
-            } catch (e) { console.error(e); }
-        }
-        document.addEventListener('DOMContentLoaded', updateCartBadge);
-        window.addEventListener('storage', updateCartBadge);
+            } catch (e) { 
+                console.error('❌ Error in updateCartBadge:', e); 
+            }
+        };
+        
+        // Initialize badge on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔥 DOMContentLoaded - initializing cart badge');
+            window.updateCartBadge();
+        });
+        
+        // Update badge when storage changes (other tabs)
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'cart') {
+                console.log('🔥 Storage event detected - updating badge');
+                window.updateCartBadge();
+            }
+        });
 
-        // Sidebar toggle functionality
+        // ========================================
+        // SIDEBAR TOGGLE FUNCTIONALITY
+        // ========================================
         function toggleSidebar() {
             const sidebar = document.querySelector('.admin-sidebar');
             const mainContent = document.getElementById('mainContent');
@@ -311,16 +329,6 @@
                 }
             }
         });
-            } catch (e) { 
-                console.error('❌ Error in updateCartBadge:', e); 
-            }
-        };
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔥 DOMContentLoaded - calling updateCartBadge');
-            window.updateCartBadge();
-        });
-        window.addEventListener('storage', window.updateCartBadge);
     </script>
 
     {% block scripts %}{% endblock %}
