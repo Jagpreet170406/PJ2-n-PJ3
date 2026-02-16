@@ -369,7 +369,7 @@ body {
 <div class="page-wrap">
     <!-- Hero Header -->
     <div class="hero">
-        <h1>💬 Customer Feedback</h1>
+        <h1>Customer Feedback</h1>
         <p>Monitor customer satisfaction and reviews</p>
     </div>
 
@@ -381,7 +381,7 @@ body {
                 <div class="stat-label">Total Feedback</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">{{ "%.1f"|format(avg_rating) }}★</div>
+                <div class="stat-value">{{ "%.1f"|format(avg_rating) }}</div>
                 <div class="stat-label">Average Rating</div>
             </div>
             <div class="stat-card">
@@ -450,9 +450,9 @@ body {
                         <div class="feedback-rating">
                             {% for i in range(1, 6) %}
                                 {% if i <= item.rating %}
-                                <span class="star">★</span>
+                                <span class="star"></span>
                                 {% else %}
-                                <span class="star empty">★</span>
+                                <span class="star empty"></span>
                                 {% endif %}
                             {% endfor %}
                         </div>
