@@ -164,9 +164,15 @@ main, .content, .page, .wrapper {
         What shall we get started with today?
       </p>
 
+      {% if session.role == 'employee' %}
+      <a href="{{ url_for('orders') }}" class="hero-btn">
+        View Orders
+      </a>
+      {% else %}
       <a href="{{ url_for('dashboard') }}" class="hero-btn">
         View Dashboard
       </a>
+      {% endif %}
     </div>
   </div>
 </section>

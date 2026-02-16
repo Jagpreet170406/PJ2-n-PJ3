@@ -20,17 +20,23 @@
           <a class="nav-link" href="{{ url_for('home') }}">Home</a>
         </li>
 
+        {% if session.role in ['admin', 'superowner'] %}
         <li class="nav-item">
           <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
         </li>
+        {% endif %}
     
+        {% if session.role in ['employee', 'superowner'] %}
         <li class="nav-item">
           <a class="nav-link" href="{{ url_for('inventory') }}">Inventory</a>
         </li>
+        {% endif %}
         
+        {% if session.role in ['admin', 'superowner'] %}
         <li class="nav-item">
           <a class="nav-link" href="{{ url_for('market_analysis') }}">Market Analysis</a>
         </li>
+        {% endif %}
 
       
         <!-- <li class="nav-item dropdown">

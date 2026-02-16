@@ -1,6 +1,6 @@
 import sqlite3
 import os
-from werkzeug.security import generate_password_hash
+import bcrypt
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "database.db")
@@ -17,17 +17,52 @@ CREATE TABLE IF NOT EXISTS users (
     username TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     role TEXT NOT NULL CHECK (role IN ('employee','admin','superowner')),
-    active INTEGER DEFAULT 1
+    active INTEGER DEFAULT 1,
+    password_changed_at DATETIME,
+    force_password_change INTEGER DEFAULT 1,
+    created_by TEXT,
+    is_original_superowner INTEGER DEFAULT 0
 );
 """)
 
-# Default SUPEROWNER
-cursor.execute("SELECT 1 FROM users WHERE role='superowner' LIMIT 1")
+# Add columns to existing users table if they don't exist
+try:
+    cursor.execute("ALTER TABLE users ADD COLUMN password_changed_at DATETIME")
+except sqlite3.OperationalError:
+    pass  # Column already exists
+
+try:
+    cursor.execute("ALTER TABLE users ADD COLUMN force_password_change INTEGER DEFAULT 1")
+except sqlite3.OperationalError:
+    pass  # Column already exists
+
+try:
+    cursor.execute("ALTER TABLE users ADD COLUMN created_by TEXT")
+except sqlite3.OperationalError:
+    pass  # Column already exists
+
+try:
+    cursor.execute("ALTER TABLE users ADD COLUMN is_original_superowner INTEGER DEFAULT 0")
+except sqlite3.OperationalError:
+    pass  # Column already exists
+
+# Default SUPEROWNER with bcrypt hashed password
+cursor.execute("SELECT 1 FROM users WHERE username='superowner' LIMIT 1")
 if not cursor.fetchone():
+    # Hash the default password with bcrypt (12 rounds for good security/performance balance)
+    default_password = "changeme123"
+    hashed_pw = bcrypt.hashpw(default_password.encode('utf-8'), bcrypt.gensalt(rounds=12))
     cursor.execute("""
-        INSERT INTO users (username, password_hash, role, active)
-        VALUES (?, ?, 'superowner', 1)
-    """, ("superowner", generate_password_hash("changeme123")))
+        INSERT INTO users (username, password_hash, role, active, force_password_change, created_by, is_original_superowner)
+        VALUES (?, ?, 'superowner', 1, 1, 'SYSTEM', 1)
+    """, ("superowner", hashed_pw.decode('utf-8')))
+else:
+    # If 'superowner' user exists, make sure is_original_superowner is set to 1
+    cursor.execute("""
+        UPDATE users 
+        SET is_original_superowner = 1 
+        WHERE username = 'superowner' AND is_original_superowner = 0
+    """)
 
 # =========================
 # 2. LEGENDS, CUSTOMERS, SUPPLIERS
@@ -207,6 +242,8 @@ conn.commit()
 conn.close()
 
 print("✅ database.db updated with all tables!")
+print("   - Using bcrypt for password hashing (12 rounds)")
+print("   - Default superowner: username='superowner', password='changeme123'")
 print("   - Added order_items table to store products")
 print("   - Added fulfillment_method and fulfillment_details to transactions")
 print("   - Added contact_submissions table for contact form")

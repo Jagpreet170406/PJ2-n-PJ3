@@ -7,18 +7,21 @@
     </div>
   
     <div class="admin-sidebar-body">
+      {% if session.role in ['employee', 'superowner'] %}
       <a href="{{ url_for('orders') }}">
         <span class="sidebar-text">Orders</span>
       </a>
+      {% endif %}
   
       <a href="{{ url_for('feedback') }}">
         <span class="sidebar-text">Feedback</span>
       </a>
 
+      {% if session.role in ['admin', 'superowner'] %}
       <a href="{{ url_for('manage_users') }}">
         <span class="sidebar-text">Manage Users</span>
       </a>
-
+      {% endif %}
 
       <div class="sidebar-divider"></div>
     </div>

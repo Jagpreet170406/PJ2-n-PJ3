@@ -8,7 +8,8 @@ from datetime import datetime, timedelta, date
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_from_directory
 from flask_wtf.csrf import CSRFProtect, generate_csrf
-from werkzeug.security import generate_password_hash, check_password_hash
+import bcrypt
+from werkzeug.security import check_password_hash  # For backward compatibility
 from groq import Groq
 from image_matcher import build_image_cache, get_product_image_url
 
@@ -91,6 +92,18 @@ def init_db():
 
 init_db()
 
+# === BEFORE REQUEST MIDDLEWARE ===
+@app.before_request
+def check_password_change_required():
+    """Middleware to enforce password change before accessing any protected route."""
+    # Skip for these routes
+    exempt_routes = ['staff_login', 'change_password', 'logout', 'static', 'cart', 'checkout', 
+                     'process_payment', 'order_success', 'contact', 'about', 'root']
+    
+    # Check if user must change password
+    if session.get('must_change_password') and request.endpoint not in exempt_routes:
+        return redirect(url_for('change_password'))
+
 # === CONTEXT PROCESSORS ===
 @app.context_processor
 def inject_csrf_token():
@@ -101,13 +114,34 @@ def inject_csrf_token():
         get_product_image_url=get_product_image_url
     )
 
-# === AUTHENTICATION DECORATORS ===
+# === RBAC DECORATORS ===
 def require_staff(f):
-    """Decorator to protect routes that require staff access."""
+    """Decorator to protect routes that require any staff access."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if session.get("role") not in ["employee", "admin", "superowner"]:
-            return redirect(url_for('cart'))
+            flash("Unauthorized access. Please log in as staff.", "danger")
+            return redirect(url_for('staff_login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def require_admin(f):
+    """Decorator to protect routes that require admin or superowner access."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get("role") not in ["admin", "superowner"]:
+            flash("Unauthorized access. Admin privileges required.", "danger")
+            return redirect(url_for('home'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def require_superowner(f):
+    """Decorator to protect routes that require superowner access."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get("role") != "superowner":
+            flash("Unauthorized access. Superowner privileges required.", "danger")
+            return redirect(url_for('home'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -234,10 +268,11 @@ def cart():
                            role=session.get("role", "customer"))
 
 @app.route("/manage_users", methods=["GET", "POST"])
-@require_staff
+@require_admin  # Only admin and superowner can access
 def manage_users():
     """Manage Users page - CRUD operations for user accounts."""
     message = None
+    current_role = session.get("role")
 
     if request.method == "POST":
         action = request.form.get("action")
@@ -248,45 +283,111 @@ def manage_users():
                 password = request.form.get("password", "").strip()
                 role = request.form.get("role", "employee").strip()
                 
-                if not username or not password:
+                # Only superowner can create other superowners
+                if role == "superowner" and current_role != "superowner":
+                    message = "Only superowner can create superowner accounts."
+                elif not username or not password:
                     message = "Username and password are required."
                 else:
                     existing = conn.execute("SELECT 1 FROM users WHERE username = ?", (username,)).fetchone()
                     if existing:
                         message = f"User '{username}' already exists."
                     else:
-                        hashed_pw = generate_password_hash(password)
+                        # Hash password with bcrypt (generates salt automatically)
+                        hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(rounds=12))
+                        created_by_user = session.get("username")
                         conn.execute(
-                            "INSERT INTO users (username, password_hash, role, active) VALUES (?, ?, ?, 1)",
-                            (username, hashed_pw, role)
+                            "INSERT INTO users (username, password_hash, role, active, force_password_change, created_by) VALUES (?, ?, ?, 1, 1, ?)",
+                            (username, hashed_pw.decode('utf-8'), role, created_by_user)
                         )
                         conn.commit()
-                        message = f"User '{username}' added successfully."
+                        message = f"User '{username}' added successfully with role '{role}'. They will be required to change password on first login."
 
             elif action == "change_role":
                 new_role = request.form.get("new_role", "employee").strip()
-                conn.execute("UPDATE users SET role = ? WHERE username = ?", (new_role, username))
-                conn.commit()
-                message = f"Role updated for '{username}'."
+                
+                # Get the target user's current info
+                target_user = conn.execute("SELECT username, role, is_original_superowner FROM users WHERE username = ?", (username,)).fetchone()
+                
+                if not target_user:
+                    message = f"User '{username}' not found."
+                # Protect original superowner - CANNOT be modified at all
+                elif target_user['is_original_superowner'] == 1:
+                    message = "Cannot modify the original superowner account."
+                # Prevent changing superowner roles unless you are superowner
+                elif target_user['role'] == 'superowner' and current_role != 'superowner':
+                    message = "Only superowner can change superowner roles."
+                # Prevent creating superowner unless you are superowner
+                elif new_role == 'superowner' and current_role != 'superowner':
+                    message = "Only superowner can assign superowner role."
+                # Prevent changing your own role
+                elif username == session.get("username"):
+                    message = "You cannot change your own role."
+                else:
+                    conn.execute("UPDATE users SET role = ? WHERE username = ?", (new_role, username))
+                    conn.commit()
+                    message = f"Role updated for '{username}' to '{new_role}'."
 
             elif action == "toggle":
-                conn.execute("UPDATE users SET active = NOT active WHERE username = ?", (username,))
-                conn.commit()
-                message = f"Status toggled for '{username}'."
+                # Prevent toggling superowner status unless you are superowner
+                target_user = conn.execute("SELECT role, is_original_superowner FROM users WHERE username = ?", (username,)).fetchone()
+                if target_user and target_user['is_original_superowner'] == 1:
+                    message = "Cannot toggle the original superowner account."
+                elif target_user and target_user['role'] == 'superowner' and current_role != 'superowner':
+                    message = "Only superowner can toggle superowner accounts."
+                elif username == session.get("username"):
+                    message = "You cannot toggle your own status."
+                else:
+                    conn.execute("UPDATE users SET active = NOT active WHERE username = ?", (username,))
+                    conn.commit()
+                    message = f"Status toggled for '{username}'."
 
             elif action == "delete":
-                conn.execute("DELETE FROM users WHERE username = ?", (username,))
-                conn.commit()
-                message = f"User '{username}' deleted."
+                # Prevent deleting superowner unless you are superowner
+                target_user = conn.execute("SELECT role, is_original_superowner FROM users WHERE username = ?", (username,)).fetchone()
+                if target_user and target_user['is_original_superowner'] == 1:
+                    message = "Cannot delete the original superowner account."
+                elif target_user and target_user['role'] == 'superowner' and current_role != 'superowner':
+                    message = "Only superowner can delete superowner accounts."
+                elif username == session.get("username"):
+                    message = "You cannot delete your own account."
+                else:
+                    conn.execute("DELETE FROM users WHERE username = ?", (username,))
+                    conn.commit()
+                    message = f"User '{username}' deleted."
+            
+            elif action == "reset_password":
+                # Reset password to default and force change
+                target_user = conn.execute("SELECT role, is_original_superowner FROM users WHERE username = ?", (username,)).fetchone()
+                
+                # Secondary superowners CAN reset the original superowner's password
+                # But original superowner CANNOT be deleted/toggled/role-changed
+                if username == session.get("username"):
+                    message = "You cannot reset your own password. Use Change Password instead."
+                elif target_user and target_user['role'] == 'superowner' and current_role != 'superowner':
+                    message = "Only superowner can reset superowner passwords."
+                else:
+                    # Set default password
+                    default_pw = "TempPass123!"
+                    hashed_pw = bcrypt.hashpw(default_pw.encode('utf-8'), bcrypt.gensalt(rounds=12))
+                    conn.execute("""
+                        UPDATE users 
+                        SET password_hash = ?, 
+                            force_password_change = 1,
+                            password_changed_at = NULL
+                        WHERE username = ?
+                    """, (hashed_pw.decode('utf-8'), username))
+                    conn.commit()
+                    message = f"Password reset for '{username}'. Temporary password: {default_pw}. User will be forced to change on next login."
 
     with get_db() as conn:
-        users = conn.execute("SELECT username, role, active FROM users ORDER BY username").fetchall()
+        users = conn.execute("SELECT username, role, active, is_original_superowner, created_by FROM users ORDER BY username").fetchall()
 
     return render_template(
         "manage_users.html",
         users=[dict(u) for u in users],
         message=message,
-        role=session.get("role")
+        role=current_role
     )
 
 @app.route("/checkout")
@@ -478,9 +579,13 @@ def contact():
                          role="customer")
 
 @app.route("/orders")
-@require_staff
+@require_staff  # All staff can view orders
 def orders():
     """Staff Orders page with order items display."""
+    # Admin should NOT have access to orders
+    if session.get("role") == "admin":
+        flash("Access denied. Orders management is for employees only.", "danger")
+        return redirect(url_for('home'))
     
     tabs = ["Incoming", "In Progress", "Awaiting Pickup", "Out for Delivery", "Completed", "Issues"]
     active_tab = request.args.get("tab", "Incoming").strip()
@@ -570,6 +675,9 @@ def orders():
 @require_staff
 def update_order_status(order_id):
     """API: Update order status (move between workflow stages)."""
+    # Admin should NOT have access to orders
+    if session.get("role") == "admin":
+        return jsonify({"success": False, "message": "Access denied"}), 403
     try:
         data = request.get_json()
         new_status = data.get('status', '').strip()
@@ -609,6 +717,9 @@ def update_order_status(order_id):
 @require_staff
 def cancel_order(order_id):
     """API: Cancel/delete an order from the system and restore inventory."""
+    # Admin should NOT have access to orders
+    if session.get("role") == "admin":
+        return jsonify({"success": False, "message": "Access denied"}), 403
     try:
         with get_db() as conn:
             order = conn.execute(
@@ -649,7 +760,7 @@ def cancel_order(order_id):
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/feedback")
-@require_staff
+@require_staff  # All staff can view feedback
 def feedback():
     """Staff feedback management page - view customer feedback and contact messages."""
     active_tab = request.args.get('tab', 'ratings')
@@ -921,18 +1032,156 @@ def staff_login():
         with get_db() as conn:
             user = conn.execute("SELECT * FROM users WHERE username=?", (u,)).fetchone()
 
-        if user and check_password_hash(user['password_hash'], p):
-            session.update({"username": u, "role": user['role']})
-            return redirect(url_for("home"))
+        if user:
+            password_hash = user['password_hash']
+            password_valid = False
+            
+            # Try bcrypt first (new format starts with $2b$)
+            if password_hash.startswith('$2b$') or password_hash.startswith('$2a$') or password_hash.startswith('$2y$'):
+                try:
+                    password_valid = bcrypt.checkpw(p.encode('utf-8'), password_hash.encode('utf-8'))
+                except (ValueError, Exception):
+                    password_valid = False
+            else:
+                # Fall back to werkzeug (old format)
+                try:
+                    from werkzeug.security import check_password_hash
+                    password_valid = check_password_hash(password_hash, p)
+                    
+                    # If login successful with old hash, upgrade to bcrypt
+                    if password_valid:
+                        new_hash = bcrypt.hashpw(p.encode('utf-8'), bcrypt.gensalt(rounds=12))
+                        with get_db() as conn:
+                            conn.execute("UPDATE users SET password_hash = ? WHERE username = ?",
+                                       (new_hash.decode('utf-8'), u))
+                            conn.commit()
+                except Exception:
+                    password_valid = False
+            
+            if password_valid:
+                # Check if user is active
+                if not user['active']:
+                    flash("Your account is inactive. Please contact an administrator.", "danger")
+                    return render_template("staff_login.html", role="customer")
+                
+                # Check if password change is forced (first login or admin reset)
+                try:
+                    force_change = user['force_password_change'] if user['force_password_change'] is not None else 0
+                except (KeyError, IndexError):
+                    force_change = 0
+                
+                # Check if password is older than 90 days
+                password_expired = False
+                try:
+                    if user['password_changed_at']:
+                        from datetime import datetime, timedelta
+                        last_changed = datetime.fromisoformat(user['password_changed_at'])
+                        days_since_change = (datetime.now() - last_changed).days
+                        if days_since_change >= 90:
+                            password_expired = True
+                except (KeyError, IndexError, TypeError):
+                    password_expired = False
+                
+                # Set session
+                session.update({"username": u, "role": user['role']})
+                
+                # Redirect to change password if needed
+                if force_change or password_expired:
+                    session['must_change_password'] = True
+                    if force_change:
+                        flash("You must change your password before continuing.", "warning")
+                    else:
+                        flash("Your password has expired (90+ days old). Please change it now.", "warning")
+                    return redirect(url_for("change_password"))
+                
+                return redirect(url_for("home"))
+        
         flash("Invalid credentials", "danger")
 
     return render_template("staff_login.html", role="customer")
+
+@app.route("/change-password", methods=["GET", "POST"])
+@require_staff
+def change_password():
+    """Force password change page for PDPA compliance."""
+    # Check if password change is required
+    must_change = session.get('must_change_password', False)
+    
+    if request.method == "POST":
+        current_password = request.form.get("current_password", "").strip()
+        new_password = request.form.get("new_password", "").strip()
+        confirm_password = request.form.get("confirm_password", "").strip()
+        
+        # Validation
+        if not current_password or not new_password or not confirm_password:
+            flash("All fields are required.", "danger")
+            return render_template("change_password.html", must_change=must_change, role=session.get("role"))
+        
+        if new_password != confirm_password:
+            flash("New passwords do not match.", "danger")
+            return render_template("change_password.html", must_change=must_change, role=session.get("role"))
+        
+        if len(new_password) < 8:
+            flash("Password must be at least 8 characters long.", "danger")
+            return render_template("change_password.html", must_change=must_change, role=session.get("role"))
+        
+        if new_password == current_password:
+            flash("New password must be different from current password.", "danger")
+            return render_template("change_password.html", must_change=must_change, role=session.get("role"))
+        
+        # Verify current password
+        username = session.get("username")
+        with get_db() as conn:
+            user = conn.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
+            
+            if not user:
+                flash("User not found.", "danger")
+                return redirect(url_for("logout"))
+            
+            password_hash = user['password_hash']
+            password_valid = False
+            
+            # Verify current password
+            if password_hash.startswith('$2b$') or password_hash.startswith('$2a$') or password_hash.startswith('$2y$'):
+                try:
+                    password_valid = bcrypt.checkpw(current_password.encode('utf-8'), password_hash.encode('utf-8'))
+                except (ValueError, Exception):
+                    password_valid = False
+            else:
+                try:
+                    from werkzeug.security import check_password_hash
+                    password_valid = check_password_hash(password_hash, current_password)
+                except Exception:
+                    password_valid = False
+            
+            if not password_valid:
+                flash("Current password is incorrect.", "danger")
+                return render_template("change_password.html", must_change=must_change, role=session.get("role"))
+            
+            # Update password
+            from datetime import datetime
+            new_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt(rounds=12))
+            conn.execute("""
+                UPDATE users 
+                SET password_hash = ?, 
+                    password_changed_at = ?,
+                    force_password_change = 0
+                WHERE username = ?
+            """, (new_hash.decode('utf-8'), datetime.now().isoformat(), username))
+            conn.commit()
+        
+        # Clear the must change flag
+        session.pop('must_change_password', None)
+        flash("Password changed successfully!", "success")
+        return redirect(url_for("home"))
+    
+    return render_template("change_password.html", must_change=must_change, role=session.get("role"))
 
 @app.route("/home")
 @require_staff
 def home():
     """Staff home/dashboard page."""
-    return render_template("home.html", role=session.get("role"))
+    return render_template("home.html", role=session.get("role"), username=session.get("username"))
 
 @app.route('/about')
 def about():
@@ -942,9 +1191,13 @@ def about():
 # === INVENTORY MANAGEMENT ROUTES ===
 
 @app.route("/inventory")
-@require_staff
+@require_staff  # All staff can view, but we'll add logic to restrict admin
 def inventory():
     """Inventory management page with CRUD operations."""
+    # Admin should NOT have access to inventory
+    if session.get("role") == "admin":
+        flash("Access denied. Inventory is for employees only.", "danger")
+        return redirect(url_for('home'))
     return render_template("inventory.html", role=session.get("role"))
 
 @app.route("/api/inventory", methods=["GET"])
@@ -952,6 +1205,9 @@ def inventory():
 @require_staff
 def api_get_inventory():
     """API: Retrieve grouped inventory items by product name to reduce duplicates."""
+    # Admin should NOT have access to inventory
+    if session.get("role") == "admin":
+        return jsonify({"error": "Access denied"}), 403
     try:
         with get_db() as conn:
             bucket_select = """
@@ -998,6 +1254,9 @@ def api_get_inventory():
 @require_staff
 def api_create_inventory():
     """API: Create a new inventory item with validation."""
+    # Admin should NOT have access to inventory
+    if session.get("role") == "admin":
+        return jsonify({"success": False, "message": "Access denied"}), 403
     data = request.get_json()
     
     sup_part_no = (data.get('sup_part_no') or '').strip()
@@ -1027,6 +1286,9 @@ def api_create_inventory():
 @require_staff
 def api_update_inventory(inventory_id):
     """API: Update an existing inventory item."""
+    # Admin should NOT have access to inventory
+    if session.get("role") == "admin":
+        return jsonify({"success": False, "message": "Access denied"}), 403
     data = request.get_json()
     
     sup_part_no = (data.get('sup_part_no') or '').strip()
@@ -1056,6 +1318,9 @@ def api_update_inventory(inventory_id):
 @require_staff
 def api_delete_inventory(inventory_id):
     """API: Delete an inventory item permanently."""
+    # Admin should NOT have access to inventory
+    if session.get("role") == "admin":
+        return jsonify({"success": False, "message": "Access denied"}), 403
     try:
         with get_db() as conn:
             conn.execute("DELETE FROM inventory WHERE inventory_id=?", (inventory_id,))
@@ -1087,10 +1352,10 @@ def api_get_product_variants():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# === SALES DASHBOARD ROUTES ===
+# === SALES DASHBOARD ROUTES (ADMIN + SUPEROWNER ONLY) ===
 
 @app.route("/dashboard")
-@require_staff
+@require_admin  # Only admin and superowner can view dashboard
 def dashboard():
     """Sales dashboard — optimized: SQL-level pagination, minimal joins, indexed queries."""
     page       = request.args.get('page', 1, type=int)
@@ -1239,7 +1504,7 @@ def dashboard():
         role=session.get("role"))
 
 @app.route("/create-invoice", methods=["POST"])
-@require_staff
+@require_admin
 def create_invoice():
     """Create a new sales invoice with header and line items."""
     invoice_no = request.form.get("invoice_no", "").strip()
@@ -1346,7 +1611,7 @@ def create_invoice():
 
 @app.route("/delete-invoice/<invoice_no>", methods=["POST"])
 @csrf.exempt
-@require_staff
+@require_admin
 def delete_invoice(invoice_no):
     """Delete an invoice and all its line items."""
     
@@ -1382,7 +1647,7 @@ def delete_invoice(invoice_no):
 
 @app.route("/update-invoice/<invoice_no>", methods=["POST"])
 @csrf.exempt
-@require_staff
+@require_admin
 def update_invoice(invoice_no):
     """Update an existing invoice and its line items."""
     try:
@@ -1493,7 +1758,7 @@ def update_invoice(invoice_no):
             'message': f'Server error: {str(e)}'
         }), 500
 
-# === MARKET ANALYSIS ROUTES ===
+# === MARKET ANALYSIS ROUTES (ADMIN + SUPEROWNER ONLY) ===
 
 def generate_ai_insights(kpis, top_products, top_customers, trend_data):
     """Generate AI-powered insights and recommendations using Groq API."""
@@ -1576,7 +1841,7 @@ Be BRIEF and SPECIFIC. Focus on numbers and actionable insights."""
         return None
 
 @app.route("/market-analysis")
-@require_staff
+@require_admin  # Only admin and superowner can view market analysis
 def market_analysis():
     """Market analysis page with comprehensive business intelligence."""
     start = request.args.get("start", "").strip()
@@ -1749,7 +2014,7 @@ def market_analysis():
         top_products=top_products, top_customers=top_customers, ai_insights=ai_insights)
 
 @app.route("/real-time-analytics")
-@require_staff
+@require_admin
 def real_time_analytics():
     """Real-time analytics dashboard for monitoring current business metrics."""
     return render_template("real_time_analytics.html", role=session.get("role"))

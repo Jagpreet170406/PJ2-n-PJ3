@@ -118,33 +118,6 @@ body {
     margin: 0;
 }
 
-/* ALERT */
-.alert {
-    padding: 16px 20px;
-    border-radius: 12px;
-    margin-bottom: 24px;
-    border: 1px solid;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.alert-info {
-    background: rgba(59, 130, 246, 0.15);
-    border-color: rgba(59, 130, 246, 0.3);
-    color: #60a5fa;
-}
-
-.alert-close {
-    background: none;
-    border: none;
-    color: inherit;
-    font-size: 1.5rem;
-    cursor: pointer;
-    padding: 0;
-    line-height: 1;
-}
-
 /* FORM GRID */
 .form-grid {
     display: grid;
@@ -203,7 +176,7 @@ body {
 }
 
 .form-select option {
-    background: #1a1a1a;
+    background: #000000;
     color: rgba(255,255,255,0.92);
 }
 
@@ -267,6 +240,11 @@ body {
 .btn-sm {
     padding: 8px 16px;
     font-size: 0.85rem;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* USERS TABLE */
@@ -353,11 +331,23 @@ body {
     border-color: rgba(255,255,255,0.35);
 }
 
+.role-select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.role-select option {
+    background: #000000;
+    color: rgba(255,255,255,0.92);
+}
+
+
 /* ACTIONS CELL */
 .actions-cell {
     display: flex;
     gap: 8px;
     justify-content: flex-end;
+    flex-wrap: wrap;
 }
 
 /* EMPTY STATE */
@@ -398,6 +388,64 @@ body {
         flex-direction: column;
     }
 }
+
+/* BIG NOTIFICATION */
+.big-notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background: rgba(15, 15, 15, 0.96);
+    border: 2px solid rgba(255,255,255,0.20);
+    border-radius: 24px;
+    padding: 50px 70px;
+    text-align: center;
+    font-size: 32px;
+    font-weight: 900;
+    color: #ef4444;
+    z-index: 9999;
+    box-shadow: 0 30px 90px rgba(0,0,0,0.60);
+    backdrop-filter: blur(20px);
+    opacity: 0;
+    pointer-events: none;
+    min-width: 400px;
+}
+
+.big-notification.success {
+    color: #10b981;
+    border-color: rgba(16,185,129,0.35);
+}
+
+.big-notification.warning {
+    color: #f59e0b;
+    border-color: rgba(245,158,11,0.35);
+}
+
+.big-notification.show {
+    animation: bigPopIn 0.45s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
+}
+
+.big-notification.hide {
+    animation: bigPopOut 0.35s ease-in forwards;
+}
+
+@keyframes bigPopIn {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+    50% { transform: translate(-50%, -50%) scale(1.1); }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+@keyframes bigPopOut {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+}
+
+.notification-icon {
+    font-size: 80px;
+    display: block;
+    margin-bottom: 20px;
+}
+
 </style>
 
 <div class="page-wrap">
@@ -416,13 +464,8 @@ body {
     </div>
 
     <div class="container">
-        <!-- Alert Message -->
-        {% if message %}
-        <div class="alert alert-info">
-            <span>{{ message }}</span>
-            <button class="alert-close" onclick="this.parentElement.style.display='none'">×</button>
-        </div>
-        {% endif %}
+        <!-- Big Notification (hidden by default) -->
+        <div id="bigNotification" class="big-notification"></div>
 
         <!-- Add New User -->
         <div class="section-card">
@@ -432,6 +475,7 @@ body {
             </div>
 
             <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="action" value="add">
                 <div class="form-grid">
                     <div class="form-group">
@@ -440,14 +484,16 @@ body {
                     </div>
                     <div class="form-group">
                         <label class="form-label">Password</label>
-                        <input type="password" name="password" class="form-input" placeholder="Enter password" required>
+                        <input type="password" name="password" class="form-input" placeholder="Enter password" required minlength="8">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Assign Role</label>
                         <select name="role" class="form-select">
                             <option value="employee">Employee</option>
                             <option value="admin">Admin</option>
+                            {% if role == 'superowner' %}
                             <option value="superowner">Superowner</option>
+                            {% endif %}
                         </select>
                     </div>
                     <div class="form-group">
@@ -483,12 +529,18 @@ body {
                             </td>
                             <td>
                                 <form method="POST" style="display: inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <input type="hidden" name="action" value="change_role">
                                     <input type="hidden" name="username" value="{{ user.username }}">
-                                    <select name="new_role" onchange="this.form.submit()" class="role-select">
+                                    <select name="new_role" 
+                                            onchange="this.form.submit();" 
+                                            class="role-select"
+                                            {% if user.username == session.username or (user.role == 'superowner' and role != 'superowner') or user.is_original_superowner == 1 %}disabled{% endif %}>
                                         <option value="employee" {% if user.role == 'employee' %}selected{% endif %}>Employee</option>
                                         <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                                        {% if role == 'superowner' %}
                                         <option value="superowner" {% if user.role == 'superowner' %}selected{% endif %}>Superowner</option>
+                                        {% endif %}
                                     </select>
                                 </form>
                             </td>
@@ -499,12 +551,27 @@ body {
                             </td>
                             <td>
                                 <form method="POST" class="actions-cell">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <input type="hidden" name="username" value="{{ user.username }}">
-                                    <button type="submit" name="action" value="toggle" class="btn btn-primary btn-sm">
+                                    <button type="submit" 
+                                            name="action" 
+                                            value="toggle" 
+                                            class="btn btn-primary btn-sm"
+                                            {% if user.username == session.username or (user.role == 'superowner' and role != 'superowner') or user.is_original_superowner == 1 %}disabled{% endif %}>
                                         Toggle Status
                                     </button>
-                                    <button type="submit" name="action" value="delete" class="btn btn-danger btn-sm" 
-                                            onclick="return confirm('Confirm delete user: {{ user.username }}?')">
+                                    <button type="submit" 
+                                            name="action" 
+                                            value="reset_password" 
+                                            class="btn btn-secondary btn-sm"
+                                            {% if user.username == session.username or (user.role == 'superowner' and role != 'superowner') %}disabled{% endif %}>
+                                        Reset Password
+                                    </button>
+                                    <button type="submit" 
+                                            name="action" 
+                                            value="delete" 
+                                            class="btn btn-danger btn-sm" 
+                                            {% if user.username == session.username or (user.role == 'superowner' and role != 'superowner') or user.is_original_superowner == 1 %}disabled{% endif %}>
                                         Delete
                                     </button>
                                 </form>
@@ -525,5 +592,51 @@ body {
         </div>
     </div>
 </div>
+
+<script>
+// Show BIG NOTIFICATION
+// NOTIFICATIONS: 🟢 GREEN = Add/Success, 🟠 AMBER = Update/Warning, 🔴 RED = Delete/Error
+function showBigNotification(message, type = 'error') {
+    const bigNotification = document.getElementById('bigNotification');
+    let icon = '✖';
+    let className = 'big-notification';
+    
+    if (type === 'success' || type === true) {
+        icon = '✓';
+        className = 'big-notification success';
+    } else if (type === 'warning' || type === 'update') {
+        icon = '✎';
+        className = 'big-notification warning';
+    }
+    
+    bigNotification.innerHTML = `<span class="notification-icon">${icon}</span>${message}`;
+    bigNotification.className = className;
+
+    void bigNotification.offsetWidth;
+
+    bigNotification.classList.add('show');
+
+    setTimeout(() => {
+        bigNotification.classList.remove('show');
+        bigNotification.classList.add('hide');
+        setTimeout(() => {
+            bigNotification.classList.remove('hide');
+            bigNotification.className = 'big-notification';
+        }, 400);
+    }, 2500);
+}
+
+// Check for message from backend and show as big notification
+{% if message %}
+    {% set lower_message = message|lower %}
+    {% if 'added' in lower_message or 'success' in lower_message %}
+        showBigNotification('{{ message }}', 'success');
+    {% elif 'updated' in lower_message or 'toggled' in lower_message or 'reset' in lower_message %}
+        showBigNotification('{{ message }}', 'warning');
+    {% else %}
+        showBigNotification('{{ message }}', 'error');
+    {% endif %}
+{% endif %}
+</script>
 
 {% endblock %}
