@@ -713,15 +713,15 @@ body {
                         {% if order['status'] == 'Incoming' %}
                             <button class="action-btn action-btn-green" 
                                     onclick="updateOrderStatus({{ order['id'] }}, 'In Progress')">
-                                📦 Start Packing
+                                Start Packing
                             </button>
                             <button class="action-btn action-btn-red" 
                                     onclick="updateOrderStatus({{ order['id'] }}, 'Issues')">
-                                ⚠️ Flag Issue
+                                Flag Issue
                             </button>
                             <button class="action-btn action-btn-red" 
                                     onclick="cancelOrder({{ order['id'] }})">
-                                🗑️ Cancel
+                                Cancel
                             </button>
 
                         {% elif order['status'] == 'In Progress' %}
@@ -733,42 +733,42 @@ body {
                             {% else %}
                                 <button class="action-btn action-btn-yellow" 
                                         onclick="updateOrderStatus({{ order['id'] }}, 'Out for Delivery')">
-                                    🚚 Out for Delivery
+                                    Out for Delivery
                                 </button>
                             {% endif %}
                             <button class="action-btn action-btn-red" 
                                     onclick="updateOrderStatus({{ order['id'] }}, 'Issues')">
-                                ⚠️ Flag Issue
+                                Flag Issue
                             </button>
 
                         {% elif order['status'] == 'Awaiting Pickup' %}
                             <button class="action-btn action-btn-green" 
                                     onclick="notifyAndComplete({{ order['id'] }}, '{{ order['customer_phone'] or '' }}')">
-                                ✅ Customer Picked Up
+                                Customer Picked Up
                             </button>
                             <button class="action-btn action-btn-red" 
                                     onclick="updateOrderStatus({{ order['id'] }}, 'Issues')">
-                                ⚠️ Flag Issue
+                                Flag Issue
                             </button>
 
                         {% elif order['status'] == 'Out for Delivery' %}
                             <button class="action-btn action-btn-green" 
                                     onclick="updateOrderStatus({{ order['id'] }}, 'Completed')">
-                                ✅ Mark Delivered
+                                Mark Delivered
                             </button>
                             <button class="action-btn action-btn-red" 
                                     onclick="updateOrderStatus({{ order['id'] }}, 'Issues')">
-                                ⚠️ Flag Issue
+                                Flag Issue
                             </button>
 
                         {% elif order['status'] == 'Issues' %}
                             <button class="action-btn action-btn-yellow" 
                                     onclick="updateOrderStatus({{ order['id'] }}, 'Incoming')">
-                                🔄 Move to Incoming
+                                Move to Incoming
                             </button>
                             <button class="action-btn action-btn-red" 
                                     onclick="cancelOrder({{ order['id'] }})">
-                                🗑️ Cancel Order
+                                Cancel Order
                             </button>
                         {% endif %}
                     </div>

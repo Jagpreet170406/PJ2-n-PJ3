@@ -721,7 +721,7 @@ body {
                 <span class="page-number" id="currentPageDisplay">1</span>
                 <span class="page-info" id="pageInfo">of 1</span>
                 <button id="nextPageBtn">Next</button>
-                <button id="lastPageBtn">Last/button>
+                <button id="lastPageBtn">Last</button>
             </div>
         </div>
     </div>
@@ -1417,7 +1417,7 @@ function addRefreshButton() {
     if (heroSection && !document.getElementById('manual-refresh-btn')) {
         const refreshBtn = document.createElement('button');
         refreshBtn.id = 'manual-refresh-btn';
-        refreshBtn.innerHTML = '🔄 Refresh Now';
+        refreshBtn.innerHTML = 'Refresh Now';
         refreshBtn.style.cssText = `
             position: absolute;
             top: 30px;
@@ -1448,11 +1448,11 @@ function addRefreshButton() {
                 showBigNotification('INVENTORY REFRESHED', 'success');
                 refreshBtn.innerHTML = '✓ Refreshed!';
                 setTimeout(() => {
-                    refreshBtn.innerHTML = '🔄 Refresh Now';
+                    refreshBtn.innerHTML = 'Refresh Now';
                 }, 2000);
             } catch (error) {
                 showBigNotification('REFRESH FAILED', 'error');
-                refreshBtn.innerHTML = '🔄 Refresh Now';
+                refreshBtn.innerHTML = 'Refresh Now';
             }
             refreshBtn.disabled = false;
         };

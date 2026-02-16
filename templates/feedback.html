@@ -560,10 +560,10 @@ body {
     <div class="tabs-container">
         <div class="tabs">
             <button class="tab-button active" onclick="switchMainTab('ratings')">
-                ⭐ Customer Ratings ({{ total_feedback }})
+                Customer Ratings ({{ total_feedback }})
             </button>
             <button class="tab-button" onclick="switchMainTab('messages')">
-                📧 Contact Messages ({{ total_submissions }})
+                Contact Messages ({{ total_submissions }})
             </button>
         </div>
     </div>
@@ -755,21 +755,21 @@ body {
                         
                         <div class="item-details">
                             <div class="detail-row">
-                                <span class="detail-label">📧 Email</span>
+                                <span class="detail-label">Email</span>
                                 <span class="detail-value">{{ item.email }}</span>
                             </div>
                             {% if item.phone %}
                             <div class="detail-row">
-                                <span class="detail-label">📱 Phone</span>
+                                <span class="detail-label">Phone</span>
                                 <span class="detail-value">{{ item.phone }}</span>
                             </div>
                             {% endif %}
                             <div class="detail-row">
-                                <span class="detail-label">📋 Subject</span>
+                                <span class="detail-label">Subject</span>
                                 <span class="detail-value">{{ item.subject }}</span>
                             </div>
                             <div class="detail-row">
-                                <span class="detail-label">📅 Date</span>
+                                <span class="detail-label">Date</span>
                                 <span class="detail-value">{{ item.created_at[:16] if item.created_at else 'N/A' }}</span>
                             </div>
                         </div>
