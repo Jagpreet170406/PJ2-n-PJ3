@@ -989,12 +989,14 @@ function showBigNotification(message, type = 'error') {
 
 // Update statistics
 function updateStats() {
-    const totalProducts = allProducts.length;
+    // Don't update totalProducts here - it's set from API total_count in loadProducts()
     const totalStock = allProducts.reduce((sum, p) => sum + p.qty, 0);
     const lowStockItems = allProducts.filter(p => p.qty > 60 && p.qty <= 80).length;
     const criticalStockItems = allProducts.filter(p => p.qty <= 60).length;
 
-    document.getElementById('totalProducts').textContent = totalProducts;
+    console.log('📊 Updating stats - Total Stock:', totalStock);
+
+    // totalProducts is updated in loadProducts() from API total_count
     document.getElementById('totalStock').textContent = totalStock.toLocaleString();
     document.getElementById('lowStockItems').textContent = lowStockItems;
     document.getElementById('criticalStockItems').textContent = criticalStockItems;
@@ -1008,6 +1010,7 @@ async function loadProducts() {
             await buildImageMap();
         }
         
+        console.log('🔄 Loading products from API...');
         const response = await fetch('/api/inventory');
 
         if (!response.ok) {
@@ -1015,10 +1018,18 @@ async function loadProducts() {
         }
 
         const data = await response.json();
-        allProducts = data;
+        console.log('✅ Loaded', data.products.length, 'product groups from API');
+        console.log('📦 Total products in database:', data.total_count);
+        
+        allProducts = data.products;
+        
+        // Update total products KPI with real database count
+        document.getElementById('totalProducts').textContent = data.total_count.toLocaleString();
+        
         updateStats();
         filterAndSortProducts();
     } catch (error) {
+        console.error('❌ Error loading inventory:', error);
         productGrid.innerHTML = '<div class="loading" style="color: #ef4444;">Error loading inventory. Please refresh.</div>';
         showBigNotification('FAILED TO LOAD INVENTORY');
     }
@@ -1293,16 +1304,20 @@ productForm.addEventListener("submit", async (e) => {
         }
 
         const result = await response.json();
+        console.log('💾 Save result:', result);
 
         if (result.success) {
             productModal.classList.remove("active");
+            console.log('🔄 Reloading products after save...');
             await loadProducts();
+            console.log('✅ Products reloaded successfully');
             // Use 'warning' (orange) for updates, 'success' (green) for creates
             showBigNotification(
                 editingId ? 'PRODUCT UPDATED!' : 'PRODUCT SAVED!', 
                 editingId ? 'warning' : 'success'
             );
         } else {
+            console.error('❌ Save failed:', result.message);
             showBigNotification('FAILED TO SAVE: ' + result.message);
         }
     } catch (error) {
