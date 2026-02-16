@@ -672,6 +672,12 @@ input[list] {
                     <div class="kpi-label">UNITS SOLD</div>
                     <div class="kpi-value">{{ total_qty }}</div>
                 </div>
+                <div class="kpi-card">
+                <div class="kpi-label">AVG ORDER VALUE</div>
+                <div class="kpi-value secondary">
+                S$ {{ "{:,.2f}".format(avg_order_value) }}
+            </div>
+        </div>
             </div>
         </div>
 
