@@ -5,11 +5,14 @@ import json
 from functools import wraps
 from collections import defaultdict
 from datetime import datetime, timedelta, date
+from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_from_directory
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from werkzeug.security import generate_password_hash, check_password_hash
 from groq import Groq
 from image_matcher import build_image_cache, get_product_image_url
+
+load_dotenv()
 
 # === FLASK APP INITIALIZATION ===
 app = Flask(__name__)
@@ -74,6 +77,11 @@ def init_db():
         conn.execute("CREATE INDEX IF NOT EXISTS idx_sil_prod    ON sales_invoice_line(product_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_prod_name   ON products(hem_name)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_cust_code   ON customers(customer_code)")
+        # Migrate: add customer_email if not exists
+        try:
+            conn.execute("ALTER TABLE transactions ADD COLUMN customer_email TEXT DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass
         conn.commit()
 
 init_db()
@@ -206,11 +214,9 @@ def cart():
                 'image_url': row['image_url'] or '/static/placeholder.png',
                 'qty': row['qty'] or 0,
                 'variant_count': row['variant_count'] or 1,
-                'origin': row['org'] or ''
+                'origin': row['org'] or '',
+                'sku': row['first_sku'] or ''  # Always include SKU for image matching
             }
-            
-            if row['variant_count'] == 1 and row['first_sku']:
-                product_dict['sku'] = row['first_sku']
             
             products.append(product_dict)
 
@@ -286,7 +292,7 @@ def checkout():
 @app.route("/process-payment", methods=["POST"])
 @csrf.exempt
 def process_payment():
-    """Process payment submission and save transaction + order to database."""
+    """Process payment submission and save transaction + order + items to database."""
     data = request.get_json()
     if not data:
         return jsonify({"success": False, "message": "No data received"})
@@ -294,7 +300,9 @@ def process_payment():
     cart_items = data.get('cart', [])
     payment_method = data.get('payment_method', 'Credit Card')
     total_amount = data.get('total_amount', 0)
-    fulfillment = data.get('fulfillment', 'pickup')
+    fulfillment_method = data.get('fulfillment_method', 'pickup')
+    fulfillment_details = data.get('fulfillment_details', '')
+    customer_email = data.get('customer_email', '')
     username = session.get("username", "Guest")
 
     if not cart_items:
@@ -302,26 +310,41 @@ def process_payment():
 
     try:
         with get_db() as conn:
-            payment_label = f"{payment_method} ({fulfillment})"
-            
-            # Insert into transactions
-            conn.execute(
-                "INSERT INTO transactions (username, payment_type, amount) VALUES (?, ?, ?)",
-                (username, payment_label, total_amount)
+            # Insert into transactions table with fulfillment info
+            cursor = conn.execute(
+                """INSERT INTO transactions 
+                   (username, payment_type, amount, status, fulfillment_method, fulfillment_details, customer_email) 
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (username, payment_method, total_amount, 'Incoming', fulfillment_method, fulfillment_details, customer_email)
             )
+            order_id = cursor.lastrowid
             
-            # Insert into orders table with status
-            conn.execute(
-                "INSERT INTO orders (username, payment_type, amount, status) VALUES (?, ?, ?, ?)",
-                (username, payment_label, total_amount, 'Incoming')
-            )
+            # Insert each cart item into order_items table
+            for item in cart_items:
+                inventory_id = item.get('id')
+                product_name = item.get('name', 'Unknown Product')
+                product_sku = item.get('sku', '')
+                quantity = item.get('quantity', 1)
+                unit_price = item.get('price', 0)
+                image_url = item.get('image', '/static/product_images_v2/placeholder.png')
+                
+                conn.execute(
+                    """INSERT INTO order_items 
+                       (order_id, inventory_id, product_name, product_sku, quantity, unit_price, image_url)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                    (order_id, inventory_id, product_name, product_sku, quantity, unit_price, image_url)
+                )
             
             conn.commit()
-            print(f"✅ Payment processed and order created: {payment_label} - S${total_amount} for {username}")
         
-        return jsonify({"success": True, "message": "Payment successful"})
+        return jsonify({
+            "success": True, 
+            "message": "Payment successful",
+            "order_id": order_id
+        })
     except Exception as e:
-        print(f"❌ Payment error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"success": False, "message": str(e)})
 
 @app.route("/order-success")
@@ -339,9 +362,9 @@ def contact():
 @app.route("/orders")
 @require_staff
 def orders():
-    """Staff Orders page with proper orders table."""
+    """Staff Orders page with order items display."""
     
-    tabs = ["Incoming", "In Progress", "Ready", "Out for Delivery", "Completed", "Issues"]
+    tabs = ["Incoming", "In Progress", "Awaiting Pickup", "Out for Delivery", "Completed", "Issues"]
     active_tab = request.args.get("tab", "Incoming").strip()
     
     if active_tab not in tabs:
@@ -364,28 +387,48 @@ def orders():
         where_sql = " WHERE " + " AND ".join(where_clauses)
         
         total_count = conn.execute(
-            f"SELECT COUNT(*) FROM orders {where_sql}",
+            f"SELECT COUNT(*) FROM transactions {where_sql}",
             params
         ).fetchone()[0]
         
         total_pages = (total_count + per_page - 1) // per_page
         
+        # Fetch orders with their items
         rows = conn.execute(
             f"""
-            SELECT order_id as transaction_id, username, payment_type, amount, status, created_at
-            FROM orders
+            SELECT id as transaction_id, username, payment_type, amount, status, 
+                   fulfillment_method, fulfillment_details, customer_email, timestamp as created_at
+            FROM transactions
             {where_sql}
-            ORDER BY created_at DESC
+            ORDER BY timestamp DESC
             LIMIT ? OFFSET ?
             """,
             params + [per_page, offset]
         ).fetchall()
+        
+        # Fetch order items for each order
+        orders_with_items = []
+        for row in rows:
+            order_dict = dict(row)
+            order_id = order_dict['transaction_id']
+            
+            # Get items for this order
+            items = conn.execute(
+                """SELECT inventory_id, product_name, product_sku, quantity, unit_price, image_url
+                   FROM order_items
+                   WHERE order_id = ?
+                   ORDER BY item_id""",
+                (order_id,)
+            ).fetchall()
+            
+            order_dict['order_items'] = [dict(item) for item in items]
+            orders_with_items.append(order_dict)
     
     return render_template(
         "orders.html",
         tabs=tabs,
         active_tab=active_tab,
-        orders=[dict(r) for r in rows],
+        orders=orders_with_items,
         current_page=page,
         total_pages=total_pages,
         search_query=search_query,
@@ -404,13 +447,13 @@ def update_order_status(order_id):
         if not new_status:
             return jsonify({"success": False, "message": "Status is required"}), 400
         
-        valid_statuses = ["Incoming", "In Progress", "Ready", "Out for Delivery", "Completed", "Issues"]
+        valid_statuses = ["Incoming", "In Progress", "Awaiting Pickup", "Out for Delivery", "Completed", "Issues"]
         if new_status not in valid_statuses:
             return jsonify({"success": False, "message": "Invalid status"}), 400
         
         with get_db() as conn:
             order = conn.execute(
-                "SELECT * FROM orders WHERE order_id = ?",
+                "SELECT * FROM transactions WHERE id = ?",
                 (order_id,)
             ).fetchone()
             
@@ -418,19 +461,17 @@ def update_order_status(order_id):
                 return jsonify({"success": False, "message": "Order not found"}), 404
             
             conn.execute(
-                "UPDATE orders SET status = ? WHERE order_id = ?",
+                "UPDATE transactions SET status = ? WHERE id = ?",
                 (new_status, order_id)
             )
             conn.commit()
             
-            print(f"✅ Order #{order_id} status updated to: {new_status}")
             return jsonify({
                 "success": True,
                 "message": f"Order moved to {new_status}"
             })
             
     except Exception as e:
-        print(f"❌ Error updating order status: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/api/cancel-order/<int:order_id>", methods=["DELETE"])
@@ -441,24 +482,110 @@ def cancel_order(order_id):
     try:
         with get_db() as conn:
             order = conn.execute(
-                "SELECT * FROM orders WHERE order_id = ?",
+                "SELECT * FROM transactions WHERE id = ?",
                 (order_id,)
             ).fetchone()
             
             if not order:
                 return jsonify({"success": False, "message": "Order not found"}), 404
             
-            conn.execute("DELETE FROM orders WHERE order_id = ?", (order_id,))
+            # Delete order items first (foreign key constraint)
+            conn.execute("DELETE FROM order_items WHERE order_id = ?", (order_id,))
+            # Delete the order
+            conn.execute("DELETE FROM transactions WHERE id = ?", (order_id,))
             conn.commit()
             
-            print(f"✅ Order #{order_id} cancelled and deleted")
             return jsonify({
                 "success": True,
                 "message": "Order cancelled successfully"
             })
             
     except Exception as e:
-        print(f"❌ Error cancelling order: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route("/api/notify-pickup/<int:order_id>", methods=["POST"])
+@csrf.exempt
+@require_staff
+def notify_pickup(order_id):
+    """API: Email customer via Mailjet when pickup order is ready."""
+    import urllib.request
+    import urllib.error
+    import base64
+
+    MJ_API_KEY    = os.getenv("MAILJET_API_KEY")
+    MJ_SECRET_KEY = os.getenv("MAILJET_SECRET_KEY")
+    FROM_EMAIL    = os.getenv("MAILJET_FROM_EMAIL")  # must be verified in Mailjet
+
+    if not MJ_API_KEY or not MJ_SECRET_KEY or not FROM_EMAIL:
+        return jsonify({"success": False, "message": "Mailjet not configured — set MAILJET_API_KEY, MAILJET_SECRET_KEY, MAILJET_FROM_EMAIL env vars"}), 500
+
+    try:
+        with get_db() as conn:
+            order = conn.execute(
+                "SELECT id, customer_email, amount FROM transactions WHERE id = ?",
+                (order_id,)
+            ).fetchone()
+
+            if not order:
+                return jsonify({"success": False, "message": "Order not found"}), 404
+
+            to_email = order["customer_email"]
+            if not to_email:
+                return jsonify({"success": False, "message": "No email address on this order"}), 400
+
+            payload = json.dumps({
+                "Messages": [{
+                    "From": {"Email": FROM_EMAIL, "Name": "Chin Hon Motors"},
+                    "To":   [{"Email": to_email}],
+                    "Subject": f"Your Order #{order['id']} is Ready for Collection!",
+                    "HTMLPart": f"""
+                    <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:32px;background:#f9f9f9;border-radius:12px;">
+                        <h2 style="color:#111;">Hi there! Your order is ready. 🎉</h2>
+                        <p style="color:#444;font-size:1rem;line-height:1.6;">
+                            <strong>Order #{order['id']}</strong> has been packed and is ready for self-collection.
+                        </p>
+                        <div style="background:#fff;border-radius:8px;padding:20px;margin:24px 0;border-left:4px solid #10b981;">
+                            <p style="margin:0 0 8px;font-size:0.95rem;color:#333;">
+                                📍 <strong>Pickup Location</strong><br>62 Race Course Rd, Singapore 218568
+                            </p>
+                            <p style="margin:8px 0 0;font-size:0.95rem;color:#333;">
+                                🕐 <strong>Opening Hours</strong><br>Mon–Sat: 9am – 6pm
+                            </p>
+                        </div>
+                        <p style="color:#444;font-size:0.9rem;">Please bring along this email or your order number when you arrive.</p>
+                        <p style="color:#888;font-size:0.8rem;margin-top:32px;">— Chin Hon Motors</p>
+                    </div>
+                    """
+                }]
+            }).encode("utf-8")
+
+            credentials = base64.b64encode(f"{MJ_API_KEY}:{MJ_SECRET_KEY}".encode()).decode()
+            req = urllib.request.Request(
+                "https://api.mailjet.com/v3.1/send",
+                data=payload,
+                headers={
+                    "Content-Type":  "application/json",
+                    "Authorization": f"Basic {credentials}"
+                },
+                method="POST"
+            )
+
+            with urllib.request.urlopen(req) as resp:
+                result = json.loads(resp.read().decode())
+                status = result.get("Messages", [{}])[0].get("Status", "")
+                if status == "success":
+                    return jsonify({"success": True, "message": f"Email sent to {to_email}"})
+                else:
+                    return jsonify({"success": False, "message": str(result)}), 500
+
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        print(f"[notify-pickup] HTTPError: {body}")
+        return jsonify({"success": False, "message": f"Mailjet error: {body}"}), 500
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"[notify-pickup] Exception: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/feedback")
@@ -562,7 +689,6 @@ def submit_feedback():
         
         return jsonify({"success": True, "message": "Feedback submitted successfully"})
     except Exception as e:
-        print(f"❌ Feedback submission error: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/staff-login", methods=["GET", "POST"])
@@ -621,7 +747,8 @@ def api_get_inventory():
                     MAX(sell_price)   as max_price,
                     image_url,
                     MIN(inventory_id) as inventory_id,
-                    COUNT(*)          as variant_count
+                    COUNT(*)          as variant_count,
+                    MIN(sup_part_no)  as first_sku
                 FROM inventory
                 GROUP BY hem_name
             """
@@ -641,10 +768,8 @@ def api_get_inventory():
                 + ") AS pool ORDER BY variant_count ASC, hem_name ASC"
             )
             items = conn.execute(pool_query).fetchall()
-            print(f"✅ Loaded {len(items)} inventory items (bucketed pool: max 200)")
             return jsonify([dict(item) for item in items])
     except Exception as e:
-        print(f"❌ Error getting inventory: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
@@ -674,10 +799,8 @@ def api_create_inventory():
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (sup_part_no, hem_name, category, qty, sell_price, image_url))
             conn.commit()
-            print(f"✅ Product created: {hem_name} (ID: {cursor.lastrowid})")
             return jsonify({"success": True, "inventory_id": cursor.lastrowid, "message": "Product added successfully"})
     except Exception as e:
-        print(f"❌ Error creating product: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/api/inventory/<int:inventory_id>", methods=["PUT"])
@@ -705,10 +828,8 @@ def api_update_inventory(inventory_id):
                 WHERE inventory_id=?
             """, (sup_part_no, hem_name, category, qty, sell_price, image_url, inventory_id))
             conn.commit()
-            print(f"✅ Product updated: {hem_name} (ID: {inventory_id})")
             return jsonify({"success": True, "message": "Product updated successfully"})
     except Exception as e:
-        print(f"❌ Error updating product: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/api/inventory/<int:inventory_id>", methods=["DELETE"])
@@ -720,10 +841,8 @@ def api_delete_inventory(inventory_id):
         with get_db() as conn:
             conn.execute("DELETE FROM inventory WHERE inventory_id=?", (inventory_id,))
             conn.commit()
-            print(f"✅ Product deleted (ID: {inventory_id})")
             return jsonify({"success": True, "message": "Product deleted successfully"})
     except Exception as e:
-        print(f"❌ Error deleting product: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/api/product-variants", methods=["GET"])
@@ -747,7 +866,6 @@ def api_get_product_variants():
             
             return jsonify([dict(v) for v in variants])
     except Exception as e:
-        print(f"❌ Error fetching variants: {e}")
         return jsonify({"error": str(e)}), 500
 
 # === SALES DASHBOARD ROUTES ===
@@ -967,7 +1085,6 @@ def create_invoice():
             existing = conn.execute("SELECT 1 FROM sales_invoice_header WHERE invoice_no = ?", (invoice_no,)).fetchone()
             if existing:
                 flash(f"Invoice {invoice_no} already exists!", "danger")
-                print(f"❌ Invoice {invoice_no} already exists!")
                 return redirect(url_for("dashboard"))
 
             cust_row = conn.execute(
@@ -981,43 +1098,27 @@ def create_invoice():
                     "INSERT INTO customers (customer_code) VALUES (?)", (customer_id.upper(),)
                 )
                 resolved_customer_id = cur.lastrowid
-                print(f"✅ New customer created: {customer_id} → id {resolved_customer_id}")
 
-            print(f"📝 Inserting invoice {invoice_no}...")
-            print(f"   Date: {invoice_date}")
-            print(f"   Customer: {customer_id} (id={resolved_customer_id})")
-            print(f"   Legend: {legend_id}")
-            print(f"   Product ID: {product_id}")
-            print(f"   Qty: {qty}")
-            print(f"   Total: {total_amt}")
-            print(f"   GST: {gst_amt}")
 
             conn.execute(
                 "INSERT INTO sales_invoice_header (invoice_no, invoice_date, customer_id, legend_id) VALUES (?, ?, ?, ?)",
                 (invoice_no, invoice_date, resolved_customer_id, legend_id)
             )
-            print(f"✅ Header inserted")
             
             conn.execute("INSERT INTO sales_invoice_line (invoice_no, line_no, product_id, qty, total_amt, gst_amt) VALUES (?, 1, ?, ?, ?, ?)",
                         (invoice_no, product_id, qty, total_amt, gst_amt))
-            print(f"✅ Line item inserted")
             
             conn.commit()
-            print(f"✅ COMMITTED to database")
         
         with get_db() as verify_conn:
             verify = verify_conn.execute("SELECT * FROM sales_invoice_header WHERE invoice_no = ?", (invoice_no,)).fetchone()
             
             if verify:
-                print(f"✅✅✅ VERIFIED: Invoice {invoice_no} is in database!")
                 flash(f"Invoice {invoice_no} created successfully!", "success")
             else:
-                print(f"❌❌❌ VERIFICATION FAILED: Invoice {invoice_no} NOT in database after commit!")
                 flash(f"Invoice {invoice_no} creation failed - not saved!", "danger")
             
     except Exception as e:
-        print(f"❌ Create invoice error: {e}")
-        print(f"   Error type: {type(e).__name__}")
         import traceback
         traceback.print_exc()
         flash(f"Error creating invoice: {str(e)}", "danger")
@@ -1029,41 +1130,23 @@ def create_invoice():
 @require_staff
 def delete_invoice(invoice_no):
     """Delete an invoice and all its line items."""
-    print("=" * 70)
-    print(f"🔥 DELETE REQUEST for invoice: '{invoice_no}'")
-    print(f"   Type: {type(invoice_no)}")
-    print(f"   Length: {len(invoice_no)}")
-    print(f"   Repr: {repr(invoice_no)}")
-    print("=" * 70)
     
     try:
         with get_db() as conn:
-            print(f"🔍 Searching for invoice '{invoice_no}' in database...")
             existing = conn.execute("SELECT * FROM sales_invoice_header WHERE invoice_no = ?", (invoice_no,)).fetchone()
             
             if not existing:
-                print(f"❌ Invoice '{invoice_no}' NOT FOUND in database")
-                
-                all_inv = conn.execute("SELECT invoice_no FROM sales_invoice_header LIMIT 10").fetchall()
-                print(f"📋 First 10 invoices in DB:")
-                for inv in all_inv:
-                    print(f"   - '{inv[0]}'")
-                
                 return jsonify({
                     'success': False,
                     'message': f'Invoice {invoice_no} not found in database'
                 }), 404
             
-            print(f"✅ Invoice found! Proceeding with deletion...")
             
             deleted_lines = conn.execute("DELETE FROM sales_invoice_line WHERE invoice_no=?", (invoice_no,))
-            print(f"   Deleted {deleted_lines.rowcount} line items")
             
             deleted_header = conn.execute("DELETE FROM sales_invoice_header WHERE invoice_no=?", (invoice_no,))
-            print(f"   Deleted {deleted_header.rowcount} header rows")
             
             conn.commit()
-            print(f"✅ Successfully deleted invoice '{invoice_no}'")
         
         return jsonify({
             'success': True,
@@ -1071,7 +1154,6 @@ def delete_invoice(invoice_no):
         })
         
     except Exception as e:
-        print(f"❌ Delete error: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
@@ -1179,14 +1261,12 @@ def update_invoice(invoice_no):
             
             conn.commit()
         
-        print(f"✅ Updated invoice {invoice_no}")
         return jsonify({
             'success': True,
             'message': 'Invoice updated successfully'
         })
         
     except Exception as e:
-        print(f"❌ Update invoice error: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
@@ -1274,7 +1354,6 @@ Be BRIEF and SPECIFIC. Focus on numbers and actionable insights."""
             return None
             
     except Exception as e:
-        print(f"⚠️ Groq API error: {e}")
         return None
 
 @app.route("/market-analysis")
@@ -1430,7 +1509,6 @@ def market_analysis():
             } for r in top_customers_rows]
 
         except Exception as e:
-            print(f"Database query error: {e}")
             import traceback
             traceback.print_exc()
             return render_template("market_analysis.html", role=session.get("role"),
@@ -1460,20 +1538,19 @@ def real_time_analytics():
 # === PRODUCT IMAGE ROUTES ===
 @app.route('/product-image/<filename>')
 def serve_product_image(filename):
-    """Serve product images from product_images_v2 folder."""
-    images_dir = os.path.join(app.root_path, 'product_images_v2')
+    """Serve product images from static/product_images_v2 folder."""
+    images_dir = os.path.join(app.root_path, 'static', 'product_images_v2')
     return send_from_directory(images_dir, filename)
 
 @app.route('/api/image-list')
 def api_image_list():
     """Return list of all available product image filenames for frontend caching."""
-    images_dir = os.path.join(app.root_path, 'product_images_v2')
+    images_dir = os.path.join(app.root_path, 'static', 'product_images_v2')
     try:
         files = [f for f in os.listdir(images_dir) 
                  if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
         return jsonify(files)
     except Exception as e:
-        print(f"Error listing images: {e}")
         return jsonify([])
 
 @app.route("/logout")
@@ -1484,9 +1561,7 @@ def logout():
 
 # === APPLICATION ENTRY POINT ===
 if __name__ == "__main__":
-    print("🖼️  Building image cache...")
     with app.app_context():
         build_image_cache('product_images_v2')
-    print("✅ Image cache ready!")
     
     app.run(debug=True)

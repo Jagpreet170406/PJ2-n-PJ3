@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS inventory (
 """)
 
 # =========================
-# 5. TRANSACTIONS (FIXED: Added this back for app.py)
+# 5. TRANSACTIONS (Order Headers)
 # =========================
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS transactions (
@@ -73,12 +73,44 @@ CREATE TABLE IF NOT EXISTS transactions (
     username TEXT,
     payment_type TEXT,
     amount REAL,
+    status TEXT DEFAULT 'Incoming',
+    fulfillment_method TEXT DEFAULT 'pickup',
+    fulfillment_details TEXT,
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 """)
 
+# Add new columns to existing transactions table if they don't exist
+try:
+    cursor.execute("ALTER TABLE transactions ADD COLUMN fulfillment_method TEXT DEFAULT 'pickup'")
+except sqlite3.OperationalError:
+    pass  # Column already exists
+
+try:
+    cursor.execute("ALTER TABLE transactions ADD COLUMN fulfillment_details TEXT")
+except sqlite3.OperationalError:
+    pass  # Column already exists
+
 # =========================
-# 6. SALES & PURCHASE (The Enterprise Tables)
+# 6. ORDER ITEMS (Products in each order)
+# =========================
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS order_items (
+    item_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL,
+    inventory_id INTEGER NOT NULL,
+    product_name TEXT NOT NULL,
+    product_sku TEXT,
+    quantity INTEGER NOT NULL,
+    unit_price REAL NOT NULL,
+    image_url TEXT,
+    FOREIGN KEY (order_id) REFERENCES transactions(id) ON DELETE CASCADE,
+    FOREIGN KEY (inventory_id) REFERENCES inventory(inventory_id)
+);
+""")
+
+# =========================
+# 7. SALES & PURCHASE (The Enterprise Tables)
 # =========================
 
 cursor.execute("""
@@ -128,7 +160,20 @@ CREATE TABLE IF NOT EXISTS purchase_line (
 );
 """)
 
+# Create indexes for performance
+cursor.execute("CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id)")
+cursor.execute("CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status)")
+cursor.execute("CREATE INDEX IF NOT EXISTS idx_sih_date ON sales_invoice_header(invoice_date)")
+cursor.execute("CREATE INDEX IF NOT EXISTS idx_sih_cust ON sales_invoice_header(customer_id)")
+cursor.execute("CREATE INDEX IF NOT EXISTS idx_sil_inv ON sales_invoice_line(invoice_no)")
+cursor.execute("CREATE INDEX IF NOT EXISTS idx_sil_prod ON sales_invoice_line(product_id)")
+cursor.execute("CREATE INDEX IF NOT EXISTS idx_prod_name ON products(hem_name)")
+cursor.execute("CREATE INDEX IF NOT EXISTS idx_cust_code ON customers(customer_code)")
+
 conn.commit()
 conn.close()
 
-print("✅ database.db recreated with TRANSACTIONS + Enterprise Schema!")
+print("✅ database.db updated with ORDER_ITEMS table + fulfillment fields!")
+print("   - Added order_items table to store products")
+print("   - Added fulfillment_method and fulfillment_details to transactions")
+print("   - Added indexes for better performance")

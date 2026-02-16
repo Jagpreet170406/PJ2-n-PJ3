@@ -32,8 +32,8 @@ try:
     draw.text(((400 - text_width) // 2, 340), text, fill='#6b7280', font=font)
     
     # Save
-    img.save('static/placeholder.png')
-    print("✅ Created static/placeholder.png")
+    img.save('static/product_images_v2/placeholder.png')
+    print("✅ Created static/product_images_v2/placeholder.png")
     print("   Dimensions: 400x400px")
     print("   Ready to use!")
     

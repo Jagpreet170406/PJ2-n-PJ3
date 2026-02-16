@@ -290,6 +290,13 @@ body {
     margin-bottom: 10px;
     overflow: hidden;
     border: 1px solid rgba(255,255,255,0.14);
+    padding: 0;  /* Remove padding so images fill completely */
+}
+
+.img-placeholder img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;  /* Changed from contain to cover - fills entire space */
 }
 
 /* stock label base text (keep status colors) */
@@ -818,9 +825,9 @@ async function buildImageMap() {
                 });
             }
         });
-        console.log(`✅ Image map built: ${Object.keys(IMAGE_MAP).length} entries`);
+        // Image map built successfully
     } catch (error) {
-        console.error('Failed to build image map:', error);
+        // Failed to build image map
     }
 }
 
@@ -1012,7 +1019,6 @@ async function loadProducts() {
         updateStats();
         filterAndSortProducts();
     } catch (error) {
-        console.error('Error loading products:', error);
         productGrid.innerHTML = '<div class="loading" style="color: #ef4444;">Error loading inventory. Please refresh.</div>';
         showBigNotification('FAILED TO LOAD INVENTORY');
     }
@@ -1102,8 +1108,7 @@ function renderProducts() {
                 <div class="img-placeholder">
                     <img src="${imageUrl}" 
                          alt="${product.hem_name}" 
-                         style="width:100%; height:100%; object-fit:contain;"
-                         onerror="if(this.src!='/static/placeholder.png'){this.src='/static/placeholder.png';}">
+                         onerror="this.onerror=null; this.src='/static/product_images_v2/placeholder.png';">
                 </div>
                 <div><strong>${product.hem_name}</strong></div>
                 ${variantInfo}
@@ -1231,7 +1236,6 @@ confirmDeleteBtn.addEventListener('click', async () => {
             showBigNotification('FAILED TO DELETE: ' + result.message);
         }
     } catch (error) {
-        console.error('Error deleting product:', error);
         showBigNotification('FAILED TO DELETE PRODUCT');
     }
 
@@ -1302,7 +1306,6 @@ productForm.addEventListener("submit", async (e) => {
             showBigNotification('FAILED TO SAVE: ' + result.message);
         }
     } catch (error) {
-        console.error('Error saving product:', error);
         showBigNotification('FAILED TO SAVE PRODUCT');
     } finally {
         saveBtn.disabled = false;

@@ -331,6 +331,15 @@ body {
     box-shadow: 0 6px 20px rgba(139,92,246,0.4);
 }
 
+.btn-pickup {
+    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+    color: white;
+}
+
+.btn-pickup:hover {
+    box-shadow: 0 6px 20px rgba(6,182,212,0.4);
+}
+
 .btn-complete {
     background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
     color: white;
@@ -420,6 +429,82 @@ body {
     color: #f87171;
     border: 1px solid rgba(239, 68, 68, 0.25);
 }
+
+/* ============================================================
+   BIG NOTIFICATION (matches Inventory.html)
+   ============================================================ */
+.big-notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background: rgba(15, 15, 15, 0.96);
+    border: 2px solid rgba(255,255,255,0.20);
+    color: #ef4444;
+    padding: 50px 70px;
+    border-radius: 24px;
+    font-size: 32px;
+    font-weight: 900;
+    text-align: center;
+    z-index: 9999;
+    box-shadow: 0 30px 90px rgba(0,0,0,0.60);
+    backdrop-filter: blur(20px);
+    opacity: 0;
+    pointer-events: none;
+    min-width: 400px;
+}
+.big-notification.success { color: #10b981; border-color: rgba(16,185,129,0.35); }
+.big-notification.warning { color: #f59e0b; border-color: rgba(245,158,11,0.35); }
+.big-notification.show { animation: bigPopIn 0.45s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards; }
+.big-notification.hide { animation: bigPopOut 0.35s ease-in forwards; }
+@keyframes bigPopIn {
+    0%   { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+    50%  { transform: translate(-50%, -50%) scale(1.1); }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+@keyframes bigPopOut {
+    0%   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+}
+
+/* ============================================================
+   CONFIRM MODAL
+   ============================================================ */
+.confirm-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.80);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+}
+.confirm-modal.active { display: flex; }
+.confirm-modal-content {
+    background: rgba(15, 15, 15, 0.95);
+    padding: 36px 32px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.14);
+    max-width: 480px;
+    width: 92%;
+    text-align: center;
+    box-shadow: 0 20px 80px rgba(0,0,0,0.50);
+    color: rgba(255,255,255,0.92);
+}
+.confirm-modal-icon { font-size: 3rem; margin-bottom: 12px; }
+.confirm-modal-content h3 { font-size: 1.4rem; font-weight: 900; margin-bottom: 10px; }
+.confirm-modal-content h3.danger  { color: #ef4444; }
+.confirm-modal-content h3.warning { color: #f59e0b; }
+.confirm-modal-content h3.success { color: #10b981; }
+.confirm-modal-content p { color: rgba(255,255,255,0.65); margin-bottom: 24px; line-height: 1.6; font-size: 0.95rem; }
+.confirm-modal-actions { display: flex; gap: 12px; }
+.confirm-modal-actions button { flex: 1; padding: 13px; border-radius: 12px; border: none; cursor: pointer; font-weight: 900; font-size: 14px; transition: opacity 0.15s; }
+.confirm-modal-actions button:hover { opacity: 0.85; }
+.confirm-cancel-btn  { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.75); border: 1px solid rgba(255,255,255,0.15) !important; }
+.confirm-go-btn-green  { background: #10b981; color: #fff; }
+.confirm-go-btn-yellow { background: #f59e0b; color: #000; }
+.confirm-go-btn-red    { background: #ef4444; color: #fff; }
 
 /* EMPTY STATE */
 .empty-state {
@@ -564,7 +649,61 @@ body {
                             <span class="detail-label">Date:</span>
                             <span>{{ order.created_at[:16] if order.created_at else 'N/A' }}</span>
                         </div>
+                        <div class="order-detail-row">
+                            <span class="detail-label">Fulfillment:</span>
+                            <span>
+                                {% if order.fulfillment_method == 'delivery' %}
+                                    🚚 Delivery
+                                {% else %}
+                                    🏪 Self-Pickup
+                                {% endif %}
+                            </span>
+                        </div>
+                        {% if order.fulfillment_details %}
+                        <div class="order-detail-row" style="grid-column: 1/-1; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.08);">
+                            <span class="detail-label" style="font-size: 0.8rem;">Details:</span>
+                            <span style="font-size: 0.8rem; color: rgba(255,255,255,0.7);">{{ order.fulfillment_details }}</span>
+                        </div>
+                        {% endif %}
                     </div>
+
+                    <!-- Order Items Section -->
+                    {% if order.order_items %}
+                    <div style="margin: 16px 0; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                        <div style="font-size: 0.85rem; font-weight: 700; color: rgba(255,255,255,0.6); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+                            📦 Items ({{ order.order_items|length }})
+                        </div>
+                        {% for item in order.order_items %}
+                        <div style="display: flex; align-items: center; gap: 12px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px; margin-bottom: 8px;">
+                            <img src="{{ item.image_url }}" 
+                                 style="width: 45px; height: 45px; object-fit: contain; border-radius: 4px; background: white; padding: 4px;"
+                                 onerror="this.src='/static/product_images_v2/placeholder.png';">
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.9); line-height: 1.3;">
+                                    {{ item.product_name }}
+                                </div>
+                                {% if item.product_sku %}
+                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 2px;">
+                                    SKU: {{ item.product_sku }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div style="text-align: right; flex-shrink: 0;">
+                                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.6);">
+                                    Qty: {{ item.quantity }}
+                                </div>
+                                <div style="font-size: 0.85rem; font-weight: 700; color: rgba(255,255,255,0.9);">
+                                    S$ {{ "{:.2f}".format(item.unit_price * item.quantity) }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div style="padding: 16px; text-align: center; color: rgba(255,255,255,0.5); font-size: 0.9rem; font-style: italic;">
+                        No items found for this order
+                    </div>
+                    {% endif %}
 
                     <div class="order-actions">
                         {% if active_tab == 'Incoming' %}
@@ -575,15 +714,24 @@ body {
                                 Reject
                             </button>
                         {% elif active_tab == 'In Progress' %}
-                            <button class="action-btn btn-ready" onclick="updateOrderStatus({{ order.transaction_id }}, 'Ready')">
-                                Done Packing
-                            </button>
+                            {% if order.fulfillment_method == 'pickup' %}
+                                <button class="action-btn btn-pickup" onclick="updateOrderStatus({{ order.transaction_id }}, 'Awaiting Pickup')">
+                                    Done Packing — Notify Customer
+                                </button>
+                            {% else %}
+                                <button class="action-btn btn-deliver" onclick="updateOrderStatus({{ order.transaction_id }}, 'Out for Delivery')">
+                                    Done Packing — Out for Delivery
+                                </button>
+                            {% endif %}
                             <button class="action-btn btn-reject" onclick="updateOrderStatus({{ order.transaction_id }}, 'Issues')">
                                 Issue Found
                             </button>
-                        {% elif active_tab == 'Ready' %}
-                            <button class="action-btn btn-deliver" onclick="updateOrderStatus({{ order.transaction_id }}, 'Out for Delivery')">
-                                Out for Delivery
+                        {% elif active_tab == 'Awaiting Pickup' %}
+                            <button class="action-btn btn-complete" onclick="notifyAndComplete({{ order.transaction_id }}, '{{ order.customer_email }}')">
+                                Picked Up ✓
+                            </button>
+                            <button class="action-btn btn-reject" onclick="updateOrderStatus({{ order.transaction_id }}, 'Issues')">
+                                Issue Found
                             </button>
                         {% elif active_tab == 'Out for Delivery' %}
                             <button class="action-btn btn-complete" onclick="updateOrderStatus({{ order.transaction_id }}, 'Completed')">
@@ -640,64 +788,186 @@ body {
     </div>
 </div>
 
+<!-- CONFIRM MODAL -->
+<div class="confirm-modal" id="confirmModal">
+    <div class="confirm-modal-content">
+        <div class="confirm-modal-icon" id="confirmIcon">⚠️</div>
+        <h3 id="confirmTitle" class="warning">Confirm Action</h3>
+        <p id="confirmMessage">Are you sure?</p>
+        <div class="confirm-modal-actions">
+            <button class="confirm-cancel-btn" onclick="closeConfirmModal()">Cancel</button>
+            <button id="confirmGoBtn">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- BIG NOTIFICATION -->
+<div id="bigNotification" class="big-notification"></div>
+
 <script>
-// Update order status (move to different workflow stage)
-async function updateOrderStatus(orderId, newStatus) {
-    if (!confirm(`Move order #${orderId} to "${newStatus}"?`)) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`/api/update-order-status/${orderId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ status: newStatus })
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            // Show success message
-            alert(`Order #${orderId} moved to "${newStatus}"`);
-            // Reload page to reflect changes
-            window.location.reload();
-        } else {
-            alert(`Failed to update order: ${result.message}`);
-        }
-    } catch (error) {
-        console.error('Error updating order:', error);
-        alert('Failed to update order status');
-    }
+// ============================================================
+// BIG NOTIFICATION
+// ============================================================
+function showBigNotification(message, type) {
+    const el = document.getElementById('bigNotification');
+    let icon = '✖', cls = 'big-notification';
+    if (type === 'success') { icon = '✓'; cls = 'big-notification success'; }
+    else if (type === 'warning') { icon = '✎'; cls = 'big-notification warning'; }
+    el.innerHTML = `<span style="display:block;font-size:2.5rem;margin-bottom:10px;">${icon}</span>${message}`;
+    el.className = cls;
+    void el.offsetWidth;
+    el.classList.add('show');
+    setTimeout(() => {
+        el.classList.remove('show');
+        el.classList.add('hide');
+        setTimeout(() => { el.classList.remove('hide'); el.className = 'big-notification'; }, 400);
+    }, 2200);
 }
 
-// Cancel order (delete from system)
-async function cancelOrder(orderId) {
-    if (!confirm(`Are you sure you want to CANCEL order #${orderId}? This action cannot be undone.`)) {
-        return;
-    }
+// ============================================================
+// CONFIRM MODAL
+// ============================================================
+function closeConfirmModal() {
+    document.getElementById('confirmModal').classList.remove('active');
+    document.getElementById('confirmGoBtn').onclick = null;
+}
 
-    try {
-        const response = await fetch(`/api/cancel-order/${orderId}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
+document.getElementById('confirmModal').addEventListener('click', function(e) {
+    if (e.target === this) closeConfirmModal();
+});
+
+function showConfirmModal({ icon, titleText, titleClass, message, btnText, btnClass, onConfirm }) {
+    document.getElementById('confirmIcon').textContent     = icon;
+    document.getElementById('confirmTitle').textContent    = titleText;
+    document.getElementById('confirmTitle').className      = titleClass;
+    document.getElementById('confirmMessage').textContent  = message;
+    const goBtn = document.getElementById('confirmGoBtn');
+    goBtn.textContent = btnText;
+    goBtn.className   = btnClass;
+    goBtn.onclick = async () => {
+        closeConfirmModal();
+        await onConfirm();
+    };
+    document.getElementById('confirmModal').classList.add('active');
+}
+
+// ============================================================
+// STATUS CONFIGS
+// ============================================================
+const STATUS_CONFIG = {
+    'In Progress':      { icon: '📦', titleText: 'Start Packing?',           titleClass: 'success', btnText: 'Start Packing',         btnClass: 'confirm-go-btn-green',  notifMsg: 'PACKING STARTED',    notifType: 'success' },
+    'Awaiting Pickup':  { icon: '🏪', titleText: 'Done Packing?',            titleClass: 'success', btnText: 'Done — Notify Customer', btnClass: 'confirm-go-btn-green',  notifMsg: 'CUSTOMER NOTIFIED!', notifType: 'success' },
+    'Out for Delivery': { icon: '🚚', titleText: 'Done Packing?',            titleClass: 'warning', btnText: 'Out for Delivery',       btnClass: 'confirm-go-btn-yellow', notifMsg: 'OUT FOR DELIVERY',   notifType: 'warning' },
+    'Completed':        { icon: '🎉', titleText: 'Mark Completed?',          titleClass: 'success', btnText: 'Mark Completed',         btnClass: 'confirm-go-btn-green',  notifMsg: 'ORDER COMPLETED!',   notifType: 'success' },
+    'Issues':           { icon: '⚠️', titleText: 'Flag as Issue?',           titleClass: 'danger',  btnText: 'Flag Issue',             btnClass: 'confirm-go-btn-red',    notifMsg: 'FLAGGED AS ISSUE',   notifType: 'error'   },
+    'Incoming':         { icon: '🔄', titleText: 'Restart Order?',           titleClass: 'warning', btnText: 'Restart',                btnClass: 'confirm-go-btn-yellow', notifMsg: 'ORDER RESTARTED',    notifType: 'warning' },
+};
+
+function tabUrl(tab) { return `/orders?tab=${encodeURIComponent(tab)}`; }
+
+// ============================================================
+// UPDATE ORDER STATUS
+// ============================================================
+function updateOrderStatus(orderId, newStatus) {
+    const cfg = STATUS_CONFIG[newStatus] || {
+        icon: '❓', titleText: `Move to ${newStatus}?`, titleClass: 'warning',
+        btnText: 'Confirm', btnClass: 'confirm-go-btn-yellow',
+        notifMsg: `MOVED TO ${newStatus.toUpperCase()}`, notifType: 'warning'
+    };
+    showConfirmModal({
+        icon: cfg.icon, titleText: cfg.titleText, titleClass: cfg.titleClass,
+        message: `Order #${orderId} will be moved to "${newStatus}".`,
+        btnText: cfg.btnText, btnClass: cfg.btnClass,
+        onConfirm: async () => {
+            try {
+                const resp = await fetch(`/api/update-order-status/${orderId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                const result = await resp.json();
+                if (result.success) {
+                    // Fire pickup notification email when moving to Awaiting Pickup
+                    if (newStatus === 'Awaiting Pickup') {
+                        const notifyResp = await fetch(`/api/notify-pickup/${orderId}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+                        const notifyResult = await notifyResp.json();
+                        if (!notifyResult.success) {
+                            console.error('Email notify failed:', notifyResult.message);
+                        }
+                    }
+                    showBigNotification(cfg.notifMsg, cfg.notifType);
+                    setTimeout(() => { window.location.href = tabUrl(newStatus); }, 1800);
+                } else {
+                    showBigNotification('FAILED: ' + (result.message || 'Unknown error'), 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showBigNotification('NETWORK ERROR', 'error');
             }
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            alert(`Order #${orderId} has been cancelled`);
-            window.location.reload();
-        } else {
-            alert(`Failed to cancel order: ${result.message}`);
         }
-    } catch (error) {
-        console.error('Error cancelling order:', error);
-        alert('Failed to cancel order');
-    }
+    });
+}
+
+// ============================================================
+// PICKED UP — mark completed (no extra email needed)
+// ============================================================
+function notifyAndComplete(orderId, customerEmail) {
+    showConfirmModal({
+        icon: '✅', titleText: 'Customer Picked Up?', titleClass: 'success',
+        message: `Confirm Order #${orderId} has been collected by the customer.`,
+        btnText: 'Confirm Pickup', btnClass: 'confirm-go-btn-green',
+        onConfirm: async () => {
+            try {
+                const resp = await fetch(`/api/update-order-status/${orderId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'Completed' })
+                });
+                const result = await resp.json();
+                if (result.success) {
+                    showBigNotification('ORDER COMPLETED!', 'success');
+                    setTimeout(() => { window.location.href = tabUrl('Completed'); }, 1800);
+                } else {
+                    showBigNotification('FAILED: ' + (result.message || ''), 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showBigNotification('NETWORK ERROR', 'error');
+            }
+        }
+    });
+}
+
+// ============================================================
+// CANCEL ORDER
+// ============================================================
+function cancelOrder(orderId) {
+    showConfirmModal({
+        icon: '🗑️', titleText: 'Cancel Order?', titleClass: 'danger',
+        message: `Order #${orderId} will be permanently cancelled. This cannot be undone.`,
+        btnText: 'Cancel Order', btnClass: 'confirm-go-btn-red',
+        onConfirm: async () => {
+            try {
+                const resp = await fetch(`/api/cancel-order/${orderId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await resp.json();
+                if (result.success) {
+                    showBigNotification('ORDER CANCELLED', 'error');
+                    setTimeout(() => { window.location.href = tabUrl('Incoming'); }, 1800);
+                } else {
+                    showBigNotification('CANCEL FAILED: ' + (result.message || ''), 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showBigNotification('NETWORK ERROR', 'error');
+            }
+        }
+    });
 }
 </script>
 

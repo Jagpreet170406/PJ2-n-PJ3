@@ -10,25 +10,30 @@ from flask import send_from_directory, current_app
 IMAGE_CACHE = {}
 
 def build_image_cache(images_folder='product_images_v2'):
-    """Build in-memory cache of image filenames mapped to search keywords"""
+    """Build in-memory cache of image filenames mapped to SKU and search keywords"""
     global IMAGE_CACHE
     IMAGE_CACHE.clear()
+    IMAGE_CACHE['_by_sku'] = {}  # Separate index for SKU matching
     
-    base_dir = os.path.join(current_app.root_path, images_folder)
+    base_dir = os.path.join(current_app.root_path, 'static', images_folder)
     
     if not os.path.exists(base_dir):
-        print(f"⚠️  Warning: Images folder not found: {base_dir}")
         return
     
     for filename in os.listdir(base_dir):
         if not filename.lower().endswith(('.jpg', '.jpeg', '.png')):
             continue
             
-        # Extract description from filename (after first underscore)
-        match = re.match(r'^[^_]+_(.+)\.(jpg|jpeg|png)$', filename, re.IGNORECASE)
+        # Extract SKU and description from filename (format: SKU_DESCRIPTION.ext)
+        match = re.match(r'^([^_]+)_(.+)\.(jpg|jpeg|png)$', filename, re.IGNORECASE)
         if match:
-            desc = match.group(1).upper()
-            # Normalize: remove special chars, extra spaces
+            sku = match.group(1).strip()
+            desc = match.group(2).upper()
+            
+            # Store by SKU (primary matching method)
+            IMAGE_CACHE['_by_sku'][sku] = filename
+            
+            # Normalize description: remove special chars, extra spaces
             desc_clean = re.sub(r'[^A-Z0-9\s]', ' ', desc)
             desc_clean = ' '.join(desc_clean.split())
             
@@ -46,18 +51,25 @@ def build_image_cache(images_folder='product_images_v2'):
                     if filename not in IMAGE_CACHE[word]:
                         if isinstance(IMAGE_CACHE[word], list):
                             IMAGE_CACHE[word].append(filename)
-    
-    print(f"✅ Image cache built: {len(IMAGE_CACHE)} entries")
 
 
 def find_product_image(product_name, sku=None):
     """
     Find matching image for a product
+    Priority: 1) SKU match, 2) Product name match
     Returns: filename or None
     """
     if not IMAGE_CACHE:
         return None
     
+    # PRIORITY 1: Try SKU match first (most accurate)
+    if sku and '_by_sku' in IMAGE_CACHE:
+        # Clean the SKU (remove spaces, special chars)
+        sku_clean = str(sku).strip()
+        if sku_clean in IMAGE_CACHE['_by_sku']:
+            return IMAGE_CACHE['_by_sku'][sku_clean]
+    
+    # PRIORITY 2: Try product name matching
     # Normalize product name
     search_term = product_name.upper().strip()
     search_term = re.sub(r'[^A-Z0-9\s]', ' ', search_term)
@@ -96,4 +108,4 @@ def get_product_image_url(product_name, sku=None):
     filename = find_product_image(product_name, sku)
     if filename:
         return f'/product-image/{filename}'
-    return '/static/placeholder.png'
+    return '/static/product_images_v2/placeholder.png'
