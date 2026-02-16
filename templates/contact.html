@@ -83,6 +83,17 @@
     padding: 0.75rem 0.9rem;
   }
 
+  /* SELECT DROPDOWN - BLACK BACKGROUND */
+  select.form-control {
+    background: #000;
+    color: #fff;
+  }
+
+  select.form-control option {
+    background: #000;
+    color: #fff;
+  }
+
   .form-control::placeholder {
     color: rgba(255,255,255,0.35);
   }
@@ -92,6 +103,73 @@
     color: #fff;
     border-color: rgba(255,255,255,0.45);
     box-shadow: 0 0 0 0.2rem rgba(255,255,255,0.12);
+  }
+
+  select.form-control:focus {
+    background: #000;
+  }
+
+  /* TABS */
+  .form-tabs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    border-bottom: 2px solid rgba(255,255,255,0.1);
+  }
+
+  .tab-button {
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.6);
+    padding: 12px 24px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+    margin-bottom: -2px;
+  }
+
+  .tab-button:hover {
+    color: rgba(255,255,255,0.85);
+  }
+
+  .tab-button.active {
+    color: #fff;
+    border-bottom-color: rgba(255,255,255,0.85);
+  }
+
+  .tab-content {
+    display: none;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
+  /* RATING STARS */
+  .rating-input {
+    display: flex;
+    gap: 8px;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    font-size: 2rem;
+  }
+
+  .rating-input input {
+    display: none;
+  }
+
+  .rating-input label {
+    cursor: pointer;
+    color: rgba(255,255,255,0.2);
+    transition: color 0.2s;
+  }
+
+  .rating-input input:checked ~ label,
+  .rating-input label:hover,
+  .rating-input label:hover ~ label {
+    color: #fbbf24;
   }
 
   /* BLACK BUTTON */
@@ -151,6 +229,12 @@
     color: #d1ffe8;
     border-radius: 14px;
   }
+
+  .required-star {
+    color: red;
+    font-size: 1.2em;
+    font-weight: bold;
+  }
 </style>
 
 <!-- HERO -->
@@ -160,7 +244,7 @@
       <div class="col text-center">
         <h1 class="contact-title">Contact Us</h1>
         <p class="contact-text">
-          Have questions or need assistance? Send us a message and we’ll get back to you.
+          Have questions or need assistance? Send us a message or share your feedback.
         </p>
       </div>
     </div>
@@ -172,9 +256,15 @@
   <div class="container">
     <h2 class="section-title">Get In Touch</h2>
 
-    {% if success %}
+    {% if contact_success %}
       <div class="alert alert-success text-center mb-4">
-        ✅ Your response has been submitted successfully!
+        ✅ Your message has been submitted successfully! We'll get back to you soon.
+      </div>
+    {% endif %}
+
+    {% if feedback_success %}
+      <div class="alert alert-success text-center mb-4">
+        ✅ Thank you for your feedback! We appreciate you taking the time to review us.
       </div>
     {% endif %}
 
@@ -183,30 +273,116 @@
       <!-- FORM -->
       <div class="col-12 col-lg-6">
         <div class="glass-card p-4 p-md-5 h-100">
-          <div class="card-title-mini">Send us a message</div>
-          <div class="soft-divider"></div>
-
-          <form method="POST" action="{{ url_for('contact') }}">
-            <div class="mb-3">
-              <label class="form-label"><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> Name</label>
-              <input type="text" name="name" class="form-control" placeholder="Your full name" required>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label"><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> Email</label>
-              <input type="email" name="email" class="form-control" placeholder="you@example.com" required>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label"><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> Message</label>
-              <textarea name="message" rows="6" class="form-control"
-                placeholder="Tell us how we can help..." required></textarea>
-            </div>
-
-            <button type="submit" class="btn btn-submit w-100">
-              Submit Message
+          
+          <!-- TABS -->
+          <div class="form-tabs">
+            <button class="tab-button active" onclick="switchTab('contact')">
+              📧 Contact Us
             </button>
-          </form>
+            <button class="tab-button" onclick="switchTab('feedback')">
+              ⭐ Leave Feedback
+            </button>
+          </div>
+
+          <!-- CONTACT FORM -->
+          <div id="contact-tab" class="tab-content active">
+            <div class="card-title-mini">Send us a message</div>
+            <div class="soft-divider"></div>
+
+            <form method="POST" action="{{ url_for('contact') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="form_type" value="contact">
+              
+              <div class="mb-3">
+                <label class="form-label"><span class="required-star">*</span> Name</label>
+                <input type="text" name="name" class="form-control" placeholder="Your full name" required>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label"><span class="required-star">*</span> Email</label>
+                <input type="email" name="email" class="form-control" placeholder="you@example.com" required>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Phone (optional)</label>
+                <input type="tel" name="phone" class="form-control" placeholder="+65 XXXX XXXX">
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label"><span class="required-star">*</span> Subject</label>
+                <select name="subject" class="form-control" required>
+                  <option value="">Select a subject...</option>
+                  <option value="General Inquiry">General Inquiry</option>
+                  <option value="Product Question">Product Question</option>
+                  <option value="Order Support">Order Support</option>
+                  <option value="Technical Support">Technical Support</option>
+                  <option value="Partnership">Partnership Opportunity</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label"><span class="required-star">*</span> Message</label>
+                <textarea name="message" rows="6" class="form-control"
+                  placeholder="Tell us how we can help..." required></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-submit w-100">
+                Send Message
+              </button>
+            </form>
+          </div>
+
+          <!-- FEEDBACK FORM -->
+          <div id="feedback-tab" class="tab-content">
+            <div class="card-title-mini">Share your experience</div>
+            <div class="soft-divider"></div>
+
+            <form method="POST" action="{{ url_for('contact') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="form_type" value="feedback">
+              
+              <div class="mb-3">
+                <label class="form-label"><span class="required-star">*</span> Name</label>
+                <input type="text" name="username" class="form-control" 
+                       placeholder="Your name" 
+                       value="{{ session.get('username', '') }}" 
+                       required>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Email (optional)</label>
+                <input type="email" name="email" class="form-control" placeholder="you@example.com">
+              </div>
+
+              <div class="mb-4">
+                <label class="form-label"><span class="required-star">*</span> Rating</label>
+                <div class="rating-input">
+                  <input type="radio" name="rating" id="star5" value="5" required>
+                  <label for="star5">★</label>
+                  <input type="radio" name="rating" id="star4" value="4">
+                  <label for="star4">★</label>
+                  <input type="radio" name="rating" id="star3" value="3">
+                  <label for="star3">★</label>
+                  <input type="radio" name="rating" id="star2" value="2">
+                  <label for="star2">★</label>
+                  <input type="radio" name="rating" id="star1" value="1">
+                  <label for="star1">★</label>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label"><span class="required-star">*</span> Your Feedback</label>
+                <textarea name="feedback_message" rows="6" class="form-control"
+                  placeholder="Tell us about your experience..." required></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-submit w-100">
+                Submit Feedback
+              </button>
+            </form>
+          </div>
+
         </div>
       </div>
 
@@ -262,5 +438,25 @@
     </div>
   </div>
 </div>
+
+<script>
+function switchTab(tabName) {
+  // Hide all tab contents
+  document.querySelectorAll('.tab-content').forEach(content => {
+    content.classList.remove('active');
+  });
+  
+  // Remove active class from all buttons
+  document.querySelectorAll('.tab-button').forEach(button => {
+    button.classList.remove('active');
+  });
+  
+  // Show selected tab
+  document.getElementById(tabName + '-tab').classList.add('active');
+  
+  // Activate the clicked button
+  event.target.classList.add('active');
+}
+</script>
 
 {% endblock %}

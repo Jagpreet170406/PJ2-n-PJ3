@@ -31,6 +31,63 @@
   border-color: #f87171 !important;
   box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.18) !important;
 }
+
+/* Big Notification System - Black & White */
+.big-notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background: rgba(15, 15, 15, 0.96);
+    border: 2px solid rgba(255,255,255,0.20);
+    color: #ef4444;
+    padding: 50px 70px;
+    border-radius: 24px;
+    font-size: 32px;
+    font-weight: 900;
+    text-align: center;
+    z-index: 9999;
+    box-shadow: 0 30px 90px rgba(0,0,0,0.60);
+    backdrop-filter: blur(20px);
+    opacity: 0;
+    pointer-events: none;
+    min-width: 400px;
+}
+
+.big-notification.success {
+    color: #10b981;
+    border-color: rgba(16,185,129,0.35);
+}
+
+.big-notification.warning {
+    color: #f59e0b;
+    border-color: rgba(245,158,11,0.35);
+}
+
+.big-notification.show {
+    animation: bigPopIn 0.45s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
+}
+
+.big-notification.hide {
+    animation: bigPopOut 0.35s ease-in forwards;
+}
+
+@keyframes bigPopIn {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+    50% { transform: translate(-50%, -50%) scale(1.1); }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+@keyframes bigPopOut {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+}
+
+.notification-icon {
+    display: inline-block;
+    font-size: 3rem;
+    margin-right: 15px;
+}
 </style>
 
 <!-- Main Container: Checkout page content with top margin to clear navbar -->
@@ -438,6 +495,9 @@
     </div>
 </div>
 
+<!-- Big Notification Element -->
+<div id="bigNotification" class="big-notification"></div>
+
 <!-- ============================================ -->
 <!-- CSS STYLING -->
 <!-- ============================================ -->
@@ -486,6 +546,37 @@
 <!-- JAVASCRIPT SECTION -->
 <!-- ============================================ -->
 <script>
+
+/* ========== BIG NOTIFICATION FUNCTION ========== */
+function showBigNotification(message, type = 'error') {
+    const bigNotification = document.getElementById('bigNotification');
+    let icon = '✖';
+    let className = 'big-notification';
+    
+    if (type === 'success' || type === true) {
+        icon = '✓';
+        className = 'big-notification success';
+    } else if (type === 'warning' || type === 'update') {
+        icon = '⚠';
+        className = 'big-notification warning';
+    }
+    
+    bigNotification.innerHTML = `<span class="notification-icon">${icon}</span>${message}`;
+    bigNotification.className = className;
+
+    void bigNotification.offsetWidth;
+
+    bigNotification.classList.add('show');
+
+    setTimeout(() => {
+        bigNotification.classList.remove('show');
+        bigNotification.classList.add('hide');
+        setTimeout(() => {
+            bigNotification.classList.remove('hide');
+            bigNotification.className = 'big-notification';
+        }, 400);
+    }, 2500);
+}
 
 /* ========== GLOBAL VARIABLE ========== */
 /* Tracks current fulfillment method (pickup or delivery) */
@@ -1026,7 +1117,7 @@ async function processPayment(){
             window.location.href = '/order-success?method=' + currentFulfillment + '&date=' + encodeURIComponent(selectedDate);
         } else {
             /* ========== PAYMENT FAILED ========== */
-            alert(result.message);
+            showBigNotification(result.message || 'PAYMENT FAILED', 'error');
             
             // Re-enable button
             btn.disabled = false;
@@ -1035,7 +1126,7 @@ async function processPayment(){
     } catch(err){
         /* ========== ERROR HANDLING ========== */
         console.error(err);
-        alert('Something went wrong. Please try again.');
+        showBigNotification('PAYMENT ERROR - TRY AGAIN', 'error');
         
         // Re-enable button
         btn.disabled = false;

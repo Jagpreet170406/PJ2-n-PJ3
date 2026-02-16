@@ -315,6 +315,33 @@ def process_payment():
 
     try:
         with get_db() as conn:
+            # First, validate that all items have sufficient inventory
+            for item in cart_items:
+                inventory_id = item.get('id')
+                requested_qty = item.get('quantity', 1)
+                product_name = item.get('name', 'Unknown Product')
+                
+                # Check current inventory
+                inventory_row = conn.execute(
+                    "SELECT qty, hem_name FROM inventory WHERE inventory_id = ?",
+                    (inventory_id,)
+                ).fetchone()
+                
+                if not inventory_row:
+                    return jsonify({
+                        "success": False, 
+                        "message": f"Product '{product_name}' not found in inventory"
+                    })
+                
+                current_qty = inventory_row['qty']
+                
+                if current_qty < requested_qty:
+                    return jsonify({
+                        "success": False, 
+                        "message": f"Insufficient stock for '{product_name}'. Only {current_qty} available, but {requested_qty} requested."
+                    })
+            
+            # All items validated - proceed with order creation
             # Insert into transactions table with fulfillment info
             cursor = conn.execute(
                 """INSERT INTO transactions 
@@ -324,7 +351,7 @@ def process_payment():
             )
             order_id = cursor.lastrowid
             
-            # Insert each cart item into order_items table
+            # Insert each cart item into order_items table AND deduct from inventory
             for item in cart_items:
                 inventory_id = item.get('id')
                 product_name = item.get('name', 'Unknown Product')
@@ -333,11 +360,20 @@ def process_payment():
                 unit_price = item.get('price', 0)
                 image_url = item.get('image', '/static/product_images_v2/placeholder.png')
                 
+                # Insert order item
                 conn.execute(
                     """INSERT INTO order_items 
                        (order_id, inventory_id, product_name, product_sku, quantity, unit_price, image_url)
                        VALUES (?, ?, ?, ?, ?, ?, ?)""",
                     (order_id, inventory_id, product_name, product_sku, quantity, unit_price, image_url)
+                )
+                
+                # Deduct from inventory
+                conn.execute(
+                    """UPDATE inventory 
+                       SET qty = qty - ? 
+                       WHERE inventory_id = ?""",
+                    (quantity, inventory_id)
                 )
             
             conn.commit()
@@ -359,10 +395,87 @@ def order_success():
     date = request.args.get('date', '')
     return render_template("order_success.html", method=method, date=date, role="customer")
 
-@app.route("/contact")
+@app.route("/contact", methods=["GET", "POST"])
 def contact():
-    """Contact information page for customers."""
-    return render_template("contact.html", role="customer")
+    """Contact page with integrated contact form and feedback submission."""
+    
+    contact_success = False
+    feedback_success = False
+    
+    if request.method == "POST":
+        form_type = request.form.get("form_type")
+        
+        # Handle Contact Form Submission
+        if form_type == "contact":
+            name = request.form.get("name", "").strip()
+            email = request.form.get("email", "").strip()
+            phone = request.form.get("phone", "").strip()
+            subject = request.form.get("subject", "").strip()
+            message = request.form.get("message", "").strip()
+            
+            if name and email and subject and message:
+                try:
+                    with get_db() as conn:
+                        # Create contact_submissions table if it doesn't exist
+                        conn.execute("""
+                            CREATE TABLE IF NOT EXISTS contact_submissions (
+                                submission_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                name TEXT NOT NULL,
+                                email TEXT NOT NULL,
+                                phone TEXT,
+                                subject TEXT NOT NULL,
+                                message TEXT NOT NULL,
+                                status TEXT DEFAULT 'new',
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            )
+                        """)
+                        
+                        # Insert contact submission
+                        conn.execute("""
+                            INSERT INTO contact_submissions (name, email, phone, subject, message)
+                            VALUES (?, ?, ?, ?, ?)
+                        """, (name, email, phone, subject, message))
+                        conn.commit()
+                        contact_success = True
+                except Exception as e:
+                    print(f"Error saving contact submission: {e}")
+        
+        # Handle Feedback Form Submission
+        elif form_type == "feedback":
+            username = request.form.get("username", "").strip()
+            email = request.form.get("email", "").strip()
+            rating = request.form.get("rating", type=int)
+            feedback_message = request.form.get("feedback_message", "").strip()
+            
+            if username and rating and feedback_message and 1 <= rating <= 5:
+                try:
+                    with get_db() as conn:
+                        # Create feedback table if it doesn't exist
+                        conn.execute("""
+                            CREATE TABLE IF NOT EXISTS feedback (
+                                feedback_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                username TEXT NOT NULL,
+                                email TEXT,
+                                rating INTEGER CHECK(rating >= 1 AND rating <= 5),
+                                message TEXT NOT NULL,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            )
+                        """)
+                        
+                        # Insert feedback
+                        conn.execute("""
+                            INSERT INTO feedback (username, email, rating, message)
+                            VALUES (?, ?, ?, ?)
+                        """, (username, email, rating, feedback_message))
+                        conn.commit()
+                        feedback_success = True
+                except Exception as e:
+                    print(f"Error saving feedback: {e}")
+    
+    return render_template("contact.html", 
+                         contact_success=contact_success,
+                         feedback_success=feedback_success,
+                         role="customer")
 
 @app.route("/orders")
 @require_staff
@@ -495,7 +608,7 @@ def update_order_status(order_id):
 @csrf.exempt
 @require_staff
 def cancel_order(order_id):
-    """API: Cancel/delete an order from the system."""
+    """API: Cancel/delete an order from the system and restore inventory."""
     try:
         with get_db() as conn:
             order = conn.execute(
@@ -506,6 +619,21 @@ def cancel_order(order_id):
             if not order:
                 return jsonify({"success": False, "message": "Order not found"}), 404
             
+            # Get order items to restore inventory
+            order_items = conn.execute(
+                "SELECT inventory_id, quantity FROM order_items WHERE order_id = ?",
+                (order_id,)
+            ).fetchall()
+            
+            # Restore inventory for each item
+            for item in order_items:
+                conn.execute(
+                    """UPDATE inventory 
+                       SET qty = qty + ? 
+                       WHERE inventory_id = ?""",
+                    (item['quantity'], item['inventory_id'])
+                )
+            
             # Delete order items first (foreign key constraint)
             conn.execute("DELETE FROM order_items WHERE order_id = ?", (order_id,))
             # Delete the order
@@ -514,7 +642,7 @@ def cancel_order(order_id):
             
             return jsonify({
                 "success": True,
-                "message": "Order cancelled successfully"
+                "message": "Order cancelled successfully and inventory restored"
             })
             
     except Exception as e:
@@ -523,14 +651,15 @@ def cancel_order(order_id):
 @app.route("/feedback")
 @require_staff
 def feedback():
-    """Staff feedback management page - view customer feedback and reviews."""
-    page = request.args.get('page', 1, type=int)
+    """Staff feedback management page - view customer feedback and contact messages."""
+    active_tab = request.args.get('tab', 'ratings')
     search_query = request.args.get('search', '')
     rating_filter = request.args.get('rating', type=int)
-    per_page = 20
-    offset = (page - 1) * per_page
+    status_filter = request.args.get('status', '')
+    subject_filter = request.args.get('subject', '')
     
     with get_db() as conn:
+        # Ensure tables exist
         conn.execute("""
             CREATE TABLE IF NOT EXISTS feedback (
                 feedback_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -542,31 +671,41 @@ def feedback():
             )
         """)
         
-        base_query = "FROM feedback f"
-        where_clauses = []
-        params = []
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS contact_submissions (
+                submission_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                phone TEXT,
+                subject TEXT NOT NULL,
+                message TEXT NOT NULL,
+                status TEXT DEFAULT 'new',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         
-        if search_query:
-            where_clauses.append("(f.username LIKE ? OR f.email LIKE ? OR f.message LIKE ?)")
-            params.extend([f'%{search_query}%', f'%{search_query}%', f'%{search_query}%'])
+        # FETCH FEEDBACK (RATINGS)
+        feedback_where = []
+        feedback_params = []
+        
+        if search_query and active_tab == 'ratings':
+            feedback_where.append("(username LIKE ? OR email LIKE ? OR message LIKE ?)")
+            feedback_params.extend([f'%{search_query}%', f'%{search_query}%', f'%{search_query}%'])
         
         if rating_filter:
-            where_clauses.append("f.rating = ?")
-            params.append(rating_filter)
+            feedback_where.append("rating = ?")
+            feedback_params.append(rating_filter)
         
-        where_sql = " WHERE " + " AND ".join(where_clauses) if where_clauses else ""
-        
-        total_count = conn.execute(f"SELECT COUNT(*) {base_query} {where_sql}", params).fetchone()[0]
-        total_pages = (total_count // per_page) + (1 if total_count % per_page > 0 else 0)
+        feedback_where_sql = " WHERE " + " AND ".join(feedback_where) if feedback_where else ""
         
         feedback_list = conn.execute(f"""
-            SELECT f.feedback_id, f.username, f.email, f.rating, f.message, f.created_at
-            {base_query} {where_sql}
-            ORDER BY f.created_at DESC
-            LIMIT ? OFFSET ?
-        """, params + [per_page, offset]).fetchall()
+            SELECT feedback_id, username, email, rating, message, created_at
+            FROM feedback
+            {feedback_where_sql}
+            ORDER BY created_at DESC
+        """, feedback_params).fetchall()
         
-        stats = conn.execute(f"""
+        feedback_stats = conn.execute(f"""
             SELECT 
                 COUNT(*) as total_feedback,
                 COALESCE(AVG(rating), 0) as avg_rating,
@@ -574,21 +713,68 @@ def feedback():
                 COUNT(CASE WHEN rating = 4 THEN 1 END) as four_star,
                 COUNT(CASE WHEN rating = 3 THEN 1 END) as three_star,
                 COUNT(CASE WHEN rating <= 2 THEN 1 END) as low_rating
-            {base_query} {where_sql}
-        """, params).fetchone()
+            FROM feedback
+            {feedback_where_sql}
+        """, feedback_params).fetchone()
+        
+        # FETCH CONTACT SUBMISSIONS (MESSAGES)
+        submissions_where = []
+        submissions_params = []
+        
+        if search_query and active_tab == 'messages':
+            submissions_where.append("(name LIKE ? OR email LIKE ? OR message LIKE ?)")
+            submissions_params.extend([f'%{search_query}%', f'%{search_query}%', f'%{search_query}%'])
+        
+        if status_filter:
+            submissions_where.append("status = ?")
+            submissions_params.append(status_filter)
+        
+        if subject_filter:
+            submissions_where.append("subject = ?")
+            submissions_params.append(subject_filter)
+        
+        submissions_where_sql = " WHERE " + " AND ".join(submissions_where) if submissions_where else ""
+        
+        submissions_list = conn.execute(f"""
+            SELECT submission_id, name, email, phone, subject, message, status, created_at
+            FROM contact_submissions
+            {submissions_where_sql}
+            ORDER BY created_at DESC
+        """, submissions_params).fetchall()
+        
+        submissions_stats = conn.execute(f"""
+            SELECT 
+                COUNT(*) as total_submissions,
+                COUNT(CASE WHEN status = 'new' THEN 1 END) as new_count,
+                COUNT(CASE WHEN status = 'attended' THEN 1 END) as attended_count,
+                COUNT(CASE WHEN status = 'in-progress' THEN 1 END) as in_progress_count,
+                COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_count
+            FROM contact_submissions
+            {submissions_where_sql}
+        """, submissions_params).fetchone()
     
     return render_template("feedback.html",
+                         # Feedback data
                          feedback=[dict(row) for row in feedback_list],
-                         current_page=page,
-                         total_pages=total_pages,
+                         total_feedback=feedback_stats['total_feedback'],
+                         avg_rating=round(float(feedback_stats['avg_rating']), 2),
+                         five_star=feedback_stats['five_star'],
+                         four_star=feedback_stats['four_star'],
+                         three_star=feedback_stats['three_star'],
+                         low_rating=feedback_stats['low_rating'],
+                         # Contact submissions data
+                         submissions=[dict(row) for row in submissions_list],
+                         total_submissions=submissions_stats['total_submissions'],
+                         new_count=submissions_stats['new_count'],
+                         attended_count=submissions_stats['attended_count'],
+                         in_progress_count=submissions_stats['in_progress_count'],
+                         completed_count=submissions_stats['completed_count'],
+                         # Filters
                          search_query=search_query,
                          rating_filter=rating_filter,
-                         total_feedback=stats['total_feedback'],
-                         avg_rating=round(float(stats['avg_rating']), 2),
-                         five_star=stats['five_star'],
-                         four_star=stats['four_star'],
-                         three_star=stats['three_star'],
-                         low_rating=stats['low_rating'],
+                         status_filter=status_filter,
+                         subject_filter=subject_filter,
+                         active_tab=active_tab,
                          role=session.get("role"))
 
 @app.route("/submit-feedback", methods=["POST"])
@@ -622,6 +808,107 @@ def submit_feedback():
         return jsonify({"success": True, "message": "Feedback submitted successfully"})
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route("/update-contact-status", methods=["POST"])
+@csrf.exempt
+@require_staff
+def update_contact_status():
+    """Update the status of a contact submission."""
+    data = request.get_json()
+    
+    if not data:
+        return jsonify({"success": False, "message": "No data received"}), 400
+    
+    submission_id = data.get('submission_id')
+    new_status = data.get('status')
+    
+    if not submission_id or not new_status:
+        return jsonify({"success": False, "message": "Missing required fields"}), 400
+    
+    # Validate status
+    valid_statuses = ['new', 'attended', 'in-progress', 'completed']
+    if new_status not in valid_statuses:
+        return jsonify({"success": False, "message": "Invalid status"}), 400
+    
+    try:
+        with get_db() as conn:
+            conn.execute("""
+                UPDATE contact_submissions
+                SET status = ?
+                WHERE submission_id = ?
+            """, (new_status, submission_id))
+            conn.commit()
+        
+        return jsonify({"success": True, "message": "Status updated successfully"})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route("/contact-submissions")
+@require_staff
+def contact_submissions():
+    """Staff page to view and manage contact form submissions."""
+    search_query = request.args.get('search', '')
+    status_filter = request.args.get('status', '')
+    subject_filter = request.args.get('subject', '')
+    
+    with get_db() as conn:
+        # Create table if it doesn't exist
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS contact_submissions (
+                submission_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                phone TEXT,
+                subject TEXT NOT NULL,
+                message TEXT NOT NULL,
+                status TEXT DEFAULT 'new',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        base_query = "FROM contact_submissions c"
+        where_clauses = []
+        params = []
+        
+        if search_query:
+            where_clauses.append("(c.name LIKE ? OR c.email LIKE ? OR c.message LIKE ?)")
+            params.extend([f'%{search_query}%', f'%{search_query}%', f'%{search_query}%'])
+        
+        if status_filter:
+            where_clauses.append("c.status = ?")
+            params.append(status_filter)
+        
+        if subject_filter:
+            where_clauses.append("c.subject = ?")
+            params.append(subject_filter)
+        
+        where_sql = " WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+        
+        submissions_list = conn.execute(f"""
+            SELECT c.submission_id, c.name, c.email, c.phone, c.subject, c.message, c.status, c.created_at
+            {base_query} {where_sql}
+            ORDER BY c.created_at DESC
+        """, params).fetchall()
+        
+        stats = conn.execute(f"""
+            SELECT 
+                COUNT(*) as total_submissions,
+                COUNT(CASE WHEN status = 'new' THEN 1 END) as new_count,
+                COUNT(CASE WHEN status = 'in-progress' THEN 1 END) as in_progress_count,
+                COUNT(CASE WHEN status = 'resolved' THEN 1 END) as resolved_count
+            {base_query} {where_sql}
+        """, params).fetchone()
+    
+    return render_template("contact_submissions.html",
+                         submissions=[dict(row) for row in submissions_list],
+                         search_query=search_query,
+                         status_filter=status_filter,
+                         subject_filter=subject_filter,
+                         total_submissions=stats['total_submissions'],
+                         new_count=stats['new_count'],
+                         in_progress_count=stats['in_progress_count'],
+                         resolved_count=stats['resolved_count'],
+                         role=session.get("role"))
 
 @app.route("/staff-login", methods=["GET", "POST"])
 def staff_login():

@@ -288,6 +288,91 @@ body {
     box-shadow: 0 4px 12px rgba(220,38,38,0.35);
 }
 
+/* Availability Tag - 3-Tier System (beside stock badge) */
+.availability-tag {
+    position: absolute;
+    top: 1.25rem;
+    left: 1.25rem;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(10px);
+}
+
+.avail-in-stock {
+    color: #16a34a;
+}
+
+.avail-low-stock {
+    color: #d97706;
+}
+
+.avail-no-stock {
+    color: #dc2626;
+}
+
+/* Big Notification System - Black & White Inspired by Inventory.html */
+.big-notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background: rgba(15, 15, 15, 0.96);
+    border: 2px solid rgba(255,255,255,0.20);
+    color: #ef4444;
+    padding: 50px 70px;
+    border-radius: 24px;
+    font-size: 32px;
+    font-weight: 900;
+    text-align: center;
+    z-index: 9999;
+    box-shadow: 0 30px 90px rgba(0,0,0,0.60);
+    backdrop-filter: blur(20px);
+    opacity: 0;
+    pointer-events: none;
+    min-width: 400px;
+}
+
+.big-notification.success {
+    color: #10b981;
+    border-color: rgba(16,185,129,0.35);
+}
+
+.big-notification.warning {
+    color: #f59e0b;
+    border-color: rgba(245,158,11,0.35);
+}
+
+.big-notification.show {
+    animation: bigPopIn 0.45s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
+}
+
+.big-notification.hide {
+    animation: bigPopOut 0.35s ease-in forwards;
+}
+
+@keyframes bigPopIn {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+    50% { transform: translate(-50%, -50%) scale(1.1); }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+@keyframes bigPopOut {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+}
+
+.notification-icon {
+    display: inline-block;
+    font-size: 3rem;
+    margin-right: 15px;
+}
+
 /* Card Details - Rich Content */
 .card-details { 
     padding: 2rem; 
@@ -1030,11 +1115,22 @@ body {
                          onerror="this.onerror=null; this.src='/static/product_images_v2/placeholder.png';">
                     {% if product.qty == 0 %}
                     <div class="stock-badge no-stock">No Stock</div>
-                    {% elif product.qty < 10 %}
+                    {% elif product.qty < 100 %}
                     <div class="stock-badge low-stock">Low Stock</div>
                     {% else %}
                     <div class="stock-badge in-stock">In Stock</div>
                     {% endif %}
+                    
+                    <!-- Availability Indicator (3-tier system) -->
+                    <div class="availability-tag" data-stock="{{ product.qty }}">
+                        {% if product.qty == 0 %}
+                            <span class="avail-no-stock">0 Available</span>
+                        {% elif product.qty < 100 %}
+                            <span class="avail-low-stock">{{ product.qty }} Available</span>
+                        {% else %}
+                            <span class="avail-in-stock">{{ product.qty }}+ Available</span>
+                        {% endif %}
+                    </div>
                 </div>
                 
                 <div class="card-details">
@@ -1066,7 +1162,7 @@ body {
                     <!-- Quantity Selector -->
                     <div class="qty-card">
                         <button class="qty-btn" onclick="changeQty({{ product.id }}, -1)">−</button>
-                        <input type="number" class="qty-display" id="qty-{{ product.id }}" value="1" readonly>
+                        <input type="number" class="qty-display" id="qty-{{ product.id }}" value="1" readonly data-max-stock="{{ product.qty }}">
                         <button class="qty-btn" onclick="changeQty({{ product.id }}, 1)">+</button>
                     </div>
                     
@@ -1149,6 +1245,9 @@ body {
     </section>
     
 </div>
+
+<!-- Big Notification Element -->
+<div id="bigNotification" class="big-notification"></div>
 
 <!-- ============================================ -->
 <!-- JAVASCRIPT -->
@@ -1285,9 +1384,50 @@ function handleVariantChange(originalId, productName) {
 /* ========== QUANTITY ADJUSTMENT ========== */
 function changeQty(productId, delta) {
     const qtyEl = document.getElementById(`qty-${productId}`);
+    const maxStock = parseInt(qtyEl.getAttribute('data-max-stock') || 999);
+    
     let currentQty = parseInt(qtyEl.value);
     let newQty = Math.max(1, currentQty + delta);
+    
+    // Validate against available stock
+    if (newQty > maxStock) {
+        // Show big notification warning
+        showBigNotification(`ONLY ${maxStock} UNITS IN STOCK`, 'warning');
+        newQty = maxStock;
+    }
+    
     qtyEl.value = newQty;
+}
+
+/* ========== BIG NOTIFICATION FUNCTION ========== */
+function showBigNotification(message, type = 'error') {
+    const bigNotification = document.getElementById('bigNotification');
+    let icon = '✖';
+    let className = 'big-notification';
+    
+    if (type === 'success' || type === true) {
+        icon = '✓';
+        className = 'big-notification success';
+    } else if (type === 'warning' || type === 'update') {
+        icon = '⚠';
+        className = 'big-notification warning';
+    }
+    
+    bigNotification.innerHTML = `<span class="notification-icon">${icon}</span>${message}`;
+    bigNotification.className = className;
+
+    void bigNotification.offsetWidth;
+
+    bigNotification.classList.add('show');
+
+    setTimeout(() => {
+        bigNotification.classList.remove('show');
+        bigNotification.classList.add('hide');
+        setTimeout(() => {
+            bigNotification.classList.remove('hide');
+            bigNotification.className = 'big-notification';
+        }, 400);
+    }, 2500);
 }
 
 /* ========== ADD TO CART FUNCTION ========== */
