@@ -156,7 +156,7 @@ def root():
 
 @app.route("/cart")
 def cart():
-    """Customer-facing product catalog with pagination, search, and filtering."""
+    """Customer-facing product catalog - Shows ONLY NEWEST 200 products with search capability."""
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('search', '')
     category_filter = request.args.get('category', '')
@@ -166,6 +166,11 @@ def cart():
     offset = (page - 1) * per_page
 
     with get_db() as conn:
+        # Get total count for KPI
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM inventory")
+        total_inventory_count = cursor.fetchone()[0]
+        
         categories_raw = conn.execute("SELECT DISTINCT category FROM inventory WHERE category IS NOT NULL ORDER BY category").fetchall()
         categories = [row[0] for row in categories_raw]
         
@@ -193,6 +198,7 @@ def cart():
             where_clause += " AND sell_price <= ?"
             params.append(max_price)
 
+        # MODIFIED: Order by inventory_id DESC to show newest first, limit to 200 total
         bucket_core = """
             SELECT
                 hem_name,
@@ -201,7 +207,7 @@ def cart():
                 MIN(sell_price)   as sell_price,
                 MAX(sell_price)   as max_price,
                 image_url,
-                MIN(inventory_id) as inventory_id,
+                MAX(inventory_id) as inventory_id,
                 SUM(qty)          as qty,
                 COUNT(*)          as variant_count,
                 GROUP_CONCAT(DISTINCT org) as org,
@@ -213,7 +219,7 @@ def cart():
             inner = bucket_core + where_clause + """
                 GROUP BY hem_name
                 HAVING """ + vc_condition + """
-                ORDER BY hem_name ASC
+                ORDER BY inventory_id DESC
                 LIMIT 50
             """
             return "SELECT * FROM (" + inner + ") AS bkt"
@@ -228,7 +234,7 @@ def cart():
                 UNION ALL
                 {b4}
             ) AS pool
-            ORDER BY variant_count ASC, hem_name ASC
+            ORDER BY inventory_id DESC
         """.format(
             b1=make_bucket("COUNT(*) = 1"),
             b2=make_bucket("COUNT(*) = 2"),
@@ -238,9 +244,13 @@ def cart():
 
         pool_params = params * 4
         all_pooled = conn.execute(pool_query, pool_params).fetchall()
-        total_count = len(all_pooled)
+        
+        # Limit to 200 newest products for cart
+        all_pooled_limited = all_pooled[:200]
+        
+        total_count = len(all_pooled_limited)
         total_pages = (total_count // per_page) + (1 if total_count % per_page > 0 else 0)
-        products_raw = all_pooled[offset: offset + per_page]
+        products_raw = all_pooled_limited[offset: offset + per_page]
         
         products = []
         for row in products_raw:
@@ -265,6 +275,8 @@ def cart():
                            search_query=search_query, category_filter=category_filter,
                            min_price=min_price, max_price=max_price,
                            price_range=price_range,
+                           total_inventory_count=total_inventory_count,
+                           showing_count=len(all_pooled_limited),
                            role=session.get("role", "customer"))
 
 @app.route("/manage_users", methods=["GET", "POST"])
@@ -1204,12 +1216,18 @@ def inventory():
 @csrf.exempt
 @require_staff
 def api_get_inventory():
-    """API: Retrieve grouped inventory items by product name to reduce duplicates."""
+    """API: Retrieve ALL inventory items ordered by newest first - NO LIMIT."""
     # Admin should NOT have access to inventory
     if session.get("role") == "admin":
         return jsonify({"error": "Access denied"}), 403
     try:
         with get_db() as conn:
+            # Get total count for KPI
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM inventory")
+            total_count = cursor.fetchone()[0]
+            
+            # Get ALL products ordered by newest first (inventory_id DESC)
             bucket_select = """
                 SELECT
                     hem_name,
@@ -1221,29 +1239,20 @@ def api_get_inventory():
                     MIN(sell_price)   as sell_price,
                     MAX(sell_price)   as max_price,
                     image_url,
-                    MIN(inventory_id) as inventory_id,
+                    MAX(inventory_id) as inventory_id,
                     COUNT(*)          as variant_count,
                     MIN(sup_part_no)  as first_sku
                 FROM inventory
                 GROUP BY hem_name
+                ORDER BY inventory_id DESC
             """
-            def inv_bucket(vc_condition):
-                inner = bucket_select + " HAVING " + vc_condition + " ORDER BY hem_name ASC LIMIT 50"
-                return "SELECT * FROM (" + inner + ") AS bkt"
-
-            pool_query = (
-                "SELECT * FROM ("
-                + inv_bucket("COUNT(*) = 1")
-                + " UNION ALL "
-                + inv_bucket("COUNT(*) = 2")
-                + " UNION ALL "
-                + inv_bucket("COUNT(*) = 3")
-                + " UNION ALL "
-                + inv_bucket("COUNT(*) > 3")
-                + ") AS pool ORDER BY variant_count ASC, hem_name ASC"
-            )
-            items = conn.execute(pool_query).fetchall()
-            return jsonify([dict(item) for item in items])
+            items = conn.execute(bucket_select).fetchall()
+            
+            return jsonify({
+                'products': [dict(item) for item in items],
+                'total_count': total_count,
+                'displayed_count': len(items)
+            })
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -1276,8 +1285,21 @@ def api_create_inventory():
                 INSERT INTO inventory (sup_part_no, hem_name, category, qty, sell_price, image_url)
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (sup_part_no, hem_name, category, qty, sell_price, image_url))
+            
+            new_product_id = cursor.lastrowid
+            
+            # Get updated total count
+            cursor.execute("SELECT COUNT(*) FROM inventory")
+            new_total_count = cursor.fetchone()[0]
+            
             conn.commit()
-            return jsonify({"success": True, "inventory_id": cursor.lastrowid, "message": "Product added successfully"})
+            
+            return jsonify({
+                "success": True, 
+                "inventory_id": new_product_id, 
+                "new_total_count": new_total_count,
+                "message": "Product added successfully"
+            })
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
@@ -1328,6 +1350,49 @@ def api_delete_inventory(inventory_id):
             return jsonify({"success": True, "message": "Product deleted successfully"})
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route("/api/search_products", methods=["GET"])
+@csrf.exempt
+def api_search_products():
+    """API: Search ALL products in database (not limited to 200)."""
+    query = request.args.get('q', '').strip()
+    source = request.args.get('source', 'cart')  # 'cart' or 'inventory'
+    
+    if not query:
+        return jsonify({"products": [], "total_found": 0})
+    
+    try:
+        with get_db() as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # Search across ALL products in database
+            cursor.execute("""
+                SELECT inventory_id, sup_part_no, hem_name, category, 
+                       org, loc_on_shelf, qty, sell_price, image_url
+                FROM inventory 
+                WHERE hem_name LIKE ? 
+                   OR sup_part_no LIKE ? 
+                   OR category LIKE ?
+                ORDER BY inventory_id DESC
+            """, (f'%{query}%', f'%{query}%', f'%{query}%'))
+            
+            all_results = [dict(row) for row in cursor.fetchall()]
+            
+            # If searching from cart, limit results to 200 newest
+            if source == 'cart':
+                results = all_results[:200]
+            else:
+                # Inventory page - show all results
+                results = all_results
+            
+            return jsonify({
+                'products': results,
+                'total_found': len(results),
+                'total_in_db': len(all_results)
+            })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/product-variants", methods=["GET"])
 @csrf.exempt

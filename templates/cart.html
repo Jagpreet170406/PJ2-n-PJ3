@@ -1101,7 +1101,9 @@ body {
         <!-- Products Header -->
         <div class="products-header">
             <h3>All Products</h3>
-            <span class="products-count">{{ products|length }} items</span>
+            <span class="products-count">
+                Showing {{ showing_count }} newest of {{ total_inventory_count }} total products
+            </span>
         </div>
         
         <div class="product-grid">
