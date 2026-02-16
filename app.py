@@ -284,7 +284,7 @@ def checkout():
 @app.route("/process-payment", methods=["POST"])
 @csrf.exempt
 def process_payment():
-    """Process payment submission and save transaction + order to database."""
+    """Process payment submission and save transaction + order + items to database."""
     data = request.get_json()
     if not data:
         return jsonify({"success": False, "message": "No data received"})
@@ -292,7 +292,8 @@ def process_payment():
     cart_items = data.get('cart', [])
     payment_method = data.get('payment_method', 'Credit Card')
     total_amount = data.get('total_amount', 0)
-    fulfillment = data.get('fulfillment', 'pickup')
+    fulfillment_method = data.get('fulfillment_method', 'pickup')
+    fulfillment_details = data.get('fulfillment_details', '')
     username = session.get("username", "Guest")
 
     if not cart_items:
@@ -300,24 +301,41 @@ def process_payment():
 
     try:
         with get_db() as conn:
-            payment_label = f"{payment_method} ({fulfillment})"
-            
-            # Insert into transactions
-            conn.execute(
-                "INSERT INTO transactions (username, payment_type, amount) VALUES (?, ?, ?)",
-                (username, payment_label, total_amount)
+            # Insert into transactions table with fulfillment info
+            cursor = conn.execute(
+                """INSERT INTO transactions 
+                   (username, payment_type, amount, status, fulfillment_method, fulfillment_details) 
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (username, payment_method, total_amount, 'Incoming', fulfillment_method, fulfillment_details)
             )
+            order_id = cursor.lastrowid
             
-            # Insert into orders table with status
-            conn.execute(
-                "INSERT INTO orders (username, payment_type, amount, status) VALUES (?, ?, ?, ?)",
-                (username, payment_label, total_amount, 'Incoming')
-            )
+            # Insert each cart item into order_items table
+            for item in cart_items:
+                inventory_id = item.get('id')
+                product_name = item.get('name', 'Unknown Product')
+                product_sku = item.get('sku', '')
+                quantity = item.get('quantity', 1)
+                unit_price = item.get('price', 0)
+                image_url = item.get('image', '/static/product_images_v2/placeholder.png')
+                
+                conn.execute(
+                    """INSERT INTO order_items 
+                       (order_id, inventory_id, product_name, product_sku, quantity, unit_price, image_url)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                    (order_id, inventory_id, product_name, product_sku, quantity, unit_price, image_url)
+                )
             
             conn.commit()
         
-        return jsonify({"success": True, "message": "Payment successful"})
+        return jsonify({
+            "success": True, 
+            "message": "Payment successful",
+            "order_id": order_id
+        })
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({"success": False, "message": str(e)})
 
 @app.route("/order-success")
@@ -335,7 +353,7 @@ def contact():
 @app.route("/orders")
 @require_staff
 def orders():
-    """Staff Orders page with proper orders table."""
+    """Staff Orders page with order items display."""
     
     tabs = ["Incoming", "In Progress", "Ready", "Out for Delivery", "Completed", "Issues"]
     active_tab = request.args.get("tab", "Incoming").strip()
@@ -360,28 +378,48 @@ def orders():
         where_sql = " WHERE " + " AND ".join(where_clauses)
         
         total_count = conn.execute(
-            f"SELECT COUNT(*) FROM orders {where_sql}",
+            f"SELECT COUNT(*) FROM transactions {where_sql}",
             params
         ).fetchone()[0]
         
         total_pages = (total_count + per_page - 1) // per_page
         
+        # Fetch orders with their items
         rows = conn.execute(
             f"""
-            SELECT order_id as transaction_id, username, payment_type, amount, status, created_at
-            FROM orders
+            SELECT id as transaction_id, username, payment_type, amount, status, 
+                   fulfillment_method, fulfillment_details, timestamp as created_at
+            FROM transactions
             {where_sql}
-            ORDER BY created_at DESC
+            ORDER BY timestamp DESC
             LIMIT ? OFFSET ?
             """,
             params + [per_page, offset]
         ).fetchall()
+        
+        # Fetch order items for each order
+        orders_with_items = []
+        for row in rows:
+            order_dict = dict(row)
+            order_id = order_dict['transaction_id']
+            
+            # Get items for this order
+            items = conn.execute(
+                """SELECT inventory_id, product_name, product_sku, quantity, unit_price, image_url
+                   FROM order_items
+                   WHERE order_id = ?
+                   ORDER BY item_id""",
+                (order_id,)
+            ).fetchall()
+            
+            order_dict['items'] = [dict(item) for item in items]
+            orders_with_items.append(order_dict)
     
     return render_template(
         "orders.html",
         tabs=tabs,
         active_tab=active_tab,
-        orders=[dict(r) for r in rows],
+        orders=orders_with_items,
         current_page=page,
         total_pages=total_pages,
         search_query=search_query,
@@ -406,7 +444,7 @@ def update_order_status(order_id):
         
         with get_db() as conn:
             order = conn.execute(
-                "SELECT * FROM orders WHERE order_id = ?",
+                "SELECT * FROM transactions WHERE id = ?",
                 (order_id,)
             ).fetchone()
             
@@ -414,7 +452,7 @@ def update_order_status(order_id):
                 return jsonify({"success": False, "message": "Order not found"}), 404
             
             conn.execute(
-                "UPDATE orders SET status = ? WHERE order_id = ?",
+                "UPDATE transactions SET status = ? WHERE id = ?",
                 (new_status, order_id)
             )
             conn.commit()
@@ -435,14 +473,17 @@ def cancel_order(order_id):
     try:
         with get_db() as conn:
             order = conn.execute(
-                "SELECT * FROM orders WHERE order_id = ?",
+                "SELECT * FROM transactions WHERE id = ?",
                 (order_id,)
             ).fetchone()
             
             if not order:
                 return jsonify({"success": False, "message": "Order not found"}), 404
             
-            conn.execute("DELETE FROM orders WHERE order_id = ?", (order_id,))
+            # Delete order items first (foreign key constraint)
+            conn.execute("DELETE FROM order_items WHERE order_id = ?", (order_id,))
+            # Delete the order
+            conn.execute("DELETE FROM transactions WHERE id = ?", (order_id,))
             conn.commit()
             
             return jsonify({

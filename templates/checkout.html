@@ -745,19 +745,36 @@ async function processPayment(){
 
     /* ========== GET PICKUP DATE OR DELIVERY ADDRESS ========== */
     let selectedDate = '';
+    let fulfillmentDetails = '';
+    
     if(currentFulfillment === 'pickup'){
         selectedDate = document.getElementById('pickup-date').value || 'Not selected';
+        fulfillmentDetails = 'Pickup Date: ' + selectedDate + ' at 62 Race Course Rd, S218568';
     } else {
         selectedDate = document.getElementById('delivery-address').value || 'Address not provided';
+        fulfillmentDetails = 'Delivery Address: ' + selectedDate;
     }
 
     /* ========== PREPARE PAYMENT PAYLOAD ========== */
+    // Get cart and ensure images are included
+    const cartRaw = JSON.parse(localStorage.getItem('cart') || '[]');
+    
+    // Enhance cart items to ensure all fields are present
+    const cartWithImages = cartRaw.map(item => ({
+        id: item.id,
+        name: item.name,
+        sku: item.sku || '',
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image || '/static/product_images_v2/placeholder.png'
+    }));
+    
     const payload = {
-        cart: JSON.parse(localStorage.getItem('cart')),
+        cart: cartWithImages,
         total_amount: parseFloat(document.getElementById('summary-total').innerText.replace('S$', '')),
-        fulfillment: currentFulfillment,
-        payment_method: method,
-        pickup_or_delivery_date: selectedDate
+        fulfillment_method: currentFulfillment,
+        fulfillment_details: fulfillmentDetails,
+        payment_method: method
     };
 
     /* ========== SUBMIT PAYMENT TO SERVER ========== */

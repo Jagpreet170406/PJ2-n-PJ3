@@ -564,7 +564,61 @@ body {
                             <span class="detail-label">Date:</span>
                             <span>{{ order.created_at[:16] if order.created_at else 'N/A' }}</span>
                         </div>
+                        <div class="order-detail-row">
+                            <span class="detail-label">Fulfillment:</span>
+                            <span>
+                                {% if order.fulfillment_method == 'delivery' %}
+                                    🚚 Delivery
+                                {% else %}
+                                    🏪 Self-Pickup
+                                {% endif %}
+                            </span>
+                        </div>
+                        {% if order.fulfillment_details %}
+                        <div class="order-detail-row" style="grid-column: 1/-1; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.08);">
+                            <span class="detail-label" style="font-size: 0.8rem;">Details:</span>
+                            <span style="font-size: 0.8rem; color: rgba(255,255,255,0.7);">{{ order.fulfillment_details }}</span>
+                        </div>
+                        {% endif %}
                     </div>
+
+                    <!-- Order Items Section -->
+                    {% if order.items %}
+                    <div style="margin: 16px 0; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                        <div style="font-size: 0.85rem; font-weight: 700; color: rgba(255,255,255,0.6); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+                            📦 Items ({{ order.items|length }})
+                        </div>
+                        {% for item in order.items %}
+                        <div style="display: flex; align-items: center; gap: 12px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px; margin-bottom: 8px;">
+                            <img src="{{ item.image_url }}" 
+                                 style="width: 45px; height: 45px; object-fit: contain; border-radius: 4px; background: white; padding: 4px;"
+                                 onerror="this.src='/static/product_images_v2/placeholder.png';">
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.9); line-height: 1.3;">
+                                    {{ item.product_name }}
+                                </div>
+                                {% if item.product_sku %}
+                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 2px;">
+                                    SKU: {{ item.product_sku }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div style="text-align: right; flex-shrink: 0;">
+                                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.6);">
+                                    Qty: {{ item.quantity }}
+                                </div>
+                                <div style="font-size: 0.85rem; font-weight: 700; color: rgba(255,255,255,0.9);">
+                                    S$ {{ "{:.2f}".format(item.unit_price * item.quantity) }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div style="padding: 16px; text-align: center; color: rgba(255,255,255,0.5); font-size: 0.9rem; font-style: italic;">
+                        No items found for this order
+                    </div>
+                    {% endif %}
 
                     <div class="order-actions">
                         {% if active_tab == 'Incoming' %}

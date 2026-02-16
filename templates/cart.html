@@ -1298,12 +1298,13 @@ function handleAddToCart(event, inventoryId, productName, price, isBuyNow) {
     let finalId = inventoryId;
     let finalName = productName;
     let finalPrice = price;
+    let finalSku = '';
     
     if (variantSelect && variantSelect.value) {
         finalId = parseInt(variantSelect.getAttribute('data-selected-variant-id'));
         finalPrice = parseFloat(variantSelect.getAttribute('data-selected-variant-price'));
-        const sku = variantSelect.getAttribute('data-selected-variant-sku');
-        finalName = `${productName} (SKU: ${sku})`;
+        finalSku = variantSelect.getAttribute('data-selected-variant-sku');
+        finalName = `${productName} (SKU: ${finalSku})`;
     }
     
     let quantity = 1;
@@ -1311,6 +1312,11 @@ function handleAddToCart(event, inventoryId, productName, price, isBuyNow) {
     if (qtyDisplay) {
         quantity = parseInt(qtyDisplay.value) || 1;
     }
+    
+    // Get image URL from the product card
+    const productCard = event.target.closest('.product-card');
+    const imageElement = productCard ? productCard.querySelector('.item-image') : null;
+    const imageUrl = imageElement ? imageElement.src : '/static/product_images_v2/placeholder.png';
     
     let cart = JSON.parse(localStorage.getItem('cart') || '[]');
     
@@ -1322,8 +1328,10 @@ function handleAddToCart(event, inventoryId, productName, price, isBuyNow) {
         cart.push({
             id: finalId,
             name: finalName,
+            sku: finalSku,
             price: finalPrice,
-            quantity: quantity
+            quantity: quantity,
+            image: imageUrl
         });
     }
     
