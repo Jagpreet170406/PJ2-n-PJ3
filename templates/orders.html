@@ -568,7 +568,7 @@ body {
 <div class="page-wrap">
     <!-- Hero -->
     <div class="hero">
-        <h1>📦 Orders Management</h1>
+        <h1>Orders Management</h1>
         <p>Track and manage customer orders through the workflow</p>
     </div>
 
@@ -579,27 +579,27 @@ body {
             <div class="tabs-container">
                 <a href="{{ url_for('orders', tab='Incoming') }}" 
                    class="tab-btn {% if active_tab == 'Incoming' %}active{% endif %}">
-                    📥 Incoming ({{ counts.get('Incoming', 0) }})
+                    Incoming ({{ counts.get('Incoming', 0) }})
                 </a>
                 <a href="{{ url_for('orders', tab='In Progress') }}" 
                    class="tab-btn {% if active_tab == 'In Progress' %}active{% endif %}">
-                    📦 In Progress ({{ counts.get('In Progress', 0) }})
+                    In Progress ({{ counts.get('In Progress', 0) }})
                 </a>
                 <a href="{{ url_for('orders', tab='Awaiting Pickup') }}" 
                    class="tab-btn {% if active_tab == 'Awaiting Pickup' %}active{% endif %}">
-                    🏪 Awaiting Pickup ({{ counts.get('Awaiting Pickup', 0) }})
+                    Awaiting Pickup ({{ counts.get('Awaiting Pickup', 0) }})
                 </a>
                 <a href="{{ url_for('orders', tab='Out for Delivery') }}" 
                    class="tab-btn {% if active_tab == 'Out for Delivery' %}active{% endif %}">
-                    🚚 Out for Delivery ({{ counts.get('Out for Delivery', 0) }})
+                    Out for Delivery ({{ counts.get('Out for Delivery', 0) }})
                 </a>
                 <a href="{{ url_for('orders', tab='Completed') }}" 
                    class="tab-btn {% if active_tab == 'Completed' %}active{% endif %}">
-                    ✅ Completed ({{ counts.get('Completed', 0) }})
+                    Completed ({{ counts.get('Completed', 0) }})
                 </a>
                 <a href="{{ url_for('orders', tab='Issues') }}" 
                    class="tab-btn {% if active_tab == 'Issues' %}active{% endif %}">
-                    ⚠️ Issues ({{ counts.get('Issues', 0) }})
+                    Issues ({{ counts.get('Issues', 0) }})
                 </a>
             </div>
 
