@@ -92,12 +92,176 @@
                     <span class="date-error" id="pickup-date-error"></span>
                 </div>
 
-                <!-- Email field — always shown, used to notify customer when order is ready -->
+                <!-- Phone number field with country selector -->
                 <div class="mt-3">
-                    <label><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> 📧 Email Address</label>
-                    <input type="email" id="customer-email" class="form-control" placeholder="e.g. you@email.com" required>
-                    <span class="date-error" id="customer-email-error"></span>
-                    <small class="text-muted" style="display:block; margin-top:4px;">We'll notify you when your order is ready.</small>
+                    <label><span style="color: red; font-size: 1.2em; font-weight: bold;">*</span> 📱 Phone Number</label>
+                    <div class="row">
+                        <div class="col-5">
+                            <select id="country-code" class="form-control" required>
+                                <option value="">Select Country</option>
+                                <option value="+93" data-country="AF">Afghanistan (+93)</option>
+                                <option value="+355" data-country="AL">Albania (+355)</option>
+                                <option value="+213" data-country="DZ">Algeria (+213)</option>
+                                <option value="+1" data-country="US">America (+1)</option>
+                                <option value="+376" data-country="AD">Andorra (+376)</option>
+                                <option value="+244" data-country="AO">Angola (+244)</option>
+                                <option value="+54" data-country="AR">Argentina (+54)</option>
+                                <option value="+374" data-country="AM">Armenia (+374)</option>
+                                <option value="+61" data-country="AU">Australia (+61)</option>
+                                <option value="+43" data-country="AT">Austria (+43)</option>
+                                <option value="+994" data-country="AZ">Azerbaijan (+994)</option>
+                                <option value="+973" data-country="BH">Bahrain (+973)</option>
+                                <option value="+880" data-country="BD">Bangladesh (+880)</option>
+                                <option value="+375" data-country="BY">Belarus (+375)</option>
+                                <option value="+32" data-country="BE">Belgium (+32)</option>
+                                <option value="+501" data-country="BZ">Belize (+501)</option>
+                                <option value="+229" data-country="BJ">Benin (+229)</option>
+                                <option value="+975" data-country="BT">Bhutan (+975)</option>
+                                <option value="+591" data-country="BO">Bolivia (+591)</option>
+                                <option value="+387" data-country="BA">Bosnia (+387)</option>
+                                <option value="+267" data-country="BW">Botswana (+267)</option>
+                                <option value="+55" data-country="BR">Brazil (+55)</option>
+                                <option value="+673" data-country="BN">Brunei (+673)</option>
+                                <option value="+359" data-country="BG">Bulgaria (+359)</option>
+                                <option value="+226" data-country="BF">Burkina Faso (+226)</option>
+                                <option value="+257" data-country="BI">Burundi (+257)</option>
+                                <option value="+855" data-country="KH">Cambodia (+855)</option>
+                                <option value="+237" data-country="CM">Cameroon (+237)</option>
+                                <option value="+1" data-country="CA">Canada (+1)</option>
+                                <option value="+238" data-country="CV">Cape Verde (+238)</option>
+                                <option value="+236" data-country="CF">Central African Rep (+236)</option>
+                                <option value="+235" data-country="TD">Chad (+235)</option>
+                                <option value="+56" data-country="CL">Chile (+56)</option>
+                                <option value="+86" data-country="CN">China (+86)</option>
+                                <option value="+57" data-country="CO">Colombia (+57)</option>
+                                <option value="+506" data-country="CR">Costa Rica (+506)</option>
+                                <option value="+385" data-country="HR">Croatia (+385)</option>
+                                <option value="+53" data-country="CU">Cuba (+53)</option>
+                                <option value="+357" data-country="CY">Cyprus (+357)</option>
+                                <option value="+420" data-country="CZ">Czech Republic (+420)</option>
+                                <option value="+45" data-country="DK">Denmark (+45)</option>
+                                <option value="+253" data-country="DJ">Djibouti (+253)</option>
+                                <option value="+593" data-country="EC">Ecuador (+593)</option>
+                                <option value="+20" data-country="EG">Egypt (+20)</option>
+                                <option value="+503" data-country="SV">El Salvador (+503)</option>
+                                <option value="+372" data-country="EE">Estonia (+372)</option>
+                                <option value="+251" data-country="ET">Ethiopia (+251)</option>
+                                <option value="+679" data-country="FJ">Fiji (+679)</option>
+                                <option value="+358" data-country="FI">Finland (+358)</option>
+                                <option value="+33" data-country="FR">France (+33)</option>
+                                <option value="+241" data-country="GA">Gabon (+241)</option>
+                                <option value="+220" data-country="GM">Gambia (+220)</option>
+                                <option value="+995" data-country="GE">Georgia (+995)</option>
+                                <option value="+49" data-country="DE">Germany (+49)</option>
+                                <option value="+233" data-country="GH">Ghana (+233)</option>
+                                <option value="+30" data-country="GR">Greece (+30)</option>
+                                <option value="+502" data-country="GT">Guatemala (+502)</option>
+                                <option value="+224" data-country="GN">Guinea (+224)</option>
+                                <option value="+592" data-country="GY">Guyana (+592)</option>
+                                <option value="+509" data-country="HT">Haiti (+509)</option>
+                                <option value="+504" data-country="HN">Honduras (+504)</option>
+                                <option value="+852" data-country="HK">Hong Kong (+852)</option>
+                                <option value="+36" data-country="HU">Hungary (+36)</option>
+                                <option value="+354" data-country="IS">Iceland (+354)</option>
+                                <option value="+91" data-country="IN">India (+91)</option>
+                                <option value="+62" data-country="ID">Indonesia (+62)</option>
+                                <option value="+98" data-country="IR">Iran (+98)</option>
+                                <option value="+964" data-country="IQ">Iraq (+964)</option>
+                                <option value="+353" data-country="IE">Ireland (+353)</option>
+                                <option value="+972" data-country="IL">Israel (+972)</option>
+                                <option value="+39" data-country="IT">Italy (+39)</option>
+                                <option value="+81" data-country="JP">Japan (+81)</option>
+                                <option value="+962" data-country="JO">Jordan (+962)</option>
+                                <option value="+7" data-country="KZ">Kazakhstan (+7)</option>
+                                <option value="+254" data-country="KE">Kenya (+254)</option>
+                                <option value="+965" data-country="KW">Kuwait (+965)</option>
+                                <option value="+996" data-country="KG">Kyrgyzstan (+996)</option>
+                                <option value="+856" data-country="LA">Laos (+856)</option>
+                                <option value="+371" data-country="LV">Latvia (+371)</option>
+                                <option value="+961" data-country="LB">Lebanon (+961)</option>
+                                <option value="+231" data-country="LR">Liberia (+231)</option>
+                                <option value="+218" data-country="LY">Libya (+218)</option>
+                                <option value="+370" data-country="LT">Lithuania (+370)</option>
+                                <option value="+352" data-country="LU">Luxembourg (+352)</option>
+                                <option value="+853" data-country="MO">Macau (+853)</option>
+                                <option value="+389" data-country="MK">Macedonia (+389)</option>
+                                <option value="+261" data-country="MG">Madagascar (+261)</option>
+                                <option value="+265" data-country="MW">Malawi (+265)</option>
+                                <option value="+60" data-country="MY">Malaysia (+60)</option>
+                                <option value="+960" data-country="MV">Maldives (+960)</option>
+                                <option value="+223" data-country="ML">Mali (+223)</option>
+                                <option value="+356" data-country="MT">Malta (+356)</option>
+                                <option value="+52" data-country="MX">Mexico (+52)</option>
+                                <option value="+373" data-country="MD">Moldova (+373)</option>
+                                <option value="+377" data-country="MC">Monaco (+377)</option>
+                                <option value="+976" data-country="MN">Mongolia (+976)</option>
+                                <option value="+382" data-country="ME">Montenegro (+382)</option>
+                                <option value="+212" data-country="MA">Morocco (+212)</option>
+                                <option value="+258" data-country="MZ">Mozambique (+258)</option>
+                                <option value="+95" data-country="MM">Myanmar (+95)</option>
+                                <option value="+264" data-country="NA">Namibia (+264)</option>
+                                <option value="+977" data-country="NP">Nepal (+977)</option>
+                                <option value="+31" data-country="NL">Netherlands (+31)</option>
+                                <option value="+64" data-country="NZ">New Zealand (+64)</option>
+                                <option value="+505" data-country="NI">Nicaragua (+505)</option>
+                                <option value="+227" data-country="NE">Niger (+227)</option>
+                                <option value="+234" data-country="NG">Nigeria (+234)</option>
+                                <option value="+850" data-country="KP">North Korea (+850)</option>
+                                <option value="+47" data-country="NO">Norway (+47)</option>
+                                <option value="+968" data-country="OM">Oman (+968)</option>
+                                <option value="+92" data-country="PK">Pakistan (+92)</option>
+                                <option value="+507" data-country="PA">Panama (+507)</option>
+                                <option value="+595" data-country="PY">Paraguay (+595)</option>
+                                <option value="+51" data-country="PE">Peru (+51)</option>
+                                <option value="+63" data-country="PH">Philippines (+63)</option>
+                                <option value="+48" data-country="PL">Poland (+48)</option>
+                                <option value="+351" data-country="PT">Portugal (+351)</option>
+                                <option value="+974" data-country="QA">Qatar (+974)</option>
+                                <option value="+40" data-country="RO">Romania (+40)</option>
+                                <option value="+7" data-country="RU">Russia (+7)</option>
+                                <option value="+250" data-country="RW">Rwanda (+250)</option>
+                                <option value="+966" data-country="SA">Saudi Arabia (+966)</option>
+                                <option value="+221" data-country="SN">Senegal (+221)</option>
+                                <option value="+381" data-country="RS">Serbia (+381)</option>
+                                <option value="+65" data-country="SG" selected>Singapore (+65)</option>
+                                <option value="+421" data-country="SK">Slovakia (+421)</option>
+                                <option value="+386" data-country="SI">Slovenia (+386)</option>
+                                <option value="+27" data-country="ZA">South Africa (+27)</option>
+                                <option value="+82" data-country="KR">South Korea (+82)</option>
+                                <option value="+34" data-country="ES">Spain (+34)</option>
+                                <option value="+94" data-country="LK">Sri Lanka (+94)</option>
+                                <option value="+249" data-country="SD">Sudan (+249)</option>
+                                <option value="+597" data-country="SR">Suriname (+597)</option>
+                                <option value="+46" data-country="SE">Sweden (+46)</option>
+                                <option value="+41" data-country="CH">Switzerland (+41)</option>
+                                <option value="+963" data-country="SY">Syria (+963)</option>
+                                <option value="+886" data-country="TW">Taiwan (+886)</option>
+                                <option value="+992" data-country="TJ">Tajikistan (+992)</option>
+                                <option value="+255" data-country="TZ">Tanzania (+255)</option>
+                                <option value="+66" data-country="TH">Thailand (+66)</option>
+                                <option value="+228" data-country="TG">Togo (+228)</option>
+                                <option value="+216" data-country="TN">Tunisia (+216)</option>
+                                <option value="+90" data-country="TR">Turkey (+90)</option>
+                                <option value="+993" data-country="TM">Turkmenistan (+993)</option>
+                                <option value="+256" data-country="UG">Uganda (+256)</option>
+                                <option value="+380" data-country="UA">Ukraine (+380)</option>
+                                <option value="+971" data-country="AE">UAE (+971)</option>
+                                <option value="+44" data-country="GB">United Kingdom (+44)</option>
+                                <option value="+598" data-country="UY">Uruguay (+598)</option>
+                                <option value="+998" data-country="UZ">Uzbekistan (+998)</option>
+                                <option value="+58" data-country="VE">Venezuela (+58)</option>
+                                <option value="+84" data-country="VN">Vietnam (+84)</option>
+                                <option value="+967" data-country="YE">Yemen (+967)</option>
+                                <option value="+260" data-country="ZM">Zambia (+260)</option>
+                                <option value="+263" data-country="ZW">Zimbabwe (+263)</option>
+                            </select>
+                        </div>
+                        <div class="col-7">
+                            <input type="tel" id="customer-phone" class="form-control" placeholder="e.g. 91234567" required>
+                        </div>
+                    </div>
+                    <span class="date-error" id="customer-phone-error"></span>
+                    <small class="text-muted" style="display:block; margin-top:4px;">Select your country and enter your phone number (without country code).</small>
                 </div>
 
                 <!-- Delivery Address Input (Shows when Delivery is selected, hidden by default) -->
@@ -670,15 +834,38 @@ async function processPayment(){
     // Clear previous error messages
     errorMsg.innerText = '';
 
-    /* ========== VALIDATE EMAIL ========== */
-    const emailVal = document.getElementById('customer-email').value.trim();
-    const emailError = document.getElementById('customer-email-error');
-    if (!emailVal || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
-        emailError.textContent = 'Please enter a valid email address.';
-        document.getElementById('customer-email').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    /* ========== VALIDATE PHONE NUMBER ========== */
+    const countryCode = document.getElementById('country-code').value;
+    const phoneVal = document.getElementById('customer-phone').value.trim();
+    const phoneError = document.getElementById('customer-phone-error');
+    
+    // Check if country is selected
+    if (!countryCode) {
+        phoneError.textContent = 'Please select your country.';
+        document.getElementById('country-code').scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
     }
-    emailError.textContent = '';
+    
+    // Check if phone number is entered
+    if (!phoneVal) {
+        phoneError.textContent = 'Please enter your phone number.';
+        document.getElementById('customer-phone').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+    }
+    
+    // Remove spaces, dashes, parentheses from phone number
+    const cleanedPhone = phoneVal.replace(/[\s\-\(\)]/g, '');
+    
+    // Phone must be 7-15 digits only (no + sign since country code is separate)
+    const phoneRegex = /^[0-9]{7,15}$/;
+    
+    if (!phoneRegex.test(cleanedPhone)) {
+        phoneError.textContent = 'Invalid phone number. Enter 7-15 digits (no country code).';
+        document.getElementById('customer-phone').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+    }
+    
+    phoneError.textContent = '';
 
     /* ========== VALIDATE PICKUP DATE (IF PICKUP METHOD) ========== */
     if(currentFulfillment === 'pickup'){
@@ -793,7 +980,7 @@ async function processPayment(){
         fulfillment_method: currentFulfillment,
         fulfillment_details: fulfillmentDetails,
         payment_method: method,
-        customer_email: document.getElementById('customer-email').value.trim()
+        customer_phone: document.getElementById('country-code').value + ' ' + document.getElementById('customer-phone').value.trim()
     };
 
     /* ========== SUBMIT PAYMENT TO SERVER ========== */
@@ -977,6 +1164,38 @@ document.addEventListener('DOMContentLoaded', function(){
             deliveryAddressInput.classList.remove('input-error');
             document.getElementById('delivery-address-error').textContent = '';
         }
+    });
+    
+    // Add country search - user can type abbreviation (e.g., "US", "SG", "UK")
+    const countrySelect = document.getElementById('country-code');
+    let searchTimeout;
+    let searchTerm = '';
+    
+    countrySelect.addEventListener('keypress', function(e) {
+        // Prevent default select behavior
+        e.preventDefault();
+        
+        // Build search term from typed characters
+        searchTerm += e.key.toUpperCase();
+        
+        // Clear timeout if exists
+        clearTimeout(searchTimeout);
+        
+        // Find matching country by abbreviation
+        const options = Array.from(countrySelect.options);
+        const match = options.find(opt => {
+            const countryCode = opt.getAttribute('data-country');
+            return countryCode && countryCode.startsWith(searchTerm);
+        });
+        
+        if (match) {
+            countrySelect.value = match.value;
+        }
+        
+        // Reset search term after 1 second of no typing
+        searchTimeout = setTimeout(() => {
+            searchTerm = '';
+        }, 1000);
     });
 });
 

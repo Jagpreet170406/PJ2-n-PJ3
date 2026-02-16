@@ -77,9 +77,14 @@ def init_db():
         conn.execute("CREATE INDEX IF NOT EXISTS idx_sil_prod    ON sales_invoice_line(product_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_prod_name   ON products(hem_name)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_cust_code   ON customers(customer_code)")
-        # Migrate: add customer_email if not exists
+        # Migrate: add customer_email if not exists (legacy, keeping for backward compatibility)
         try:
             conn.execute("ALTER TABLE transactions ADD COLUMN customer_email TEXT DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass
+        # Migrate: add customer_phone column
+        try:
+            conn.execute("ALTER TABLE transactions ADD COLUMN customer_phone TEXT DEFAULT ''")
         except sqlite3.OperationalError:
             pass
         conn.commit()
@@ -302,7 +307,7 @@ def process_payment():
     total_amount = data.get('total_amount', 0)
     fulfillment_method = data.get('fulfillment_method', 'pickup')
     fulfillment_details = data.get('fulfillment_details', '')
-    customer_email = data.get('customer_email', '')
+    customer_phone = data.get('customer_phone', '')
     username = session.get("username", "Guest")
 
     if not cart_items:
@@ -313,9 +318,9 @@ def process_payment():
             # Insert into transactions table with fulfillment info
             cursor = conn.execute(
                 """INSERT INTO transactions 
-                   (username, payment_type, amount, status, fulfillment_method, fulfillment_details, customer_email) 
+                   (username, payment_type, amount, status, fulfillment_method, fulfillment_details, customer_phone) 
                    VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                (username, payment_method, total_amount, 'Incoming', fulfillment_method, fulfillment_details, customer_email)
+                (username, payment_method, total_amount, 'Incoming', fulfillment_method, fulfillment_details, customer_phone)
             )
             order_id = cursor.lastrowid
             
@@ -376,6 +381,15 @@ def orders():
     offset = (page - 1) * per_page
     
     with get_db() as conn:
+        # Get counts for all tabs
+        counts = {}
+        for tab in tabs:
+            count = conn.execute(
+                "SELECT COUNT(*) FROM transactions WHERE status = ?",
+                (tab,)
+            ).fetchone()[0]
+            counts[tab] = count
+        
         where_clauses = ["status = ?"]
         params = [active_tab]
         
@@ -393,11 +407,13 @@ def orders():
         
         total_pages = (total_count + per_page - 1) // per_page
         
-        # Fetch orders with their items
+        # Fetch orders with their items (changed customer_email to customer_phone)
         rows = conn.execute(
             f"""
-            SELECT id as transaction_id, username, payment_type, amount, status, 
-                   fulfillment_method, fulfillment_details, customer_email, timestamp as created_at
+            SELECT id, username, payment_type, amount, status, 
+                   fulfillment_method, fulfillment_details, 
+                   COALESCE(customer_phone, customer_email, '') as customer_phone, 
+                   timestamp
             FROM transactions
             {where_sql}
             ORDER BY timestamp DESC
@@ -410,7 +426,7 @@ def orders():
         orders_with_items = []
         for row in rows:
             order_dict = dict(row)
-            order_id = order_dict['transaction_id']
+            order_id = order_dict['id']
             
             # Get items for this order
             items = conn.execute(
@@ -428,7 +444,8 @@ def orders():
         "orders.html",
         tabs=tabs,
         active_tab=active_tab,
-        orders=orders_with_items,
+        orders_list=orders_with_items,
+        counts=counts,
         current_page=page,
         total_pages=total_pages,
         search_query=search_query,
@@ -501,91 +518,6 @@ def cancel_order(order_id):
             })
             
     except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
-
-@app.route("/api/notify-pickup/<int:order_id>", methods=["POST"])
-@csrf.exempt
-@require_staff
-def notify_pickup(order_id):
-    """API: Email customer via Mailjet when pickup order is ready."""
-    import urllib.request
-    import urllib.error
-    import base64
-
-    MJ_API_KEY    = os.getenv("MAILJET_API_KEY")
-    MJ_SECRET_KEY = os.getenv("MAILJET_SECRET_KEY")
-    FROM_EMAIL    = os.getenv("MAILJET_FROM_EMAIL")  # must be verified in Mailjet
-
-    if not MJ_API_KEY or not MJ_SECRET_KEY or not FROM_EMAIL:
-        return jsonify({"success": False, "message": "Mailjet not configured — set MAILJET_API_KEY, MAILJET_SECRET_KEY, MAILJET_FROM_EMAIL env vars"}), 500
-
-    try:
-        with get_db() as conn:
-            order = conn.execute(
-                "SELECT id, customer_email, amount FROM transactions WHERE id = ?",
-                (order_id,)
-            ).fetchone()
-
-            if not order:
-                return jsonify({"success": False, "message": "Order not found"}), 404
-
-            to_email = order["customer_email"]
-            if not to_email:
-                return jsonify({"success": False, "message": "No email address on this order"}), 400
-
-            payload = json.dumps({
-                "Messages": [{
-                    "From": {"Email": FROM_EMAIL, "Name": "Chin Hon Motors"},
-                    "To":   [{"Email": to_email}],
-                    "Subject": f"Your Order #{order['id']} is Ready for Collection!",
-                    "HTMLPart": f"""
-                    <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:32px;background:#f9f9f9;border-radius:12px;">
-                        <h2 style="color:#111;">Hi there! Your order is ready. 🎉</h2>
-                        <p style="color:#444;font-size:1rem;line-height:1.6;">
-                            <strong>Order #{order['id']}</strong> has been packed and is ready for self-collection.
-                        </p>
-                        <div style="background:#fff;border-radius:8px;padding:20px;margin:24px 0;border-left:4px solid #10b981;">
-                            <p style="margin:0 0 8px;font-size:0.95rem;color:#333;">
-                                📍 <strong>Pickup Location</strong><br>62 Race Course Rd, Singapore 218568
-                            </p>
-                            <p style="margin:8px 0 0;font-size:0.95rem;color:#333;">
-                                🕐 <strong>Opening Hours</strong><br>Mon–Sat: 9am – 6pm
-                            </p>
-                        </div>
-                        <p style="color:#444;font-size:0.9rem;">Please bring along this email or your order number when you arrive.</p>
-                        <p style="color:#888;font-size:0.8rem;margin-top:32px;">— Chin Hon Motors</p>
-                    </div>
-                    """
-                }]
-            }).encode("utf-8")
-
-            credentials = base64.b64encode(f"{MJ_API_KEY}:{MJ_SECRET_KEY}".encode()).decode()
-            req = urllib.request.Request(
-                "https://api.mailjet.com/v3.1/send",
-                data=payload,
-                headers={
-                    "Content-Type":  "application/json",
-                    "Authorization": f"Basic {credentials}"
-                },
-                method="POST"
-            )
-
-            with urllib.request.urlopen(req) as resp:
-                result = json.loads(resp.read().decode())
-                status = result.get("Messages", [{}])[0].get("Status", "")
-                if status == "success":
-                    return jsonify({"success": True, "message": f"Email sent to {to_email}"})
-                else:
-                    return jsonify({"success": False, "message": str(result)}), 500
-
-    except urllib.error.HTTPError as e:
-        body = e.read().decode()
-        print(f"[notify-pickup] HTTPError: {body}")
-        return jsonify({"success": False, "message": f"Mailjet error: {body}"}), 500
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        print(f"[notify-pickup] Exception: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/feedback")

@@ -228,22 +228,21 @@ body {
 /* ORDERS GRID - Card layout instead of table */
 .orders-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 20px;
 }
 
 .order-card {
-    background: rgba(0,0,0,0.30);
+    background: rgba(0,0,0,0.35);
     border: 1px solid rgba(255,255,255,0.12);
     border-radius: 16px;
     padding: 20px;
-    transition: all 0.3s;
+    transition: all 0.25s ease;
 }
 
 .order-card:hover {
-    border-color: rgba(255,255,255,0.25);
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    border-color: rgba(255,255,255,0.22);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    transform: translateY(-2px);
 }
 
 .order-card-header {
@@ -251,29 +250,53 @@ body {
     justify-content: space-between;
     align-items: flex-start;
     margin-bottom: 16px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.10);
+    flex-wrap: wrap;
+    gap: 12px;
 }
 
-.order-customer {
-    color: rgba(255,255,255,0.65);
-    font-size: 0.9rem;
-    margin-top: 4px;
+.order-id {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: rgba(255,255,255,0.95);
 }
 
-.order-card-details {
+.order-status-badge {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.status-incoming { background: rgba(59, 130, 246, 0.25); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4); }
+.status-in-progress { background: rgba(251, 191, 36, 0.25); color: #fcd34d; border: 1px solid rgba(251, 191, 36, 0.4); }
+.status-awaiting-pickup { background: rgba(168, 85, 247, 0.25); color: #c4b5fd; border: 1px solid rgba(168, 85, 247, 0.4); }
+.status-out-for-delivery { background: rgba(234, 179, 8, 0.25); color: #fde047; border: 1px solid rgba(234, 179, 8, 0.4); }
+.status-completed { background: rgba(34, 197, 94, 0.25); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.4); }
+.status-issues { background: rgba(239, 68, 68, 0.25); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); }
+
+.order-details {
+    display: grid;
+    gap: 10px;
     margin-bottom: 16px;
 }
 
 .order-detail-row {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     padding: 8px 0;
-    font-size: 0.9rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
 .detail-label {
-    color: rgba(255,255,255,0.55);
+    color: rgba(255,255,255,0.65);
+    font-size: 0.9rem;
+}
+
+.detail-value {
+    color: rgba(255,255,255,0.95);
     font-weight: 600;
 }
 
@@ -281,468 +304,438 @@ body {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+    margin-top: 16px;
 }
 
 .action-btn {
     flex: 1;
     min-width: 140px;
-    padding: 12px 16px;
+    padding: 10px 16px;
     border-radius: 10px;
     border: none;
-    font-weight: 800;
+    font-weight: 700;
     font-size: 0.85rem;
     cursor: pointer;
     transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-}
-
-.action-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-}
-
-.btn-start {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    color: white;
-}
-
-.btn-start:hover {
-    box-shadow: 0 6px 20px rgba(59,130,246,0.4);
-}
-
-.btn-ready {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: white;
-}
-
-.btn-ready:hover {
-    box-shadow: 0 6px 20px rgba(16,185,129,0.4);
-}
-
-.btn-deliver {
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-    color: white;
-}
-
-.btn-deliver:hover {
-    box-shadow: 0 6px 20px rgba(139,92,246,0.4);
-}
-
-.btn-pickup {
-    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-    color: white;
-}
-
-.btn-pickup:hover {
-    box-shadow: 0 6px 20px rgba(6,182,212,0.4);
-}
-
-.btn-complete {
-    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    color: white;
-}
-
-.btn-complete:hover {
-    box-shadow: 0 6px 20px rgba(34,197,94,0.4);
-}
-
-.btn-reject,
-.btn-cancel {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    color: white;
-}
-
-.btn-reject:hover,
-.btn-cancel:hover {
-    box-shadow: 0 6px 20px rgba(239,68,68,0.4);
-}
-
-.btn-restart {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    color: white;
-}
-
-.btn-restart:hover {
-    box-shadow: 0 6px 20px rgba(245,158,11,0.4);
-}
-
-/* ORDER ID - make it stand out */
-.order-id {
-    font-weight: 800;
-    color: #fff;
-    font-size: 1rem;
-}
-
-/* AMOUNT - highlight in green */
-.order-amount {
-    font-weight: 800;
-    color: #10b981;
-    font-size: 1.05rem;
-}
-
-/* STATUS BADGES */
-.status-badge {
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 0.75rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    display: inline-block;
-}
-
-.status-incoming {
-    background: rgba(59, 130, 246, 0.15);
-    color: #60a5fa;
-    border: 1px solid rgba(59, 130, 246, 0.25);
-}
-
-.status-progress {
-    background: rgba(245, 158, 11, 0.15);
-    color: #fbbf24;
-    border: 1px solid rgba(245, 158, 11, 0.25);
-}
-
-.status-ready {
-    background: rgba(16, 185, 129, 0.15);
-    color: #34d399;
-    border: 1px solid rgba(16, 185, 129, 0.25);
-}
-
-.status-delivery {
-    background: rgba(139, 92, 246, 0.15);
-    color: #a78bfa;
-    border: 1px solid rgba(139, 92, 246, 0.25);
-}
-
-.status-completed {
-    background: rgba(34, 197, 94, 0.15);
-    color: #4ade80;
-    border: 1px solid rgba(34, 197, 94, 0.25);
-}
-
-.status-issues {
-    background: rgba(239, 68, 68, 0.15);
-    color: #f87171;
-    border: 1px solid rgba(239, 68, 68, 0.25);
-}
-
-/* ============================================================
-   BIG NOTIFICATION (matches Inventory.html)
-   ============================================================ */
-.big-notification {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0);
-    background: rgba(15, 15, 15, 0.96);
-    border: 2px solid rgba(255,255,255,0.20);
-    color: #ef4444;
-    padding: 50px 70px;
-    border-radius: 24px;
-    font-size: 32px;
-    font-weight: 900;
     text-align: center;
-    z-index: 9999;
-    box-shadow: 0 30px 90px rgba(0,0,0,0.60);
-    backdrop-filter: blur(20px);
-    opacity: 0;
-    pointer-events: none;
-    min-width: 400px;
-}
-.big-notification.success { color: #10b981; border-color: rgba(16,185,129,0.35); }
-.big-notification.warning { color: #f59e0b; border-color: rgba(245,158,11,0.35); }
-.big-notification.show { animation: bigPopIn 0.45s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards; }
-.big-notification.hide { animation: bigPopOut 0.35s ease-in forwards; }
-@keyframes bigPopIn {
-    0%   { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-    50%  { transform: translate(-50%, -50%) scale(1.1); }
-    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-}
-@keyframes bigPopOut {
-    0%   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-    100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
 }
 
-/* ============================================================
-   CONFIRM MODAL
-   ============================================================ */
-.confirm-modal {
-    display: none;
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,0.80);
-    z-index: 2000;
-    align-items: center;
-    justify-content: center;
+.action-btn-green {
+    background: rgba(34, 197, 94, 0.20);
+    color: #86efac;
+    border: 1px solid rgba(34, 197, 94, 0.35);
 }
-.confirm-modal.active { display: flex; }
-.confirm-modal-content {
-    background: rgba(15, 15, 15, 0.95);
-    padding: 36px 32px;
-    border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.14);
-    max-width: 480px;
-    width: 92%;
-    text-align: center;
-    box-shadow: 0 20px 80px rgba(0,0,0,0.50);
-    color: rgba(255,255,255,0.92);
+
+.action-btn-green:hover {
+    background: rgba(34, 197, 94, 0.30);
+    border-color: rgba(34, 197, 94, 0.5);
+    transform: translateY(-1px);
 }
-.confirm-modal-icon { font-size: 3rem; margin-bottom: 12px; }
-.confirm-modal-content h3 { font-size: 1.4rem; font-weight: 900; margin-bottom: 10px; }
-.confirm-modal-content h3.danger  { color: #ef4444; }
-.confirm-modal-content h3.warning { color: #f59e0b; }
-.confirm-modal-content h3.success { color: #10b981; }
-.confirm-modal-content p { color: rgba(255,255,255,0.65); margin-bottom: 24px; line-height: 1.6; font-size: 0.95rem; }
-.confirm-modal-actions { display: flex; gap: 12px; }
-.confirm-modal-actions button { flex: 1; padding: 13px; border-radius: 12px; border: none; cursor: pointer; font-weight: 900; font-size: 14px; transition: opacity 0.15s; }
-.confirm-modal-actions button:hover { opacity: 0.85; }
-.confirm-cancel-btn  { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.75); border: 1px solid rgba(255,255,255,0.15) !important; }
-.confirm-go-btn-green  { background: #10b981; color: #fff; }
-.confirm-go-btn-yellow { background: #f59e0b; color: #000; }
-.confirm-go-btn-red    { background: #ef4444; color: #fff; }
+
+.action-btn-yellow {
+    background: rgba(251, 191, 36, 0.20);
+    color: #fcd34d;
+    border: 1px solid rgba(251, 191, 36, 0.35);
+}
+
+.action-btn-yellow:hover {
+    background: rgba(251, 191, 36, 0.30);
+    border-color: rgba(251, 191, 36, 0.5);
+    transform: translateY(-1px);
+}
+
+.action-btn-red {
+    background: rgba(239, 68, 68, 0.20);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.action-btn-red:hover {
+    background: rgba(239, 68, 68, 0.30);
+    border-color: rgba(239, 68, 68, 0.5);
+    transform: translateY(-1px);
+}
 
 /* EMPTY STATE */
 .empty-state {
     text-align: center;
-    padding: 80px 20px;
-}
-
-.empty-icon {
-    font-size: 5rem;
-    margin-bottom: 1rem;
-    opacity: 0.3;
+    padding: 60px 20px;
+    color: rgba(255,255,255,0.6);
 }
 
 .empty-state h3 {
     font-size: 1.5rem;
-    color: rgba(255,255,255,0.85);
-    margin-bottom: 0.5rem;
+    margin-bottom: 12px;
+    color: rgba(255,255,255,0.8);
 }
 
-.empty-state p {
-    color: rgba(255,255,255,0.55);
-    font-size: 1rem;
-}
-
-/* PAGINATION - matches dashboard */
+/* PAGINATION */
 .pagination {
     display: flex;
-    gap: 8px;
     justify-content: center;
-    margin-top: 24px;
+    gap: 8px;
+    margin-top: 32px;
     flex-wrap: wrap;
 }
 
-.pagination a,
-.pagination span {
+.pagination a, .pagination span {
     padding: 10px 16px;
     border-radius: 10px;
-    background: rgba(255,255,255,0.10);
-    color: rgba(255,255,255,0.85);
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.75);
     text-decoration: none;
-    font-weight: 700;
+    border: 1px solid rgba(255,255,255,0.12);
     transition: all 0.2s;
-    border: 1px solid rgba(255,255,255,0.14);
+    font-weight: 600;
 }
 
 .pagination a:hover {
-    background: rgba(255,255,255,0.16);
-    transform: translateY(-1px);
+    background: rgba(255,255,255,0.14);
+    border-color: rgba(255,255,255,0.22);
+    color: rgba(255,255,255,0.92);
 }
 
 .pagination span.active {
     background: rgba(255,255,255,0.92);
     color: #111827;
+    border-color: rgba(255,255,255,0.92);
 }
 
-/* RESPONSIVE */
+/* CONFIRM MODAL */
+.confirm-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(8px);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+.confirm-modal.active {
+    display: flex;
+}
+
+.confirm-modal-content {
+    background: rgba(17, 24, 39, 0.95);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    padding: 32px;
+    max-width: 450px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+}
+
+.confirm-modal-icon {
+    font-size: 3.5rem;
+    margin-bottom: 16px;
+}
+
+.confirm-modal-content h3 {
+    font-size: 1.5rem;
+    margin-bottom: 12px;
+    font-weight: 800;
+}
+
+.confirm-modal-content h3.success { color: #86efac; }
+.confirm-modal-content h3.warning { color: #fcd34d; }
+.confirm-modal-content h3.danger { color: #fca5a5; }
+
+.confirm-modal-content p {
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 24px;
+    line-height: 1.6;
+}
+
+.confirm-modal-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.confirm-cancel-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.85);
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.confirm-cancel-btn:hover {
+    background: rgba(255,255,255,0.14);
+    border-color: rgba(255,255,255,0.28);
+}
+
+.confirm-go-btn-green, .confirm-go-btn-yellow, .confirm-go-btn-red {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    border: none;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.confirm-go-btn-green {
+    background: rgba(34, 197, 94, 0.25);
+    color: #86efac;
+    border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.confirm-go-btn-green:hover {
+    background: rgba(34, 197, 94, 0.35);
+    border-color: rgba(34, 197, 94, 0.6);
+}
+
+.confirm-go-btn-yellow {
+    background: rgba(251, 191, 36, 0.25);
+    color: #fcd34d;
+    border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+.confirm-go-btn-yellow:hover {
+    background: rgba(251, 191, 36, 0.35);
+    border-color: rgba(251, 191, 36, 0.6);
+}
+
+.confirm-go-btn-red {
+    background: rgba(239, 68, 68, 0.25);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.confirm-go-btn-red:hover {
+    background: rgba(239, 68, 68, 0.35);
+    border-color: rgba(239, 68, 68, 0.6);
+}
+
+/* BIG NOTIFICATION */
+.big-notification {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    background: rgba(239, 68, 68, 0.95);
+    color: #fff;
+    padding: 40px 60px;
+    border-radius: 20px;
+    font-size: 1.8rem;
+    font-weight: 900;
+    text-align: center;
+    z-index: 10000;
+    box-shadow: 0 30px 70px rgba(0,0,0,0.6);
+    backdrop-filter: blur(12px);
+    border: 2px solid rgba(255,255,255,0.25);
+    opacity: 0;
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.big-notification.success {
+    background: rgba(34, 197, 94, 0.95);
+    border-color: rgba(134, 239, 172, 0.4);
+}
+
+.big-notification.warning {
+    background: rgba(251, 191, 36, 0.95);
+    border-color: rgba(252, 211, 77, 0.4);
+}
+
+.big-notification.show {
+    display: block;
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.big-notification.hide {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+}
+
 @media (max-width: 768px) {
-    .hero h1 {
-        font-size: 2.2rem;
-    }
-
-    .orders-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .tabs-container {
-        justify-content: flex-start;
-    }
-
-    .tab-btn {
-        font-size: 0.85rem;
-        padding: 10px 18px;
-    }
-
-    .action-btn {
-        min-width: 100%;
-    }
+    .hero h1 { font-size: 2.2rem; }
+    .order-card-header { flex-direction: column; align-items: flex-start; }
+    .action-btn { min-width: 100%; }
+    .big-notification { font-size: 1.3rem; padding: 30px 40px; }
 }
 </style>
 
 <div class="page-wrap">
-    <!-- Hero Header -->
+    <!-- Hero -->
     <div class="hero">
-        <h1>Orders Management</h1>
-        <p>Track and manage customer orders across all workflow stages</p>
+        <h1>📦 Orders Management</h1>
+        <p>Track and manage customer orders through the workflow</p>
     </div>
 
+    <!-- Main Container -->
     <div class="container">
-        <!-- Workflow Tabs -->
-        <div class="tabs-container">
-            {% for tab in tabs %}
-            <a href="{{ url_for('orders', tab=tab, search=search_query) }}" 
-               class="tab-btn {% if tab == active_tab %}active{% endif %}">
-                {{ tab }}
-            </a>
-            {% endfor %}
-        </div>
-
-        <!-- Search Section -->
         <div class="section-card">
-            <form method="GET" action="{{ url_for('orders') }}" class="search-bar">
-                <input type="hidden" name="tab" value="{{ active_tab }}">
-                <input type="text" 
-                       name="search" 
-                       class="search-input" 
-                       placeholder="Search by order ID, customer, or payment type..." 
-                       value="{{ search_query }}">
-                <button type="submit" class="btn btn-primary">Search</button>
-                {% if search_query %}
-                <a href="{{ url_for('orders', tab=active_tab) }}" class="btn btn-secondary">Clear</a>
-                {% endif %}
-            </form>
-        </div>
-
-        <!-- Orders List -->
-        <div class="section-card">
-            <div class="section-header">
-                <h2 class="section-title">{{ active_tab }} Orders</h2>
-                <div style="color: rgba(255,255,255,0.65); font-size: 0.9rem;">
-                    Showing {{ orders|length }} orders
-                </div>
+            <!-- Tabs for workflow stages -->
+            <div class="tabs-container">
+                <a href="{{ url_for('orders', tab='Incoming') }}" 
+                   class="tab-btn {% if active_tab == 'Incoming' %}active{% endif %}">
+                    📥 Incoming ({{ counts.get('Incoming', 0) }})
+                </a>
+                <a href="{{ url_for('orders', tab='In Progress') }}" 
+                   class="tab-btn {% if active_tab == 'In Progress' %}active{% endif %}">
+                    📦 In Progress ({{ counts.get('In Progress', 0) }})
+                </a>
+                <a href="{{ url_for('orders', tab='Awaiting Pickup') }}" 
+                   class="tab-btn {% if active_tab == 'Awaiting Pickup' %}active{% endif %}">
+                    🏪 Awaiting Pickup ({{ counts.get('Awaiting Pickup', 0) }})
+                </a>
+                <a href="{{ url_for('orders', tab='Out for Delivery') }}" 
+                   class="tab-btn {% if active_tab == 'Out for Delivery' %}active{% endif %}">
+                    🚚 Out for Delivery ({{ counts.get('Out for Delivery', 0) }})
+                </a>
+                <a href="{{ url_for('orders', tab='Completed') }}" 
+                   class="tab-btn {% if active_tab == 'Completed' %}active{% endif %}">
+                    ✅ Completed ({{ counts.get('Completed', 0) }})
+                </a>
+                <a href="{{ url_for('orders', tab='Issues') }}" 
+                   class="tab-btn {% if active_tab == 'Issues' %}active{% endif %}">
+                    ⚠️ Issues ({{ counts.get('Issues', 0) }})
+                </a>
             </div>
 
-            {% if orders %}
+            <!-- Search Bar -->
+            <div class="search-bar">
+                <form method="get" action="{{ url_for('orders') }}" style="display: flex; gap: 12px; flex: 1;">
+                    <input type="hidden" name="tab" value="{{ active_tab }}">
+                    <input 
+                        type="text" 
+                        name="search" 
+                        class="search-input" 
+                        placeholder="Search by Order ID, Customer Email, or Payment Type..."
+                        value="{{ search_query or '' }}"
+                    >
+                    <button type="submit" class="btn btn-primary">Search</button>
+                    {% if search_query %}
+                    <a href="{{ url_for('orders', tab=active_tab) }}" class="btn btn-secondary">Clear</a>
+                    {% endif %}
+                </form>
+            </div>
+
+            <!-- Orders Display -->
+            {% if orders_list %}
             <div class="orders-grid">
-                {% for order in orders %}
+                {% for order in orders_list %}
                 <div class="order-card">
+                    <!-- Header -->
                     <div class="order-card-header">
-                        <div>
-                            <span class="order-id">#{{ order.transaction_id }}</span>
-                            <div class="order-customer">{{ order.username }}</div>
-                        </div>
-                        <div class="order-amount">S$ {{ "{:,.2f}".format(order.amount) }}</div>
+                        <div class="order-id">Order #{{ order['id'] }}</div>
+                        <span class="order-status-badge status-{{ order['status'].lower().replace(' ', '-') }}">
+                            {{ order['status'] }}
+                        </span>
                     </div>
-                    
-                    <div class="order-card-details">
+
+                    <!-- Details -->
+                    <div class="order-details">
                         <div class="order-detail-row">
-                            <span class="detail-label">Payment:</span>
-                            <span>{{ order.payment_type }}</span>
-                        </div>
-                        <div class="order-detail-row">
-                            <span class="detail-label">Date:</span>
-                            <span>{{ order.created_at[:16] if order.created_at else 'N/A' }}</span>
-                        </div>
-                        <div class="order-detail-row">
-                            <span class="detail-label">Fulfillment:</span>
-                            <span>
-                                {% if order.fulfillment_method == 'delivery' %}
-                                    🚚 Delivery
+                            <span class="detail-label">Customer Phone</span>
+                            <span class="detail-value">
+                                {% if order['customer_phone'] %}
+                                    <a href="tel:{{ order['customer_phone'] }}" 
+                                       style="color: #60a5fa; text-decoration: none;">
+                                        {{ order['customer_phone'] }}
+                                    </a>
                                 {% else %}
-                                    🏪 Self-Pickup
+                                    N/A
                                 {% endif %}
                             </span>
                         </div>
-                        {% if order.fulfillment_details %}
-                        <div class="order-detail-row" style="grid-column: 1/-1; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.08);">
-                            <span class="detail-label" style="font-size: 0.8rem;">Details:</span>
-                            <span style="font-size: 0.8rem; color: rgba(255,255,255,0.7);">{{ order.fulfillment_details }}</span>
+                        <div class="order-detail-row">
+                            <span class="detail-label">Amount</span>
+                            <span class="detail-value">S${{ "%.2f"|format(order['amount'] or 0) }}</span>
+                        </div>
+                        <div class="order-detail-row">
+                            <span class="detail-label">Payment</span>
+                            <span class="detail-value">{{ order['payment_type'] or 'N/A' }}</span>
+                        </div>
+                        <div class="order-detail-row">
+                            <span class="detail-label">Fulfillment</span>
+                            <span class="detail-value">
+                                {{ order['fulfillment_method']|title if order['fulfillment_method'] else 'N/A' }}
+                            </span>
+                        </div>
+                        {% if order['fulfillment_details'] %}
+                        <div class="order-detail-row">
+                            <span class="detail-label">Details</span>
+                            <span class="detail-value">{{ order['fulfillment_details'] }}</span>
                         </div>
                         {% endif %}
+                        <div class="order-detail-row">
+                            <span class="detail-label">Date</span>
+                            <span class="detail-value">{{ order['timestamp'] }}</span>
+                        </div>
                     </div>
 
-                    <!-- Order Items Section -->
-                    {% if order.order_items %}
-                    <div style="margin: 16px 0; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
-                        <div style="font-size: 0.85rem; font-weight: 700; color: rgba(255,255,255,0.6); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
-                            📦 Items ({{ order.order_items|length }})
-                        </div>
-                        {% for item in order.order_items %}
-                        <div style="display: flex; align-items: center; gap: 12px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px; margin-bottom: 8px;">
-                            <img src="{{ item.image_url }}" 
-                                 style="width: 45px; height: 45px; object-fit: contain; border-radius: 4px; background: white; padding: 4px;"
-                                 onerror="this.src='/static/product_images_v2/placeholder.png';">
-                            <div style="flex: 1; min-width: 0;">
-                                <div style="font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.9); line-height: 1.3;">
-                                    {{ item.product_name }}
-                                </div>
-                                {% if item.product_sku %}
-                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 2px;">
-                                    SKU: {{ item.product_sku }}
-                                </div>
-                                {% endif %}
-                            </div>
-                            <div style="text-align: right; flex-shrink: 0;">
-                                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.6);">
-                                    Qty: {{ item.quantity }}
-                                </div>
-                                <div style="font-size: 0.85rem; font-weight: 700; color: rgba(255,255,255,0.9);">
-                                    S$ {{ "{:.2f}".format(item.unit_price * item.quantity) }}
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <div style="padding: 16px; text-align: center; color: rgba(255,255,255,0.5); font-size: 0.9rem; font-style: italic;">
-                        No items found for this order
-                    </div>
-                    {% endif %}
-
+                    <!-- Actions based on current status -->
                     <div class="order-actions">
-                        {% if active_tab == 'Incoming' %}
-                            <button class="action-btn btn-start" onclick="updateOrderStatus({{ order.transaction_id }}, 'In Progress')">
-                                Start Packing
+                        {% if order['status'] == 'Incoming' %}
+                            <button class="action-btn action-btn-green" 
+                                    onclick="updateOrderStatus({{ order['id'] }}, 'In Progress')">
+                                📦 Start Packing
                             </button>
-                            <button class="action-btn btn-reject" onclick="updateOrderStatus({{ order.transaction_id }}, 'Issues')">
-                                Reject
+                            <button class="action-btn action-btn-red" 
+                                    onclick="updateOrderStatus({{ order['id'] }}, 'Issues')">
+                                ⚠️ Flag Issue
                             </button>
-                        {% elif active_tab == 'In Progress' %}
-                            {% if order.fulfillment_method == 'pickup' %}
-                                <button class="action-btn btn-pickup" onclick="updateOrderStatus({{ order.transaction_id }}, 'Awaiting Pickup')">
-                                    Done Packing — Notify Customer
+                            <button class="action-btn action-btn-red" 
+                                    onclick="cancelOrder({{ order['id'] }})">
+                                🗑️ Cancel
+                            </button>
+
+                        {% elif order['status'] == 'In Progress' %}
+                            {% if order['fulfillment_method'] == 'pickup' %}
+                                <button class="action-btn action-btn-green" 
+                                        onclick="updateOrderStatus({{ order['id'] }}, 'Awaiting Pickup')">
+                                    🏪 Mark Ready for Pickup
                                 </button>
                             {% else %}
-                                <button class="action-btn btn-deliver" onclick="updateOrderStatus({{ order.transaction_id }}, 'Out for Delivery')">
-                                    Done Packing — Out for Delivery
+                                <button class="action-btn action-btn-yellow" 
+                                        onclick="updateOrderStatus({{ order['id'] }}, 'Out for Delivery')">
+                                    🚚 Out for Delivery
                                 </button>
                             {% endif %}
-                            <button class="action-btn btn-reject" onclick="updateOrderStatus({{ order.transaction_id }}, 'Issues')">
-                                Issue Found
+                            <button class="action-btn action-btn-red" 
+                                    onclick="updateOrderStatus({{ order['id'] }}, 'Issues')">
+                                ⚠️ Flag Issue
                             </button>
-                        {% elif active_tab == 'Awaiting Pickup' %}
-                            <button class="action-btn btn-complete" onclick="notifyAndComplete({{ order.transaction_id }}, '{{ order.customer_email }}')">
-                                Picked Up ✓
+
+                        {% elif order['status'] == 'Awaiting Pickup' %}
+                            <button class="action-btn action-btn-green" 
+                                    onclick="notifyAndComplete({{ order['id'] }}, '{{ order['customer_phone'] or '' }}')">
+                                ✅ Customer Picked Up
                             </button>
-                            <button class="action-btn btn-reject" onclick="updateOrderStatus({{ order.transaction_id }}, 'Issues')">
-                                Issue Found
+                            <button class="action-btn action-btn-red" 
+                                    onclick="updateOrderStatus({{ order['id'] }}, 'Issues')">
+                                ⚠️ Flag Issue
                             </button>
-                        {% elif active_tab == 'Out for Delivery' %}
-                            <button class="action-btn btn-complete" onclick="updateOrderStatus({{ order.transaction_id }}, 'Completed')">
-                                Mark Completed
+
+                        {% elif order['status'] == 'Out for Delivery' %}
+                            <button class="action-btn action-btn-green" 
+                                    onclick="updateOrderStatus({{ order['id'] }}, 'Completed')">
+                                ✅ Mark Delivered
                             </button>
-                        {% elif active_tab == 'Issues' %}
-                            <button class="action-btn btn-restart" onclick="updateOrderStatus({{ order.transaction_id }}, 'Incoming')">
-                                Restart Order
+                            <button class="action-btn action-btn-red" 
+                                    onclick="updateOrderStatus({{ order['id'] }}, 'Issues')">
+                                ⚠️ Flag Issue
                             </button>
-                            <button class="action-btn btn-cancel" onclick="cancelOrder({{ order.transaction_id }})">
-                                Cancel Order
+
+                        {% elif order['status'] == 'Issues' %}
+                            <button class="action-btn action-btn-yellow" 
+                                    onclick="updateOrderStatus({{ order['id'] }}, 'Incoming')">
+                                🔄 Move to Incoming
+                            </button>
+                            <button class="action-btn action-btn-red" 
+                                    onclick="cancelOrder({{ order['id'] }})">
+                                🗑️ Cancel Order
                             </button>
                         {% endif %}
                     </div>
@@ -774,7 +767,6 @@ body {
             {% else %}
             <!-- Empty State -->
             <div class="empty-state">
-                <!--<div class="empty-icon">📭</div> -->
                 <h3>No {{ active_tab }} Orders</h3>
                 <p>There are currently no orders in the {{ active_tab }} stage.</p>
                 {% if search_query %}
@@ -852,21 +844,21 @@ function showConfirmModal({ icon, titleText, titleClass, message, btnText, btnCl
 }
 
 // ============================================================
-// STATUS CONFIGS
+// STATUS CONFIGS - REMOVED EMAIL NOTIFICATION REFERENCES
 // ============================================================
 const STATUS_CONFIG = {
-    'In Progress':      { icon: '📦', titleText: 'Start Packing?',           titleClass: 'success', btnText: 'Start Packing',         btnClass: 'confirm-go-btn-green',  notifMsg: 'PACKING STARTED',    notifType: 'success' },
-    'Awaiting Pickup':  { icon: '🏪', titleText: 'Done Packing?',            titleClass: 'success', btnText: 'Done — Notify Customer', btnClass: 'confirm-go-btn-green',  notifMsg: 'CUSTOMER NOTIFIED!', notifType: 'success' },
-    'Out for Delivery': { icon: '🚚', titleText: 'Done Packing?',            titleClass: 'warning', btnText: 'Out for Delivery',       btnClass: 'confirm-go-btn-yellow', notifMsg: 'OUT FOR DELIVERY',   notifType: 'warning' },
-    'Completed':        { icon: '🎉', titleText: 'Mark Completed?',          titleClass: 'success', btnText: 'Mark Completed',         btnClass: 'confirm-go-btn-green',  notifMsg: 'ORDER COMPLETED!',   notifType: 'success' },
-    'Issues':           { icon: '⚠️', titleText: 'Flag as Issue?',           titleClass: 'danger',  btnText: 'Flag Issue',             btnClass: 'confirm-go-btn-red',    notifMsg: 'FLAGGED AS ISSUE',   notifType: 'error'   },
-    'Incoming':         { icon: '🔄', titleText: 'Restart Order?',           titleClass: 'warning', btnText: 'Restart',                btnClass: 'confirm-go-btn-yellow', notifMsg: 'ORDER RESTARTED',    notifType: 'warning' },
+    'In Progress':      { icon: '📦', titleText: 'Start Packing?',    titleClass: 'success', btnText: 'Start Packing',    btnClass: 'confirm-go-btn-green',  notifMsg: 'PACKING STARTED',  notifType: 'success' },
+    'Awaiting Pickup':  { icon: '🏪', titleText: 'Done Packing?',     titleClass: 'success', btnText: 'Mark Ready',        btnClass: 'confirm-go-btn-green',  notifMsg: 'ORDER READY!',     notifType: 'success' },
+    'Out for Delivery': { icon: '🚚', titleText: 'Done Packing?',     titleClass: 'warning', btnText: 'Out for Delivery',  btnClass: 'confirm-go-btn-yellow', notifMsg: 'OUT FOR DELIVERY', notifType: 'warning' },
+    'Completed':        { icon: '🎉', titleText: 'Mark Completed?',   titleClass: 'success', btnText: 'Mark Completed',    btnClass: 'confirm-go-btn-green',  notifMsg: 'ORDER COMPLETED!', notifType: 'success' },
+    'Issues':           { icon: '⚠️', titleText: 'Flag as Issue?',    titleClass: 'danger',  btnText: 'Flag Issue',        btnClass: 'confirm-go-btn-red',    notifMsg: 'FLAGGED AS ISSUE', notifType: 'error'   },
+    'Incoming':         { icon: '🔄', titleText: 'Restart Order?',    titleClass: 'warning', btnText: 'Restart',           btnClass: 'confirm-go-btn-yellow', notifMsg: 'ORDER RESTARTED',  notifType: 'warning' },
 };
 
 function tabUrl(tab) { return `/orders?tab=${encodeURIComponent(tab)}`; }
 
 // ============================================================
-// UPDATE ORDER STATUS
+// UPDATE ORDER STATUS - NO EMAIL NOTIFICATION
 // ============================================================
 function updateOrderStatus(orderId, newStatus) {
     const cfg = STATUS_CONFIG[newStatus] || {
@@ -887,17 +879,6 @@ function updateOrderStatus(orderId, newStatus) {
                 });
                 const result = await resp.json();
                 if (result.success) {
-                    // Fire pickup notification email when moving to Awaiting Pickup
-                    if (newStatus === 'Awaiting Pickup') {
-                        const notifyResp = await fetch(`/api/notify-pickup/${orderId}`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' }
-                        });
-                        const notifyResult = await notifyResp.json();
-                        if (!notifyResult.success) {
-                            console.error('Email notify failed:', notifyResult.message);
-                        }
-                    }
                     showBigNotification(cfg.notifMsg, cfg.notifType);
                     setTimeout(() => { window.location.href = tabUrl(newStatus); }, 1800);
                 } else {
@@ -912,9 +893,9 @@ function updateOrderStatus(orderId, newStatus) {
 }
 
 // ============================================================
-// PICKED UP — mark completed (no extra email needed)
+// PICKED UP — mark completed (no email, phone-based communication)
 // ============================================================
-function notifyAndComplete(orderId, customerEmail) {
+function notifyAndComplete(orderId, customerPhone) {
     showConfirmModal({
         icon: '✅', titleText: 'Customer Picked Up?', titleClass: 'success',
         message: `Confirm Order #${orderId} has been collected by the customer.`,
