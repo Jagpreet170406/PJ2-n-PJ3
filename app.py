@@ -12,7 +12,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from groq import Groq
 from image_matcher import build_image_cache, get_product_image_url
 
-load_dotenv()
+# load_dotenv()
 
 # === FLASK APP INITIALIZATION ===
 app = Flask(__name__)
@@ -870,6 +870,10 @@ def dashboard():
             'total_units':     int(kpi_row['total_units']    or 0),
         }
 
+        avg_order_value = (
+            stats['total_revenue'] / stats['total_invoices']
+            if stats['total_invoices'] else 0)
+
         page_params = inner_params + [per_page, offset]
         paginated_invoice_nos = [
             row['invoice_no'] for row in conn.execute(f"""
@@ -934,6 +938,28 @@ def dashboard():
             "SELECT DISTINCT product_id, sku_no, hem_name FROM products ORDER BY hem_name"
         ).fetchall()
 
+        # Top products by revenue for current filters
+        top_rows = conn.execute(
+            f"""
+            SELECT l.product_id,
+                   COALESCE(p.hem_name, 'Unknown') AS hem_name,
+                   SUM(l.total_amt) AS revenue
+            FROM sales_invoice_header h
+            LEFT JOIN sales_invoice_line l ON l.invoice_no = h.invoice_no
+            LEFT JOIN products p ON p.product_id = l.product_id
+            {filter_where}
+            GROUP BY l.product_id, hem_name
+            ORDER BY revenue DESC
+            LIMIT 10
+            """,
+            inner_params,
+        ).fetchall()
+
+        top_products = [
+            {"name": r["hem_name"], "revenue": round(float(r["revenue"] or 0), 2)}
+            for r in top_rows
+        ]
+
     return render_template("dashboard.html",
         invoices=invoices,
         total_revenue=stats['total_revenue'],
@@ -949,6 +975,8 @@ def dashboard():
         end_date=end_date,
         trend_labels=trend_labels,
         trend_data=trend_data,
+        top_products=top_products,
+        avg_order_value=round(avg_order_value, 2),
         role=session.get("role"))
 
 @app.route("/create-invoice", methods=["POST"])
