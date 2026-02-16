@@ -315,6 +315,33 @@ def process_payment():
 
     try:
         with get_db() as conn:
+            # First, validate that all items have sufficient inventory
+            for item in cart_items:
+                inventory_id = item.get('id')
+                requested_qty = item.get('quantity', 1)
+                product_name = item.get('name', 'Unknown Product')
+                
+                # Check current inventory
+                inventory_row = conn.execute(
+                    "SELECT qty, hem_name FROM inventory WHERE inventory_id = ?",
+                    (inventory_id,)
+                ).fetchone()
+                
+                if not inventory_row:
+                    return jsonify({
+                        "success": False, 
+                        "message": f"Product '{product_name}' not found in inventory"
+                    })
+                
+                current_qty = inventory_row['qty']
+                
+                if current_qty < requested_qty:
+                    return jsonify({
+                        "success": False, 
+                        "message": f"Insufficient stock for '{product_name}'. Only {current_qty} available, but {requested_qty} requested."
+                    })
+            
+            # All items validated - proceed with order creation
             # Insert into transactions table with fulfillment info
             cursor = conn.execute(
                 """INSERT INTO transactions 
@@ -324,7 +351,7 @@ def process_payment():
             )
             order_id = cursor.lastrowid
             
-            # Insert each cart item into order_items table
+            # Insert each cart item into order_items table AND deduct from inventory
             for item in cart_items:
                 inventory_id = item.get('id')
                 product_name = item.get('name', 'Unknown Product')
@@ -333,11 +360,20 @@ def process_payment():
                 unit_price = item.get('price', 0)
                 image_url = item.get('image', '/static/product_images_v2/placeholder.png')
                 
+                # Insert order item
                 conn.execute(
                     """INSERT INTO order_items 
                        (order_id, inventory_id, product_name, product_sku, quantity, unit_price, image_url)
                        VALUES (?, ?, ?, ?, ?, ?, ?)""",
                     (order_id, inventory_id, product_name, product_sku, quantity, unit_price, image_url)
+                )
+                
+                # Deduct from inventory
+                conn.execute(
+                    """UPDATE inventory 
+                       SET qty = qty - ? 
+                       WHERE inventory_id = ?""",
+                    (quantity, inventory_id)
                 )
             
             conn.commit()
@@ -572,7 +608,7 @@ def update_order_status(order_id):
 @csrf.exempt
 @require_staff
 def cancel_order(order_id):
-    """API: Cancel/delete an order from the system."""
+    """API: Cancel/delete an order from the system and restore inventory."""
     try:
         with get_db() as conn:
             order = conn.execute(
@@ -583,6 +619,21 @@ def cancel_order(order_id):
             if not order:
                 return jsonify({"success": False, "message": "Order not found"}), 404
             
+            # Get order items to restore inventory
+            order_items = conn.execute(
+                "SELECT inventory_id, quantity FROM order_items WHERE order_id = ?",
+                (order_id,)
+            ).fetchall()
+            
+            # Restore inventory for each item
+            for item in order_items:
+                conn.execute(
+                    """UPDATE inventory 
+                       SET qty = qty + ? 
+                       WHERE inventory_id = ?""",
+                    (item['quantity'], item['inventory_id'])
+                )
+            
             # Delete order items first (foreign key constraint)
             conn.execute("DELETE FROM order_items WHERE order_id = ?", (order_id,))
             # Delete the order
@@ -591,7 +642,7 @@ def cancel_order(order_id):
             
             return jsonify({
                 "success": True,
-                "message": "Order cancelled successfully"
+                "message": "Order cancelled successfully and inventory restored"
             })
             
     except Exception as e:

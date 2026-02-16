@@ -1364,8 +1364,121 @@ document.getElementById('productPrice').addEventListener('input', () => {
 searchInput.addEventListener("keyup", filterAndSortProducts);
 sortSelect.addEventListener("change", filterAndSortProducts);
 
-// Initial load
-loadProducts();
+// ============================================================
+// AUTO-REFRESH MECHANISM
+// ============================================================
+// Automatically reload inventory every 30 seconds to sync with orders
+let autoRefreshInterval = null;
+let lastRefreshTime = Date.now();
+
+function startAutoRefresh() {
+    // Clear any existing interval
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+    }
+    
+    // Refresh every 30 seconds
+    autoRefreshInterval = setInterval(async () => {
+        console.log('Auto-refreshing inventory data...');
+        const previousProducts = [...allProducts]; // Keep a copy for comparison
+        
+        try {
+            await loadProducts();
+            lastRefreshTime = Date.now();
+            
+            // Check if any quantities changed significantly (indicates orders were placed)
+            const hasSignificantChanges = allProducts.some((newProd, idx) => {
+                const oldProd = previousProducts.find(p => p.inventory_id === newProd.inventory_id);
+                if (oldProd && Math.abs(oldProd.qty - newProd.qty) > 0) {
+                    return true;
+                }
+                return false;
+            });
+            
+            if (hasSignificantChanges) {
+                console.log('Inventory changes detected - data refreshed');
+            }
+        } catch (error) {
+            console.error('Auto-refresh failed:', error);
+        }
+    }, 30000); // 30 seconds
+}
+
+function stopAutoRefresh() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+    }
+}
+
+// Add manual refresh button functionality
+function addRefreshButton() {
+    const heroSection = document.querySelector('.hero');
+    if (heroSection && !document.getElementById('manual-refresh-btn')) {
+        const refreshBtn = document.createElement('button');
+        refreshBtn.id = 'manual-refresh-btn';
+        refreshBtn.innerHTML = '🔄 Refresh Now';
+        refreshBtn.style.cssText = `
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            padding: 12px 24px;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 12px;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        `;
+        refreshBtn.onmouseover = () => {
+            refreshBtn.style.background = 'rgba(255,255,255,0.25)';
+            refreshBtn.style.transform = 'translateY(-2px)';
+        };
+        refreshBtn.onmouseout = () => {
+            refreshBtn.style.background = 'rgba(255,255,255,0.15)';
+            refreshBtn.style.transform = 'translateY(0)';
+        };
+        refreshBtn.onclick = async () => {
+            refreshBtn.disabled = true;
+            refreshBtn.innerHTML = '⏳ Refreshing...';
+            try {
+                await loadProducts();
+                showBigNotification('INVENTORY REFRESHED', 'success');
+                refreshBtn.innerHTML = '✓ Refreshed!';
+                setTimeout(() => {
+                    refreshBtn.innerHTML = '🔄 Refresh Now';
+                }, 2000);
+            } catch (error) {
+                showBigNotification('REFRESH FAILED', 'error');
+                refreshBtn.innerHTML = '🔄 Refresh Now';
+            }
+            refreshBtn.disabled = false;
+        };
+        heroSection.appendChild(refreshBtn);
+    }
+}
+
+// Stop auto-refresh when user leaves the page
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        stopAutoRefresh();
+    } else {
+        startAutoRefresh();
+        // Refresh immediately when tab becomes visible
+        loadProducts();
+    }
+});
+
+// Stop auto-refresh on page unload
+window.addEventListener('beforeunload', stopAutoRefresh);
+
+// Initial load with auto-refresh
+loadProducts().then(() => {
+    addRefreshButton();
+    startAutoRefresh();
+});
 </script>
 
 {% endblock %}

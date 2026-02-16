@@ -675,6 +675,39 @@ body {
                         </div>
                     </div>
 
+                    <!-- Order Items Section - Products to pack -->
+                    {% if order['order_items'] %}
+                    <div class="order-items-section" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.12);">
+                        <div style="font-size: 0.85rem; font-weight: 800; color: rgba(255,255,255,0.70); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
+                            📦 Items to Pack
+                        </div>
+                        {% for item in order['order_items'] %}
+                        <div class="order-item-row" style="display: flex; align-items: center; gap: 12px; padding: 10px; background: rgba(0,0,0,0.25); border-radius: 8px; margin-bottom: 8px;">
+                            <!-- Product Image -->
+                            <img src="{{ item['image_url'] or '/static/product_images_v2/placeholder.png' }}" 
+                                 alt="{{ item['product_name'] }}"
+                                 style="width: 50px; height: 50px; object-fit: contain; border-radius: 6px; background: rgba(255,255,255,0.10); padding: 4px;">
+                            
+                            <!-- Product Details -->
+                            <div style="flex: 1;">
+                                <div style="font-weight: 700; color: rgba(255,255,255,0.92); margin-bottom: 4px;">
+                                    {{ item['product_name'] }}
+                                </div>
+                                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.55);">
+                                    {% if item['product_sku'] %}SKU: {{ item['product_sku'] }} • {% endif %}
+                                    Qty: {{ item['quantity'] }} × S${{ "%.2f"|format(item['unit_price']) }}
+                                </div>
+                            </div>
+                            
+                            <!-- Item Subtotal -->
+                            <div style="font-weight: 800; color: rgba(255,255,255,0.92); font-size: 1rem;">
+                                S${{ "%.2f"|format(item['quantity'] * item['unit_price']) }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
                     <!-- Actions based on current status -->
                     <div class="order-actions">
                         {% if order['status'] == 'Incoming' %}
