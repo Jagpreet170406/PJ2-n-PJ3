@@ -160,6 +160,36 @@ CREATE TABLE IF NOT EXISTS purchase_line (
 );
 """)
 
+# =========================
+# 8. CONTACT SUBMISSIONS (New)
+# =========================
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS contact_submissions (
+    submission_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    phone TEXT,
+    subject TEXT NOT NULL,
+    message TEXT NOT NULL,
+    status TEXT DEFAULT 'new',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+""")
+
+# =========================
+# 9. FEEDBACK (if not exists)
+# =========================
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS feedback (
+    feedback_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL,
+    email TEXT,
+    rating INTEGER CHECK(rating >= 1 AND rating <= 5),
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+""")
+
 # Create indexes for performance
 cursor.execute("CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id)")
 cursor.execute("CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status)")
@@ -169,11 +199,16 @@ cursor.execute("CREATE INDEX IF NOT EXISTS idx_sil_inv ON sales_invoice_line(inv
 cursor.execute("CREATE INDEX IF NOT EXISTS idx_sil_prod ON sales_invoice_line(product_id)")
 cursor.execute("CREATE INDEX IF NOT EXISTS idx_prod_name ON products(hem_name)")
 cursor.execute("CREATE INDEX IF NOT EXISTS idx_cust_code ON customers(customer_code)")
+cursor.execute("CREATE INDEX IF NOT EXISTS idx_contact_status ON contact_submissions(status)")
+cursor.execute("CREATE INDEX IF NOT EXISTS idx_contact_created ON contact_submissions(created_at)")
+cursor.execute("CREATE INDEX IF NOT EXISTS idx_feedback_created ON feedback(created_at)")
 
 conn.commit()
 conn.close()
 
-print("✅ database.db updated with ORDER_ITEMS table + fulfillment fields!")
+print("✅ database.db updated with all tables!")
 print("   - Added order_items table to store products")
 print("   - Added fulfillment_method and fulfillment_details to transactions")
+print("   - Added contact_submissions table for contact form")
+print("   - Added feedback table for customer reviews")
 print("   - Added indexes for better performance")
