@@ -215,14 +215,14 @@ def cart():
             FROM inventory
         """
 
-        def make_bucket(vc_condition):
+        def make_bucket(vc_condition, bucket_num):
             inner = bucket_core + where_clause + """
                 GROUP BY hem_name
                 HAVING """ + vc_condition + """
                 ORDER BY inventory_id DESC
                 LIMIT 50
             """
-            return "SELECT * FROM (" + inner + ") AS bkt"
+            return "SELECT *, {} AS bucket_order FROM ({}) AS bkt".format(bucket_num, inner)
 
         pool_query = """
             SELECT * FROM (
@@ -234,12 +234,12 @@ def cart():
                 UNION ALL
                 {b4}
             ) AS pool
-            ORDER BY inventory_id DESC
+            ORDER BY bucket_order ASC, inventory_id DESC
         """.format(
-            b1=make_bucket("COUNT(*) = 1"),
-            b2=make_bucket("COUNT(*) = 2"),
-            b3=make_bucket("COUNT(*) = 3"),
-            b4=make_bucket("COUNT(*) > 3"),
+            b1=make_bucket("COUNT(*) = 1", 1),
+            b2=make_bucket("COUNT(*) = 2", 2),
+            b3=make_bucket("COUNT(*) = 3", 3),
+            b4=make_bucket("COUNT(*) > 3", 4),
         )
 
         pool_params = params * 4
