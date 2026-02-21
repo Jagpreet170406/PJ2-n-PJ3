@@ -440,24 +440,35 @@
                 
                 <h4 class="font-weight-bold">Bill Summary</h4>
                 
-                <!-- ========== DELIVERY INCENTIVE BOX ========== -->
-                <!-- Shows progress to free delivery (hidden by default) -->
+                <!-- ========== DELIVERY TIER BOX ========== -->
                 <div id="delivery-incentive-box" 
                      class="p-3 mb-3 rounded" 
-                     style="display: none; background: #fffbeb; border: 1px solid #fcd34d;">
+                     style="display: none; border: 2px solid #e0e0e0; transition: all 0.4s;">
                     
-                    <!-- Incentive Text and Amount Needed -->
+                    <!-- Tier Header Row: icon + tier name -->
+                    <div class="d-flex align-items-center mb-2" style="gap: 0.6rem;">
+                        <span id="tier-icon-checkout" style="font-size: 1.6rem; line-height:1;"></span>
+                        <strong id="tier-label-checkout" style="font-size: 1rem;"></strong>
+                        <span id="tier-badge-checkout" 
+                              class="ml-auto badge" 
+                              style="font-size: 0.75rem; padding: 0.35rem 0.65rem; border-radius: 20px;"></span>
+                    </div>
+                    
+                    <!-- Next tier progress label -->
                     <div class="d-flex justify-content-between align-items-center mb-1">
-                        <small class="font-weight-bold text-dark" id="incentive-text">Next Tier</small>
+                        <small class="font-weight-bold" id="incentive-text"></small>
                         <small class="font-weight-bold" id="incentive-amount"></small>
                     </div>
                     
-                    <!-- Progress Bar (Animated) -->
-                    <div class="progress" style="height: 8px;">
+                    <!-- Progress Bar -->
+                    <div style="height: 7px; border-radius: 99px; background: #e8e8e8; overflow: hidden;">
                         <div id="incentive-bar" 
-                             class="progress-bar progress-bar-striped progress-bar-animated bg-warning" 
-                             role="progressbar" 
-                             style="width: 0%"></div>
+                             style="height: 100%; border-radius: 99px; width: 0%; transition: width 0.5s ease;"></div>
+                    </div>
+                    
+                    <!-- Tier perks reminder -->
+                    <div class="mt-2">
+                        <small id="tier-perks-checkout" style="color: #888; font-size: 0.7rem; line-height: 1.4;"></small>
                     </div>
                 </div>
 
@@ -783,6 +794,9 @@ function togglePaymentMethod(){
 function setFulfillment(method){
     currentFulfillment = method;
     
+    // Persist so cart page stays in sync
+    localStorage.setItem('fulfillment_method', method);
+    
     // Toggle active class on selection boxes
     document.getElementById('box-pickup').classList.toggle('active', method === 'pickup');
     document.getElementById('box-delivery').classList.toggle('active', method === 'delivery');
@@ -802,6 +816,13 @@ function loadCheckoutCart(){
     const cart = JSON.parse(localStorage.getItem('cart') || '[]');
     const container = document.getElementById('cart-items-container');
     let subtotal = 0;
+
+    // Show empty cart message if nothing in cart
+    if (cart.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center py-3">Your cart is empty. <a href="{{ url_for("cart") }}">Continue shopping</a></p>';
+        updateTotals(0, 0);
+        return;
+    }
     
     // Build HTML for each cart item
     container.innerHTML = cart.map(function(item, i){
@@ -852,28 +873,83 @@ function loadCheckoutCart(){
     updateTotals(subtotal, ship);
 }
 
-/* ========== UPDATE PRICE TOTALS AND INCENTIVE BAR ========== */
-/* Updates subtotal, shipping, total, and delivery incentive progress */
+/* ========== UPDATE PRICE TOTALS AND TIER BOX ========== */
 function updateTotals(sub, ship){
-    // Update price displays
     document.getElementById('summary-subtotal').innerText = 'S$' + sub.toFixed(2);
     document.getElementById('summary-shipping').innerText = (ship === 0) ? 'FREE' : 'S$' + ship.toFixed(2);
     document.getElementById('summary-total').innerText = 'S$' + (sub + ship).toFixed(2);
     
-    // Show delivery incentive box for delivery orders under $888
-    const box = document.getElementById('delivery-incentive-box');
-    if(currentFulfillment === 'delivery' && sub < 888){
-        box.style.display = 'block';
-        
-        // Determine next tier: $100 (reduced shipping) or $888 (free shipping)
-        let target = sub < 100 ? 100 : 888;
-        let diff = target - sub;
-        
-        // Update incentive text and progress bar
-        document.getElementById('incentive-amount').innerText = 'S$' + diff.toFixed(2) + ' to go';
-        document.getElementById('incentive-bar').style.width = (sub / target * 100) + '%';
-    } else { 
-        box.style.display = 'none'; 
+    const box       = document.getElementById('delivery-incentive-box');
+    const iconEl    = document.getElementById('tier-icon-checkout');
+    const labelEl   = document.getElementById('tier-label-checkout');
+    const badgeEl   = document.getElementById('tier-badge-checkout');
+    const textEl    = document.getElementById('incentive-text');
+    const amtEl     = document.getElementById('incentive-amount');
+    const barEl     = document.getElementById('incentive-bar');
+    const perksEl   = document.getElementById('tier-perks-checkout');
+
+    // Only show tier box when delivery is selected
+    if (currentFulfillment !== 'delivery') {
+        box.style.display = 'none';
+        return;
+    }
+    box.style.display = 'block';
+
+    if (sub < 100) {
+        // 🥉 Bronze
+        box.style.background    = 'linear-gradient(135deg, #fff8f4, #fff1e6)';
+        box.style.borderColor   = '#e07b39';
+        iconEl.textContent      = '🥉';
+        labelEl.textContent     = 'Bronze Tier';
+        labelEl.style.color     = '#c0612a';
+        badgeEl.textContent     = 'Delivery: S$3.50';
+        badgeEl.style.background = '#fde8d8';
+        badgeEl.style.color     = '#c0612a';
+        const diff = (100 - sub).toFixed(2);
+        textEl.textContent      = `S$${diff} more → Silver`;
+        textEl.style.color      = '#c0612a';
+        amtEl.textContent       = `S$${diff} to go`;
+        amtEl.style.color       = '#c0612a';
+        barEl.className         = 'progress-bar';
+        barEl.style.background  = '#e07b39';
+        barEl.style.width       = (sub / 100 * 100) + '%';
+        perksEl.textContent     = '🥈 S$100+ → S$1.50 fee  |  🥇 S$888+ → FREE';
+    } else if (sub < 888) {
+        // 🥈 Silver
+        box.style.background    = 'linear-gradient(135deg, #f4f6fb, #eef1f8)';
+        box.style.borderColor   = '#8ea3c3';
+        iconEl.textContent      = '🥈';
+        labelEl.textContent     = 'Silver Tier';
+        labelEl.style.color     = '#4a6490';
+        badgeEl.textContent     = 'Delivery: S$1.50';
+        badgeEl.style.background = '#dce6f5';
+        badgeEl.style.color     = '#4a6490';
+        const diff = (888 - sub).toFixed(2);
+        textEl.textContent      = `S$${diff} more → Gold`;
+        textEl.style.color      = '#4a6490';
+        amtEl.textContent       = `S$${diff} to go`;
+        amtEl.style.color       = '#4a6490';
+        barEl.className         = 'progress-bar';
+        barEl.style.background  = 'linear-gradient(90deg, #8ea3c3, #c8d4e8)';
+        barEl.style.width       = ((sub - 100) / (888 - 100) * 100) + '%';
+        perksEl.textContent     = '🥇 Spend S$888+ to unlock FREE delivery!';
+    } else {
+        // 🥇 Gold
+        box.style.background    = 'linear-gradient(135deg, #fffde6, #fff9c4)';
+        box.style.borderColor   = '#f5c842';
+        iconEl.textContent      = '🥇';
+        labelEl.textContent     = 'Gold Tier';
+        labelEl.style.color     = '#8a6c00';
+        badgeEl.textContent     = 'FREE Delivery 🎉';
+        badgeEl.style.background = '#fff0a0';
+        badgeEl.style.color     = '#8a6c00';
+        textEl.textContent      = 'FREE delivery unlocked!';
+        textEl.style.color      = '#8a6c00';
+        amtEl.textContent       = '';
+        barEl.className         = 'progress-bar';
+        barEl.style.background  = 'linear-gradient(90deg, #f5c842, #ffe680)';
+        barEl.style.width       = '100%';
+        perksEl.textContent     = "You're at the top. Enjoy free shipping!";
     }
 }
 
@@ -1232,9 +1308,12 @@ function validateDeliveryAddress() {
 /* ========== PAGE LOAD INITIALIZATION ========== */
 /* Runs when page finishes loading */
 document.addEventListener('DOMContentLoaded', function(){
-    loadCheckoutCart();  // Load cart items and calculate totals
     loadSavedCards();    // Load saved payment cards
     updateCartBadge();   // Update cart badge on load
+
+    // ← Restore fulfillment method saved from cart page
+    const savedMethod = localStorage.getItem('fulfillment_method') || 'pickup';
+    setFulfillment(savedMethod);
     
     // Initialize pickup date with today's date (default)
     const pickupDateInput = document.getElementById('pickup-date');
